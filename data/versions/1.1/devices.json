@@ -1,0 +1,12 @@
+[
+  {
+    "id": "miner-1",
+    "footprint": {"width": 2, "height": 2},
+    "bandwidth": 2,
+    "power_draw": 4,
+    "requires_power": true,
+    "recipes": ["recipe-ore"],
+    "tech_prereq": ["t1"],
+    "category": "miner"
+  }
+]

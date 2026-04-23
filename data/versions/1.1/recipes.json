@@ -1,0 +1,9 @@
+[
+  {
+    "id": "recipe-ore",
+    "cycle_seconds": 10,
+    "inputs": [],
+    "outputs": [{"item_id": "item-ore", "qty_per_cycle": 1}],
+    "compatible_devices": ["miner-1"]
+  }
+]

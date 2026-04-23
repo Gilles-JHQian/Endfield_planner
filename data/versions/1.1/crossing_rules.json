@@ -1,0 +1,5 @@
+{
+  "same_layer_crossing": {"solid": {}, "fluid": {}},
+  "bridge_port_constraint": "paired_opposite",
+  "cross_layer_crossing": {"default": "allowed", "exceptions": []}
+}

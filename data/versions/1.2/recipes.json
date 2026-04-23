@@ -1,0 +1,16 @@
+[
+  {
+    "id": "recipe-ore",
+    "cycle_seconds": 10,
+    "inputs": [],
+    "outputs": [{"item_id": "item-ore", "qty_per_cycle": 1}],
+    "compatible_devices": ["miner-1"]
+  },
+  {
+    "id": "recipe-ingot",
+    "cycle_seconds": 30,
+    "inputs": [{"item_id": "item-ore", "qty_per_cycle": 2}],
+    "outputs": [{"item_id": "item-ingot", "qty_per_cycle": 1}],
+    "compatible_devices": ["furnance-1"]
+  }
+]

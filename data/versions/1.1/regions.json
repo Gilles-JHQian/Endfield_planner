@@ -1,0 +1,7 @@
+[
+  {
+    "region_id": "valley_4",
+    "plot_default_size": {"width": 50, "height": 50},
+    "available_tech_tiers": ["t1"]
+  }
+]
