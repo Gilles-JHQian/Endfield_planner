@@ -1,0 +1,25 @@
+[
+  {
+    "id": "valley_4",
+    "plotDefaultSize": {
+      "width": 80,
+      "height": 80
+    },
+    "availableTechTiers": [
+      "t1",
+      "t2"
+    ]
+  },
+  {
+    "id": "wuling",
+    "plotDefaultSize": {
+      "width": 90,
+      "height": 90
+    },
+    "availableTechTiers": [
+      "t1",
+      "t2",
+      "t3"
+    ]
+  }
+]

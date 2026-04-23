@@ -1,0 +1,24 @@
+[
+  {
+    "id": "smelter-1",
+    "displayName": "精炼炉",
+    "width": 3,
+    "height": 2,
+    "powerDraw": 80,
+    "requiresPower": true,
+    "recipes": [
+      "smelt-iron"
+    ]
+  },
+  {
+    "id": "assembler-1",
+    "displayName": "组装机",
+    "width": 3,
+    "height": 3,
+    "powerDraw": 120,
+    "requiresPower": true,
+    "recipes": [
+      "craft-battery"
+    ]
+  }
+]

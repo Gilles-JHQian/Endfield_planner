@@ -1,0 +1,53 @@
+[
+  {
+    "id": "smelt-iron",
+    "displayName": "炼铁",
+    "cycleSeconds": 30,
+    "inputs": [
+      {
+        "itemId": "iron-ore",
+        "qtyPerCycle": 2
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "iron-ingot",
+        "qtyPerCycle": 1
+      }
+    ],
+    "compatibleDevices": [
+      "smelter-1"
+    ],
+    "regions": [
+      "valley_4",
+      "wuling"
+    ]
+  },
+  {
+    "id": "craft-battery",
+    "displayName": "高谷电池",
+    "cycleSeconds": 60,
+    "inputs": [
+      {
+        "itemId": "iron-ingot",
+        "qtyPerCycle": 3
+      },
+      {
+        "itemId": "water",
+        "qtyPerCycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "itemId": "battery",
+        "qtyPerCycle": 1
+      }
+    ],
+    "compatibleDevices": [
+      "assembler-1"
+    ],
+    "regions": [
+      "wuling"
+    ]
+  }
+]

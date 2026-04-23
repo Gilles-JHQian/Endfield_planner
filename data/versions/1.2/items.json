@@ -1,0 +1,22 @@
+[
+  {
+    "id": "iron-ore",
+    "displayName": "铁矿石",
+    "kind": "solid"
+  },
+  {
+    "id": "iron-ingot",
+    "displayName": "铁锭",
+    "kind": "solid"
+  },
+  {
+    "id": "battery",
+    "displayName": "高谷电池",
+    "kind": "solid"
+  },
+  {
+    "id": "water",
+    "displayName": "清水",
+    "kind": "fluid"
+  }
+]

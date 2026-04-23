@@ -1,0 +1,13 @@
+{
+  "same_layer_crossing": {
+    "solid": {
+      "allowed_without_component": false,
+      "crossing_component_id": "logistics-bridge-1"
+    },
+    "fluid": {
+      "allowed_without_component": false,
+      "crossing_component_id": "pipe-bridge-1"
+    }
+  },
+  "bridge_port_constraint": "paired_opposite"
+}
