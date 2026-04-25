@@ -5,3 +5,6 @@ pnpm-lock.yaml
 scripts/.cache
 .scratch
 plan
+# Scraped data is owned by scripts/scrape-endwiki.ts; prettier rewriting
+# short arrays to multi-line form causes infinite churn between scrapes.
+data/versions
