@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.vite/
+coverage/
+scripts/.cache/
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# TS build cache
+*.tsbuildinfo
