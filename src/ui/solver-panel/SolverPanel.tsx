@@ -1,6 +1,10 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { solveThroughput, type SolveResult, type SolveTarget } from '@core/solver/index.ts';
+import type { DataBundle } from '@core/data-loader/types.ts';
 import { useDataBundle } from './use-data-bundle.ts';
+import { RecipeNodes } from './RecipeNodes.tsx';
+import { RawInputsTable } from './RawInputsTable.tsx';
+import { SummaryCard } from './SummaryCard.tsx';
 
 const DEFAULT_VERSION = '1.2';
 
@@ -134,19 +138,30 @@ export function SolverPanel() {
   );
 }
 
-function ResultArea({
-  result,
-  bundle,
-}: {
-  result: SolveResult;
-  bundle: NonNullable<ReturnType<typeof useDataBundle>['bundle']>;
-}) {
-  // Components land in the next commit — for now show a placeholder so this
-  // commit is testable end-to-end.
-  void bundle;
+function ResultArea({ result, bundle }: { result: SolveResult; bundle: DataBundle }) {
   return (
-    <pre className="overflow-auto rounded bg-neutral-900 p-4 text-xs text-neutral-100">
-      {JSON.stringify(result, null, 2)}
-    </pre>
+    <div className="space-y-6">
+      <SummaryCard result={result} />
+      <RecipeNodes result={result} bundle={bundle} />
+      <RawInputsTable
+        flows={result.raw_inputs}
+        bundle={bundle}
+        title="原料消耗 (raw inputs)"
+        emptyText="无原料消耗 — 整条产线自给自足。"
+      />
+      {Object.keys(result.byproducts).length > 0 && (
+        <RawInputsTable
+          flows={result.byproducts}
+          bundle={bundle}
+          title="副产物 (byproducts)"
+          emptyText="无副产物。"
+        />
+      )}
+      {result.cycles.length > 0 && (
+        <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+          检测到环路配方（已截断展开）：{result.cycles.join(', ')}
+        </p>
+      )}
+    </div>
   );
 }
