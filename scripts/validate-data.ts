@@ -5,12 +5,12 @@ import Ajv2020, { type AnySchema } from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(__dirname, '..');
-const schemaDir = resolve(repoRoot, 'data', 'schema');
-const versionsDir = resolve(repoRoot, 'data', 'versions');
+export const repoRoot = resolve(__dirname, '..');
+export const schemaDir = resolve(repoRoot, 'data', 'schema');
+export const versionsDir = resolve(repoRoot, 'data', 'versions');
 
 // Maps each data file basename to its schema file basename.
-const FILE_TO_SCHEMA: Readonly<Record<string, string>> = {
+export const FILE_TO_SCHEMA: Readonly<Record<string, string>> = {
   'devices.json': 'devices.schema.json',
   'recipes.json': 'recipes.schema.json',
   'items.json': 'items.schema.json',
@@ -22,7 +22,7 @@ const FILE_TO_SCHEMA: Readonly<Record<string, string>> = {
 // generated.meta.json is a free-form scraper output marker, not validated.
 const IGNORED_FILES = new Set(['generated.meta.json']);
 
-interface Failure {
+export interface Failure {
   file: string;
   schema: string;
   errors: string;
@@ -33,17 +33,23 @@ async function readJson<T = unknown>(file: string): Promise<T> {
   return JSON.parse(raw) as T;
 }
 
-async function loadSchemas(ajv: Ajv2020): Promise<void> {
+async function buildAjv(): Promise<Ajv2020> {
+  const ajv = new Ajv2020({ allErrors: true, strict: true });
+  addFormats(ajv);
   for (const schemaFile of Object.values(FILE_TO_SCHEMA)) {
     const schema = await readJson<AnySchema>(resolve(schemaDir, schemaFile));
     ajv.addSchema(schema, schemaFile);
   }
+  return ajv;
 }
 
-async function listDataVersions(): Promise<string[]> {
+export async function listDataVersions(): Promise<string[]> {
   try {
     const entries = await readdir(versionsDir, { withFileTypes: true });
-    return entries.filter((e) => e.isDirectory()).map((e) => e.name);
+    return entries
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name)
+      .sort();
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return [];
     throw err;
@@ -92,25 +98,35 @@ async function validateVersion(ajv: Ajv2020, version: string): Promise<Failure[]
   return failures;
 }
 
-async function main(): Promise<void> {
-  const ajv = new Ajv2020({ allErrors: true, strict: true });
-  addFormats(ajv);
-  await loadSchemas(ajv);
+export interface ValidationReport {
+  version: string;
+  failures: Failure[];
+}
 
+export async function validateAllVersions(): Promise<ValidationReport[]> {
+  const ajv = await buildAjv();
   const versions = await listDataVersions();
-  if (versions.length === 0) {
+  const reports: ValidationReport[] = [];
+  for (const version of versions) {
+    reports.push({ version, failures: await validateVersion(ajv, version) });
+  }
+  return reports;
+}
+
+async function main(): Promise<void> {
+  const reports = await validateAllVersions();
+  if (reports.length === 0) {
     console.log('No data versions found under data/versions/. Nothing to validate.');
     return;
   }
 
   let totalFailures = 0;
-  for (const version of versions) {
-    const failures = await validateVersion(ajv, version);
-    if (failures.length === 0) {
-      console.log(`✓ ${version}`);
+  for (const report of reports) {
+    if (report.failures.length === 0) {
+      console.log(`✓ ${report.version}`);
     } else {
-      totalFailures += failures.length;
-      for (const f of failures) {
+      totalFailures += report.failures.length;
+      for (const f of report.failures) {
         console.error(`✗ ${f.file} (against ${f.schema})\n  ${f.errors}`);
       }
     }
@@ -122,7 +138,10 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((err: unknown) => {
-  console.error(err);
-  process.exit(1);
-});
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  main().catch((err: unknown) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
