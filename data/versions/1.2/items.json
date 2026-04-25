@@ -1,0 +1,30 @@
+[
+  {
+    "id": "iron-ore",
+    "display_name_zh_hans": "铁矿石",
+    "display_name_en": "Iron Ore",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "iron-ingot",
+    "display_name_zh_hans": "铁锭",
+    "display_name_en": "Iron Ingot",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "battery",
+    "display_name_zh_hans": "高谷电池",
+    "display_name_en": "Highland Battery",
+    "kind": "solid",
+    "rarity": 3
+  },
+  {
+    "id": "water",
+    "display_name_zh_hans": "清水",
+    "display_name_en": "Water",
+    "kind": "fluid",
+    "rarity": 1
+  }
+]

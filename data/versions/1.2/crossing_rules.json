@@ -1,0 +1,39 @@
+{
+  "same_layer_crossing": {
+    "solid": {
+      "allowed_without_component": false,
+      "crossing_component_id": "logistics-bridge-1",
+      "latency_penalty": {
+        "model": "bridge_count_step",
+        "thresholds": [
+          { "at_least": 2, "throughput_multiplier": 0.75 },
+          { "at_least": 3, "throughput_multiplier": 0.75 }
+        ],
+        "source": "community_measurement_gamersky_2080424"
+      }
+    },
+    "fluid": {
+      "allowed_without_component": false,
+      "crossing_component_id": "pipe-bridge-1",
+      "latency_penalty": null
+    }
+  },
+  "bridge_port_constraint": "paired_opposite",
+  "cross_layer_crossing": {
+    "default": "allowed",
+    "exceptions": [
+      {
+        "when": { "solid_occupant_category": "logistics_infrastructure" },
+        "result": "forbidden",
+        "reason_zh_hans": "传送带基础设施（分流器/汇流器/物流桥）占据双层。",
+        "reason_en": "Belt infrastructure (splitter / confluence / bridge) occupies both layers."
+      },
+      {
+        "when": { "fluid_occupant_category": "pipe_infrastructure" },
+        "result": "forbidden",
+        "reason_zh_hans": "管道基础设施（分流器/汇流器/管道桥/支架）占据双层。",
+        "reason_en": "Pipe infrastructure (splitter / confluence / bridge / support) occupies both layers."
+      }
+    ]
+  }
+}
