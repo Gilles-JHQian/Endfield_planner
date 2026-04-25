@@ -1,30 +1,692 @@
 [
   {
-    "id": "iron-ore",
-    "display_name_zh_hans": "铁矿石",
-    "display_name_en": "Iron Ore",
+    "id": "item-activity-xiranite-bottle",
+    "display_name_zh_hans": "实验息壤瓶",
     "kind": "solid",
     "rarity": 1
   },
   {
-    "id": "iron-ingot",
-    "display_name_zh_hans": "铁锭",
-    "display_name_en": "Iron Ingot",
+    "id": "item-activity-xiranite-cmpt",
+    "display_name_zh_hans": "实验息壤零件",
     "kind": "solid",
     "rarity": 1
   },
   {
-    "id": "battery",
-    "display_name_zh_hans": "高谷电池",
-    "display_name_en": "Highland Battery",
+    "id": "item-activity-xiranite-enr-bottle",
+    "display_name_zh_hans": "实验重息壤瓶",
     "kind": "solid",
-    "rarity": 3
+    "rarity": 1
   },
   {
-    "id": "water",
-    "display_name_zh_hans": "清水",
-    "display_name_en": "Water",
+    "id": "item-activity-xiranite-enr-cmpt",
+    "display_name_zh_hans": "实验重息壤零件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-bottled-food-4",
+    "display_name_zh_hans": "锦草软饮",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-bottled-food-5",
+    "display_name_zh_hans": "优质锦草软饮",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-bottled-rec-hp-4",
+    "display_name_zh_hans": "芽针针剂",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-bottled-rec-hp-5",
+    "display_name_zh_hans": "优质芽针针剂",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-carbon-enr",
+    "display_name_zh_hans": "稳定碳块",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-carbon-enr-powder",
+    "display_name_zh_hans": "致密碳粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-carbon-mtl",
+    "display_name_zh_hans": "碳块",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-carbon-powder",
+    "display_name_zh_hans": "碳粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-copper-bottle",
+    "display_name_zh_hans": "赤铜瓶",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-copper-cmpt",
+    "display_name_zh_hans": "赤铜零件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-copper-enr",
+    "display_name_zh_hans": "赫铜块",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-copper-enr-bottle",
+    "display_name_zh_hans": "赫铜瓶",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-copper-enr-cmpt",
+    "display_name_zh_hans": "赫铜零件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-copper-nugget",
+    "display_name_zh_hans": "赤铜块",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-copper-ore",
+    "display_name_zh_hans": "赤铜矿",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-copper-powder",
+    "display_name_zh_hans": "赤铜粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-crystal-enr",
+    "display_name_zh_hans": "密制晶体",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-crystal-enr-powder",
+    "display_name_zh_hans": "致密晶体粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-crystal-powder",
+    "display_name_zh_hans": "晶体外壳粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-crystal-shell",
+    "display_name_zh_hans": "晶体外壳",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-equip-script-1",
+    "display_name_zh_hans": "紫晶装备原件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-equip-script-2",
+    "display_name_zh_hans": "蓝铁装备原件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-equip-script-3",
+    "display_name_zh_hans": "高晶装备原件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-equip-script-4",
+    "display_name_zh_hans": "息壤装备原件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-equip-script-4-1",
+    "display_name_zh_hans": "赤铜装备原件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-equip-script-4-2",
+    "display_name_zh_hans": "赫铜装备原件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-copper-grass-1",
+    "display_name_zh_hans": "赤铜瓶（锦草溶液）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-copper-grass-2",
+    "display_name_zh_hans": "赤铜瓶（芽针溶液）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-glass-acid",
+    "display_name_zh_hans": "紫晶质瓶（沉积酸）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-glass-copper",
+    "display_name_zh_hans": "紫晶质瓶（赤铜溶液）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-glass-grass-1",
+    "display_name_zh_hans": "紫晶质瓶（锦草溶液）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-glass-grass-2",
+    "display_name_zh_hans": "紫晶质瓶（芽针溶液）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-glass-sewage",
+    "display_name_zh_hans": "紫晶质瓶（污水）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-glass-water",
+    "display_name_zh_hans": "紫晶质瓶（清水）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-glass-xiranite",
+    "display_name_zh_hans": "紫晶质瓶（液化息壤）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-glass-xiranite-enr",
+    "display_name_zh_hans": "紫晶质瓶（液化重息壤）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-glass-xiranite-lowpoly",
+    "display_name_zh_hans": "紫晶质瓶（惰性壤晶废液）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-glass-xiranite-poly",
+    "display_name_zh_hans": "紫晶质瓶（壤晶废液）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-iron-grass-1",
+    "display_name_zh_hans": "蓝铁瓶（锦草溶液）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-fbottle-iron-grass-2",
+    "display_name_zh_hans": "蓝铁瓶（芽针溶液）",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-glass-bottle",
+    "display_name_zh_hans": "紫晶质瓶",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-glass-cmpt",
+    "display_name_zh_hans": "紫晶零件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-glass-enr-bottle",
+    "display_name_zh_hans": "高晶质瓶",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-glass-enr-cmpt",
+    "display_name_zh_hans": "高晶零件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-iron-bottle",
+    "display_name_zh_hans": "蓝铁瓶",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-iron-cmpt",
+    "display_name_zh_hans": "铁制零件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-iron-enr",
+    "display_name_zh_hans": "钢块",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-iron-enr-bottle",
+    "display_name_zh_hans": "钢质瓶",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-iron-enr-cmpt",
+    "display_name_zh_hans": "钢制零件",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-iron-enr-powder",
+    "display_name_zh_hans": "致密蓝铁粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-iron-nugget",
+    "display_name_zh_hans": "蓝铁块",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-iron-ore",
+    "display_name_zh_hans": "蓝铁矿",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-iron-powder",
+    "display_name_zh_hans": "蓝铁粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-acid",
+    "display_name_zh_hans": "沉积酸",
     "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-copper",
+    "display_name_zh_hans": "赤铜溶液",
+    "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-copper-enr",
+    "display_name_zh_hans": "赫铜溶液",
+    "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-plant-grass-1",
+    "display_name_zh_hans": "锦草溶液",
+    "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-plant-grass-2",
+    "display_name_zh_hans": "芽针溶液",
+    "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-sewage",
+    "display_name_zh_hans": "污水",
+    "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-water",
+    "display_name_zh_hans": "清水",
+    "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-xiranite",
+    "display_name_zh_hans": "液化息壤",
+    "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-xiranite-enr",
+    "display_name_zh_hans": "液化重息壤",
+    "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-xiranite-lowpoly",
+    "display_name_zh_hans": "惰性壤晶废液",
+    "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-liquid-xiranite-poly",
+    "display_name_zh_hans": "壤晶废液",
+    "kind": "fluid",
+    "rarity": 1
+  },
+  {
+    "id": "item-muck-feces-1",
+    "display_name_zh_hans": "驮兽粪便",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-muck-xiranite-1",
+    "display_name_zh_hans": "膨地啪",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-originium-enr-powder",
+    "display_name_zh_hans": "致密源石粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-originium-ore",
+    "display_name_zh_hans": "源矿",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-originium-powder",
+    "display_name_zh_hans": "源石粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-bbflower-1",
+    "display_name_zh_hans": "酮化灌木",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-bbflower-powder-1",
+    "display_name_zh_hans": "酮化灌木粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-bbflower-seed-1",
+    "display_name_zh_hans": "酮化树种",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-grass-1",
+    "display_name_zh_hans": "锦草",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-grass-2",
+    "display_name_zh_hans": "芽针",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-grass-powder-1",
+    "display_name_zh_hans": "锦草粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-grass-powder-2",
+    "display_name_zh_hans": "芽针粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-grass-seed-1",
+    "display_name_zh_hans": "锦草种子",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-grass-seed-2",
+    "display_name_zh_hans": "芽针种子",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-1",
+    "display_name_zh_hans": "荞花",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-2",
+    "display_name_zh_hans": "柑实",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-3",
+    "display_name_zh_hans": "砂叶",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-enr-powder-1",
+    "display_name_zh_hans": "细磨荞花粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-enr-powder-2",
+    "display_name_zh_hans": "细磨柑实粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-powder-1",
+    "display_name_zh_hans": "荞花粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-powder-2",
+    "display_name_zh_hans": "柑实粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-powder-3",
+    "display_name_zh_hans": "砂叶粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-seed-1",
+    "display_name_zh_hans": "荞花种子",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-seed-2",
+    "display_name_zh_hans": "柑实种子",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-moss-seed-3",
+    "display_name_zh_hans": "砂叶种子",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-sp-1",
+    "display_name_zh_hans": "灰芦麦",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-sp-2",
+    "display_name_zh_hans": "苦叶椒",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-sp-3",
+    "display_name_zh_hans": "琼叶参",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-sp-4",
+    "display_name_zh_hans": "金石稻",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-sp-seed-1",
+    "display_name_zh_hans": "灰芦麦种子",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-sp-seed-2",
+    "display_name_zh_hans": "苦叶椒种子",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-sp-seed-3",
+    "display_name_zh_hans": "琼叶参种子",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-plant-sp-seed-4",
+    "display_name_zh_hans": "金石稻种子",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-proc-battery-1",
+    "display_name_zh_hans": "低容谷地电池",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-proc-battery-2",
+    "display_name_zh_hans": "中容谷地电池",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-proc-battery-3",
+    "display_name_zh_hans": "高容谷地电池",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-proc-battery-4",
+    "display_name_zh_hans": "低容武陵电池",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-proc-battery-5",
+    "display_name_zh_hans": "中容武陵电池",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-proc-bomb-1",
+    "display_name_zh_hans": "工业爆炸物",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-quartz-enr",
+    "display_name_zh_hans": "高晶纤维",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-quartz-enr-powder",
+    "display_name_zh_hans": "高晶粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-quartz-glass",
+    "display_name_zh_hans": "紫晶纤维",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-quartz-powder",
+    "display_name_zh_hans": "紫晶粉末",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-quartz-sand",
+    "display_name_zh_hans": "紫晶矿",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-xiranite-enr-powder",
+    "display_name_zh_hans": "重息壤",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-xiranite-poly",
+    "display_name_zh_hans": "壤晶",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-xiranite-powder",
+    "display_name_zh_hans": "息壤",
+    "kind": "solid",
     "rarity": 1
   }
 ]

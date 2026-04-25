@@ -3,4 +3,5 @@ dist
 coverage
 pnpm-lock.yaml
 scripts/.cache
+.scratch
 plan

@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "validate:data": "tsx scripts/validate-data.ts",
+    "scrape:endwiki": "tsx scripts/scrape-endwiki.ts",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm validate:data"
   },
   "dependencies": {
@@ -36,6 +37,8 @@
     "@vitest/coverage-v8": "^4.1.5",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
+    "cheerio": "^1.2.0",
+    "domhandler": "^6.0.1",
     "eslint": "^10.2.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -47,6 +50,7 @@
     "tsx": "^4.21.0",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.59.0",
+    "undici": "^8.1.0",
     "vite": "^6.0.0",
     "vitest": "^4.1.5"
   }

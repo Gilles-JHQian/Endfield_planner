@@ -1,25 +1,2198 @@
 [
   {
-    "id": "smelt-iron",
-    "display_name_zh_hans": "炼铁",
-    "display_name_en": "Smelt Iron",
-    "cycle_seconds": 30,
-    "inputs": [{ "item_id": "iron-ore", "qty_per_cycle": 2 }],
-    "outputs": [{ "item_id": "iron-ingot", "qty_per_cycle": 1 }],
-    "compatible_devices": ["smelter-1"],
-    "regions": ["valley_4", "wuling"]
+    "id": "recipe-activity-xiranite-bottle",
+    "display_name_zh_hans": "实验息壤瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-xiranite-powder",
+        "qty_per_cycle": 2
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-activity-xiranite-bottle",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["shaper-1"]
   },
   {
-    "id": "craft-battery",
-    "display_name_zh_hans": "高谷电池",
-    "display_name_en": "Battery",
-    "cycle_seconds": 60,
+    "id": "recipe-activity-xiranite-cmpt",
+    "display_name_zh_hans": "实验息壤零件",
+    "cycle_seconds": 2,
     "inputs": [
-      { "item_id": "iron-ingot", "qty_per_cycle": 3 },
-      { "item_id": "water", "qty_per_cycle": 1 }
+      {
+        "item_id": "item-xiranite-powder",
+        "qty_per_cycle": 1
+      }
     ],
-    "outputs": [{ "item_id": "battery", "qty_per_cycle": 1 }],
-    "compatible_devices": ["assembler-1"],
-    "regions": ["wuling"]
+    "outputs": [
+      {
+        "item_id": "item-activity-xiranite-cmpt",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["component-mc-1"]
+  },
+  {
+    "id": "recipe-activity-xiranite-enr-bottle-2",
+    "display_name_zh_hans": "实验重息壤瓶",
+    "cycle_seconds": 20,
+    "inputs": [
+      {
+        "item_id": "item-xiranite-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-activity-xiranite-enr-bottle",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["shaper-1"]
+  },
+  {
+    "id": "recipe-activity-xiranite-enr-cmpt",
+    "display_name_zh_hans": "实验重息壤零件",
+    "cycle_seconds": 20,
+    "inputs": [
+      {
+        "item_id": "item-xiranite-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-activity-xiranite-enr-cmpt",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["component-mc-1"]
+  },
+  {
+    "id": "recipe-bottled-food-4",
+    "display_name_zh_hans": "锦草软饮",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-iron-cmpt",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-fbottle-iron-grass-1",
+        "qty_per_cycle": 5
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-bottled-food-4",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["tools-assebling-mc-1"]
+  },
+  {
+    "id": "recipe-bottled-food-5",
+    "display_name_zh_hans": "优质锦草软饮",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-copper-cmpt",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-fbottle-copper-grass-1",
+        "qty_per_cycle": 5
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-bottled-food-5",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["tools-assebling-mc-1"]
+  },
+  {
+    "id": "recipe-bottled-rec-hp-4",
+    "display_name_zh_hans": "芽针针剂",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-iron-cmpt",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-fbottle-iron-grass-2",
+        "qty_per_cycle": 5
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-bottled-rec-hp-4",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["tools-assebling-mc-1"]
+  },
+  {
+    "id": "recipe-bottled-rec-hp-5",
+    "display_name_zh_hans": "优质芽针针剂",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-copper-cmpt",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-fbottle-copper-grass-2",
+        "qty_per_cycle": 5
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-bottled-rec-hp-5",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["tools-assebling-mc-1"]
+  },
+  {
+    "id": "recipe-carbon-enr-powder-3",
+    "display_name_zh_hans": "致密碳粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-carbon-powder",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-plant-moss-powder-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-carbon-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["thickener-1"]
+  },
+  {
+    "id": "recipe-carbon-powder-6",
+    "display_name_zh_hans": "碳粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-carbon-mtl",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-carbon-powder",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["grinder-1"]
+  },
+  {
+    "id": "recipe-copper-bottle-12",
+    "display_name_zh_hans": "赤铜瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-copper-nugget",
+        "qty_per_cycle": 2
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-copper-bottle",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["shaper-1"]
+  },
+  {
+    "id": "recipe-copper-cmpt",
+    "display_name_zh_hans": "赤铜零件",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-copper-nugget",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-copper-cmpt",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["component-mc-1"]
+  },
+  {
+    "id": "recipe-copper-enr",
+    "display_name_zh_hans": "赫铜块",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-liquid-copper-enr",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-iron-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-copper-enr",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-sewage",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["mix-pool-1", "mix-pool-2"]
+  },
+  {
+    "id": "recipe-copper-enr-bottle-12",
+    "display_name_zh_hans": "赫铜瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-copper-enr",
+        "qty_per_cycle": 2
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-copper-enr-bottle",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["shaper-1"]
+  },
+  {
+    "id": "recipe-copper-enr-cmpt",
+    "display_name_zh_hans": "赫铜零件",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-copper-enr",
+        "qty_per_cycle": 5
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-copper-enr-cmpt",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["component-mc-1"]
+  },
+  {
+    "id": "recipe-copper-nugget",
+    "display_name_zh_hans": "赤铜块",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-copper-ore",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-copper-nugget",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-sewage",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-copper-powder",
+    "display_name_zh_hans": "赤铜粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-copper-nugget",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-copper-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["grinder-1"]
+  },
+  {
+    "id": "recipe-crystal-enr",
+    "display_name_zh_hans": "密制晶体",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-crystal-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-crystal-enr",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-crystal-enr-powder-2",
+    "display_name_zh_hans": "致密晶体粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-crystal-powder",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-plant-moss-powder-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-crystal-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["thickener-1"]
+  },
+  {
+    "id": "recipe-crystal-powder-2",
+    "display_name_zh_hans": "晶体外壳粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-crystal-shell",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-crystal-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["grinder-1"]
+  },
+  {
+    "id": "recipe-crystal-shell",
+    "display_name_zh_hans": "晶体外壳",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-originium-ore",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-crystal-shell",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-crystal-shell-2",
+    "display_name_zh_hans": "晶体外壳",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-crystal-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-crystal-shell",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-equip-script-1",
+    "display_name_zh_hans": "紫晶装备原件",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-crystal-shell",
+        "qty_per_cycle": 5
+      },
+      {
+        "item_id": "item-quartz-glass",
+        "qty_per_cycle": 5
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-equip-script-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["winder-1"]
+  },
+  {
+    "id": "recipe-equip-script-2",
+    "display_name_zh_hans": "蓝铁装备原件",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-crystal-shell",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-iron-nugget",
+        "qty_per_cycle": 10
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-equip-script-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["winder-1"]
+  },
+  {
+    "id": "recipe-equip-script-3",
+    "display_name_zh_hans": "高晶装备原件",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-crystal-enr",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-quartz-enr",
+        "qty_per_cycle": 10
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-equip-script-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["winder-1"]
+  },
+  {
+    "id": "recipe-equip-script-4",
+    "display_name_zh_hans": "息壤装备原件",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-crystal-enr",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-xiranite-powder",
+        "qty_per_cycle": 10
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-equip-script-4",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["winder-1"]
+  },
+  {
+    "id": "recipe-equip-script-4-1",
+    "display_name_zh_hans": "赤铜装备原件",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-copper-cmpt",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-xiranite-powder",
+        "qty_per_cycle": 10
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-equip-script-4-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["winder-1"]
+  },
+  {
+    "id": "recipe-equip-script-4-2",
+    "display_name_zh_hans": "赫铜装备原件",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-copper-enr-cmpt",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-xiranite-enr-powder",
+        "qty_per_cycle": 2
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-equip-script-4-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["winder-1"]
+  },
+  {
+    "id": "recipe-fbottle-glass-acid",
+    "display_name_zh_hans": "紫晶质瓶（沉积酸）",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-acid",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-fbottle-glass-acid",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["filling-powder-mc-1"]
+  },
+  {
+    "id": "recipe-fbottle-glass-copper",
+    "display_name_zh_hans": "紫晶质瓶（赤铜溶液）",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-copper",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-fbottle-glass-copper",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["filling-powder-mc-1"]
+  },
+  {
+    "id": "recipe-fbottle-glass-grass-1",
+    "display_name_zh_hans": "紫晶质瓶（锦草溶液）",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-plant-grass-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-fbottle-glass-grass-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["filling-powder-mc-1"]
+  },
+  {
+    "id": "recipe-fbottle-glass-grass-2",
+    "display_name_zh_hans": "紫晶质瓶（芽针溶液）",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-plant-grass-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-fbottle-glass-grass-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["filling-powder-mc-1"]
+  },
+  {
+    "id": "recipe-fbottle-glass-sewage",
+    "display_name_zh_hans": "紫晶质瓶（污水）",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-sewage",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-fbottle-glass-sewage",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["filling-powder-mc-1"]
+  },
+  {
+    "id": "recipe-fbottle-glass-water",
+    "display_name_zh_hans": "紫晶质瓶（清水）",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-fbottle-glass-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["filling-powder-mc-1"]
+  },
+  {
+    "id": "recipe-fbottle-glass-xiranite",
+    "display_name_zh_hans": "紫晶质瓶（液化息壤）",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-xiranite",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-fbottle-glass-xiranite",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["filling-powder-mc-1"]
+  },
+  {
+    "id": "recipe-fbottle-glass-xiranite-enr",
+    "display_name_zh_hans": "紫晶质瓶（液化重息壤）",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-xiranite-enr",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-fbottle-glass-xiranite-enr",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["filling-powder-mc-1"]
+  },
+  {
+    "id": "recipe-fbottle-glass-xiranite-lowpoly",
+    "display_name_zh_hans": "紫晶质瓶（惰性壤晶废液）",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-xiranite-lowpoly",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-fbottle-glass-xiranite-lowpoly",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["filling-powder-mc-1"]
+  },
+  {
+    "id": "recipe-fbottle-glass-xiranite-poly",
+    "display_name_zh_hans": "紫晶质瓶（壤晶废液）",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-xiranite-poly",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-fbottle-glass-xiranite-poly",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["filling-powder-mc-1"]
+  },
+  {
+    "id": "recipe-glass-bottle",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-fbottle-glass-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["dismantler-1"]
+  },
+  {
+    "id": "recipe-glass-bottle-10",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-fbottle-glass-copper",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-copper",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["dismantler-1"]
+  },
+  {
+    "id": "recipe-glass-bottle-12",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-quartz-glass",
+        "qty_per_cycle": 2
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["shaper-1"]
+  },
+  {
+    "id": "recipe-glass-bottle-2",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-fbottle-glass-acid",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-acid",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["dismantler-1"]
+  },
+  {
+    "id": "recipe-glass-bottle-3",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-fbottle-glass-sewage",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-sewage",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["dismantler-1"]
+  },
+  {
+    "id": "recipe-glass-bottle-4",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-fbottle-glass-grass-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-plant-grass-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["dismantler-1"]
+  },
+  {
+    "id": "recipe-glass-bottle-5",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-fbottle-glass-grass-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-plant-grass-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["dismantler-1"]
+  },
+  {
+    "id": "recipe-glass-bottle-6",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-fbottle-glass-xiranite",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-xiranite",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["dismantler-1"]
+  },
+  {
+    "id": "recipe-glass-bottle-7",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-fbottle-glass-xiranite-enr",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-xiranite-enr",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["dismantler-1"]
+  },
+  {
+    "id": "recipe-glass-bottle-8",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-fbottle-glass-xiranite-poly",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-xiranite-poly",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["dismantler-1"]
+  },
+  {
+    "id": "recipe-glass-bottle-9",
+    "display_name_zh_hans": "紫晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-fbottle-glass-xiranite-lowpoly",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-bottle",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-xiranite-lowpoly",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["dismantler-1"]
+  },
+  {
+    "id": "recipe-glass-cmpt",
+    "display_name_zh_hans": "紫晶零件",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-quartz-glass",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-cmpt",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["component-mc-1"]
+  },
+  {
+    "id": "recipe-glass-enr-bottle-12",
+    "display_name_zh_hans": "高晶质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-quartz-enr",
+        "qty_per_cycle": 2
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-enr-bottle",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["shaper-1"]
+  },
+  {
+    "id": "recipe-glass-enr-cmpt",
+    "display_name_zh_hans": "高晶零件",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-quartz-enr",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-glass-enr-cmpt",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["component-mc-1"]
+  },
+  {
+    "id": "recipe-iron-bottle-12",
+    "display_name_zh_hans": "蓝铁瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-iron-nugget",
+        "qty_per_cycle": 2
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-iron-bottle",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["shaper-1"]
+  },
+  {
+    "id": "recipe-iron-cmpt",
+    "display_name_zh_hans": "铁制零件",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-iron-nugget",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-iron-cmpt",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["component-mc-1"]
+  },
+  {
+    "id": "recipe-iron-enr",
+    "display_name_zh_hans": "钢块",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-iron-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-iron-enr",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-iron-enr-bottle-12",
+    "display_name_zh_hans": "钢质瓶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-iron-enr",
+        "qty_per_cycle": 2
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-iron-enr-bottle",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["shaper-1"]
+  },
+  {
+    "id": "recipe-iron-enr-cmpt",
+    "display_name_zh_hans": "钢制零件",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-iron-enr",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-iron-enr-cmpt",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["component-mc-1"]
+  },
+  {
+    "id": "recipe-iron-enr-powder",
+    "display_name_zh_hans": "致密蓝铁粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-iron-powder",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-plant-moss-powder-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-iron-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["thickener-1"]
+  },
+  {
+    "id": "recipe-iron-nugget",
+    "display_name_zh_hans": "蓝铁块",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-iron-ore",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-iron-nugget",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-iron-nugget-2",
+    "display_name_zh_hans": "蓝铁块",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-iron-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-iron-nugget",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-iron-powder",
+    "display_name_zh_hans": "蓝铁粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-iron-nugget",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-iron-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["grinder-1"]
+  },
+  {
+    "id": "recipe-liquid-copper",
+    "display_name_zh_hans": "赤铜溶液",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-copper-powder",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-acid",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-liquid-copper",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["mix-pool-1", "mix-pool-2"]
+  },
+  {
+    "id": "recipe-liquid-copper-enr",
+    "display_name_zh_hans": "赫铜溶液",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-liquid-copper",
+        "qty_per_cycle": 4
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-liquid-copper-enr",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-acid",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["liquid-purifier-1"]
+  },
+  {
+    "id": "recipe-liquid-plant-grass-1",
+    "display_name_zh_hans": "锦草溶液",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-grass-powder-1",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-liquid-plant-grass-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["mix-pool-1", "mix-pool-2"]
+  },
+  {
+    "id": "recipe-liquid-plant-grass-2",
+    "display_name_zh_hans": "芽针溶液",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-grass-powder-2",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-liquid-plant-grass-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["mix-pool-1", "mix-pool-2"]
+  },
+  {
+    "id": "recipe-liquid-xiranite",
+    "display_name_zh_hans": "液化息壤",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-xiranite-powder",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-liquid-xiranite",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["mix-pool-1", "mix-pool-2"]
+  },
+  {
+    "id": "recipe-liquid-xiranite-enr",
+    "display_name_zh_hans": "液化重息壤",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-xiranite-enr-powder",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-acid",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-liquid-xiranite-enr",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["mix-pool-1", "mix-pool-2"]
+  },
+  {
+    "id": "recipe-liquid-xiranite-poly",
+    "display_name_zh_hans": "壤晶废液",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-liquid-xiranite",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-sewage",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-liquid-xiranite-poly",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-xiranite-lowpoly",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["mix-pool-1", "mix-pool-2"]
+  },
+  {
+    "id": "recipe-liquid-xiranite-poly-2",
+    "display_name_zh_hans": "壤晶废液",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-liquid-xiranite-lowpoly",
+        "qty_per_cycle": 4
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-liquid-xiranite-poly",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["liquid-purifier-1"]
+  },
+  {
+    "id": "recipe-muck-xiranite-1",
+    "display_name_zh_hans": "膨地啪",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-muck-feces-1",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-xiranite",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-muck-xiranite-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["xiranite-oven-1"]
+  },
+  {
+    "id": "recipe-originium-enr-powder",
+    "display_name_zh_hans": "致密源石粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-originium-powder",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-plant-moss-powder-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-originium-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["thickener-1"]
+  },
+  {
+    "id": "recipe-originium-powder",
+    "display_name_zh_hans": "源石粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-originium-ore",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-originium-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["grinder-1"]
+  },
+  {
+    "id": "recipe-plant-bbflower-1",
+    "display_name_zh_hans": "酮化灌木",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-bbflower-seed-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-bbflower-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["planter-1"]
+  },
+  {
+    "id": "recipe-plant-bbflower-powder-1",
+    "display_name_zh_hans": "酮化灌木粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-bbflower-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-bbflower-powder-1",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["grinder-1"]
+  },
+  {
+    "id": "recipe-plant-bbflower-seed-1",
+    "display_name_zh_hans": "酮化树种",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-bbflower-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-bbflower-seed-1",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["seedcollector-1"]
+  },
+  {
+    "id": "recipe-plant-grass-1",
+    "display_name_zh_hans": "锦草",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-grass-seed-1",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-grass-1",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["planter-1"]
+  },
+  {
+    "id": "recipe-plant-grass-2",
+    "display_name_zh_hans": "芽针",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-grass-seed-2",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-grass-2",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["planter-1"]
+  },
+  {
+    "id": "recipe-plant-grass-seed-1",
+    "display_name_zh_hans": "锦草种子",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-grass-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-grass-seed-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["seedcollector-1"]
+  },
+  {
+    "id": "recipe-plant-grass-seed-2",
+    "display_name_zh_hans": "芽针种子",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-grass-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-grass-seed-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["seedcollector-1"]
+  },
+  {
+    "id": "recipe-plant-moss-1",
+    "display_name_zh_hans": "荞花",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-seed-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["planter-1"]
+  },
+  {
+    "id": "recipe-plant-moss-2",
+    "display_name_zh_hans": "柑实",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-seed-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["planter-1"]
+  },
+  {
+    "id": "recipe-plant-moss-3",
+    "display_name_zh_hans": "砂叶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-seed-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["planter-1"]
+  },
+  {
+    "id": "recipe-plant-moss-enr-powder-1",
+    "display_name_zh_hans": "细磨荞花粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-powder-1",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-plant-moss-powder-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-enr-powder-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["thickener-1"]
+  },
+  {
+    "id": "recipe-plant-moss-enr-powder-2",
+    "display_name_zh_hans": "细磨柑实粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-powder-2",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-plant-moss-powder-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-enr-powder-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["thickener-1"]
+  },
+  {
+    "id": "recipe-plant-moss-powder-1",
+    "display_name_zh_hans": "荞花粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-powder-1",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["grinder-1"]
+  },
+  {
+    "id": "recipe-plant-moss-powder-2",
+    "display_name_zh_hans": "柑实粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-powder-2",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["grinder-1"]
+  },
+  {
+    "id": "recipe-plant-moss-powder-3",
+    "display_name_zh_hans": "砂叶粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-powder-3",
+        "qty_per_cycle": 3
+      }
+    ],
+    "compatible_devices": ["grinder-1"]
+  },
+  {
+    "id": "recipe-plant-moss-seed-1",
+    "display_name_zh_hans": "荞花种子",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-seed-1",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["seedcollector-1"]
+  },
+  {
+    "id": "recipe-plant-moss-seed-2",
+    "display_name_zh_hans": "柑实种子",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-seed-2",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["seedcollector-1"]
+  },
+  {
+    "id": "recipe-plant-moss-seed-3",
+    "display_name_zh_hans": "砂叶种子",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-moss-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-moss-seed-3",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["seedcollector-1"]
+  },
+  {
+    "id": "recipe-plant-sp-seed-1",
+    "display_name_zh_hans": "灰芦麦种子",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-sp-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-sp-seed-1",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["seedcollector-1"]
+  },
+  {
+    "id": "recipe-plant-sp-seed-2",
+    "display_name_zh_hans": "苦叶椒种子",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-sp-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-sp-seed-2",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["seedcollector-1"]
+  },
+  {
+    "id": "recipe-plant-sp-seed-3",
+    "display_name_zh_hans": "琼叶参种子",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-sp-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-sp-seed-3",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["seedcollector-1"]
+  },
+  {
+    "id": "recipe-plant-sp-seed-4",
+    "display_name_zh_hans": "金石稻种子",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-plant-sp-4",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-plant-sp-seed-4",
+        "qty_per_cycle": 2
+      }
+    ],
+    "compatible_devices": ["seedcollector-1"]
+  },
+  {
+    "id": "recipe-proc-battery-1",
+    "display_name_zh_hans": "低容谷地电池",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-glass-cmpt",
+        "qty_per_cycle": 5
+      },
+      {
+        "item_id": "item-originium-powder",
+        "qty_per_cycle": 10
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-proc-battery-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["tools-assebling-mc-1"]
+  },
+  {
+    "id": "recipe-proc-battery-2",
+    "display_name_zh_hans": "中容谷地电池",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-iron-cmpt",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-originium-powder",
+        "qty_per_cycle": 15
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-proc-battery-2",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["tools-assebling-mc-1"]
+  },
+  {
+    "id": "recipe-proc-battery-3",
+    "display_name_zh_hans": "高容谷地电池",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-iron-enr-cmpt",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-originium-enr-powder",
+        "qty_per_cycle": 15
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-proc-battery-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["tools-assebling-mc-1"]
+  },
+  {
+    "id": "recipe-proc-battery-4",
+    "display_name_zh_hans": "低容武陵电池",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-xiranite-powder",
+        "qty_per_cycle": 5
+      },
+      {
+        "item_id": "item-originium-enr-powder",
+        "qty_per_cycle": 15
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-proc-battery-4",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["tools-assebling-mc-1"]
+  },
+  {
+    "id": "recipe-proc-battery-5",
+    "display_name_zh_hans": "中容武陵电池",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-xiranite-poly",
+        "qty_per_cycle": 5
+      },
+      {
+        "item_id": "item-originium-enr-powder",
+        "qty_per_cycle": 20
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-proc-battery-5",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["tools-assebling-mc-1"]
+  },
+  {
+    "id": "recipe-proc-bomb-1",
+    "display_name_zh_hans": "工业爆炸物",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-glass-cmpt",
+        "qty_per_cycle": 5
+      },
+      {
+        "item_id": "item-plant-bbflower-powder-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-proc-bomb-1",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["tools-assebling-mc-1"]
+  },
+  {
+    "id": "recipe-quartz-enr",
+    "display_name_zh_hans": "高晶纤维",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-quartz-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-quartz-enr",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-quartz-enr-powder",
+    "display_name_zh_hans": "高晶粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-quartz-powder",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-plant-moss-powder-3",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-quartz-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["thickener-1"]
+  },
+  {
+    "id": "recipe-quartz-glass",
+    "display_name_zh_hans": "紫晶纤维",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-quartz-sand",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-quartz-glass",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-quartz-glass-2",
+    "display_name_zh_hans": "紫晶纤维",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-quartz-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-quartz-glass",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-quartz-powder",
+    "display_name_zh_hans": "紫晶粉末",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-quartz-glass",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-quartz-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["grinder-1"]
+  },
+  {
+    "id": "recipe-xiranite-enr-powder",
+    "display_name_zh_hans": "重息壤",
+    "cycle_seconds": 10,
+    "inputs": [
+      {
+        "item_id": "item-xiranite-powder",
+        "qty_per_cycle": 10
+      },
+      {
+        "item_id": "item-liquid-xiranite-poly",
+        "qty_per_cycle": 5
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-xiranite-enr-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["xiranite-oven-1"]
+  },
+  {
+    "id": "recipe-xiranite-poly",
+    "display_name_zh_hans": "壤晶",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-liquid-xiranite-poly",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-iron-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-xiranite-poly",
+        "qty_per_cycle": 1
+      },
+      {
+        "item_id": "item-liquid-sewage",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["mix-pool-1", "mix-pool-2"]
+  },
+  {
+    "id": "recipe-xiranite-powder",
+    "display_name_zh_hans": "息壤",
+    "cycle_seconds": 2,
+    "inputs": [
+      {
+        "item_id": "item-carbon-enr",
+        "qty_per_cycle": 2
+      },
+      {
+        "item_id": "item-liquid-water",
+        "qty_per_cycle": 1
+      }
+    ],
+    "outputs": [
+      {
+        "item_id": "item-xiranite-powder",
+        "qty_per_cycle": 1
+      }
+    ],
+    "compatible_devices": ["xiranite-oven-1"]
   }
 ]

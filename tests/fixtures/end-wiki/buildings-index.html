@@ -1,0 +1,3875 @@
+<!doctype html>
+<html lang="zh-Hans" data-theme="dark">
+  <head>
+    <!-- DNS Prefetch -->
+    <link rel="dns-prefetch" href="https://end.wiki" />
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/ui/ngae.png" as="image" type="image/png" />
+    <!-- Basic Meta -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f9fafb" media="(prefers-color-scheme: light)" />
+    <title>设备 — 明日方舟：终末地 | 明日方舟：终末地 Wiki</title>
+    <!-- SEO -->
+    <meta
+      name="description"
+      content="浏览明日方舟：终末地全部工厂建筑。查看建筑类型、功能及升级需求。"
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://end.wiki/zh-Hans/factory/buildings/" />
+    <!-- Favicon — generic icon first (no sizes) for Bing/legacy crawlers, then sized variants -->
+    <link rel="icon" href="/ui/ngae.png" type="image/png" />
+    <link rel="icon" href="/ui/ngae.png" type="image/png" sizes="1024x1024" />
+    <link rel="icon" href="/ui/ngae-180x180.png" type="image/png" sizes="180x180" />
+    <link rel="icon" href="/ui/ngae-32x32.png" type="image/png" sizes="32x32" />
+    <link rel="icon" href="/ui/ngae-32x32.png" type="image/png" sizes="16x16" />
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/ui/ngae-180x180.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://end.wiki/zh-Hans/factory/buildings/" />
+    <meta property="og:title" content="设备 — 明日方舟：终末地 | 明日方舟：终末地 Wiki" />
+    <meta
+      property="og:description"
+      content="浏览明日方舟：终末地全部工厂建筑。查看建筑类型、功能及升级需求。"
+    />
+    <meta property="og:image" content="https://end.wiki/ui/ngae1200x630.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:site_name" content="END Wiki" />
+    <meta property="og:locale" content="zh_Hans" />
+    <meta property="og:locale:alternate" content="en" />
+    <meta property="og:locale:alternate" content="es" />
+    <meta property="og:locale:alternate" content="de" />
+    <meta property="og:locale:alternate" content="fr" />
+    <meta property="og:locale:alternate" content="id" />
+    <meta property="og:locale:alternate" content="it" />
+    <meta property="og:locale:alternate" content="pt" />
+    <meta property="og:locale:alternate" content="ru" />
+    <meta property="og:locale:alternate" content="th" />
+    <meta property="og:locale:alternate" content="ko" />
+    <meta property="og:locale:alternate" content="vi" />
+    <meta property="og:locale:alternate" content="ja" />
+    <meta property="og:locale:alternate" content="zh_Hant" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="设备 — 明日方舟：终末地 | 明日方舟：终末地 Wiki" />
+    <meta
+      name="twitter:description"
+      content="浏览明日方舟：终末地全部工厂建筑。查看建筑类型、功能及升级需求。"
+    />
+    <meta name="twitter:image" content="https://end.wiki/ui/ngae800x800.png" />
+    <!-- Hreflang -->
+    <link rel="alternate" hreflang="en" href="https://end.wiki/en/factory/buildings/" />
+    <link rel="alternate" hreflang="es" href="https://end.wiki/es/factory/buildings/" />
+    <link rel="alternate" hreflang="de" href="https://end.wiki/de/factory/buildings/" />
+    <link rel="alternate" hreflang="fr" href="https://end.wiki/fr/factory/buildings/" />
+    <link rel="alternate" hreflang="id" href="https://end.wiki/id/factory/buildings/" />
+    <link rel="alternate" hreflang="it" href="https://end.wiki/it/factory/buildings/" />
+    <link rel="alternate" hreflang="pt" href="https://end.wiki/pt/factory/buildings/" />
+    <link rel="alternate" hreflang="ru" href="https://end.wiki/ru/factory/buildings/" />
+    <link rel="alternate" hreflang="th" href="https://end.wiki/th/factory/buildings/" />
+    <link rel="alternate" hreflang="ko" href="https://end.wiki/ko/factory/buildings/" />
+    <link rel="alternate" hreflang="vi" href="https://end.wiki/vi/factory/buildings/" />
+    <link rel="alternate" hreflang="ja" href="https://end.wiki/ja/factory/buildings/" />
+    <link rel="alternate" hreflang="zh-Hans" href="https://end.wiki/zh-Hans/factory/buildings/" />
+    <link rel="alternate" hreflang="zh-Hant" href="https://end.wiki/zh-Hant/factory/buildings/" />
+    <link rel="alternate" hreflang="x-default" href="https://end.wiki/" />
+    <!-- JSON-LD: Global site identity (Organization + WebSite) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://end.wiki/#organization",
+            "name": "END Wiki",
+            "url": "https://end.wiki",
+            "logo": {
+              "@type": "ImageObject",
+              "url": "https://end.wiki/ui/ngae.png",
+              "width": 1024,
+              "height": 1024
+            }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://end.wiki/#website",
+            "url": "https://end.wiki/",
+            "name": "END Wiki",
+            "publisher": { "@id": "https://end.wiki/#organization" },
+            "inLanguage": "zh-Hans"
+          }
+        ]
+      }
+    </script>
+    <!-- JSON-LD: Page-specific -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "设备",
+        "description": "浏览明日方舟：终末地全部工厂建筑。查看建筑类型、功能及升级需求。",
+        "inLanguage": "zh-Hans",
+        "url": "https://end.wiki/zh-Hans/factory/buildings/"
+      }
+    </script>
+    <!-- Anti-flash background -->
+    <style>
+      html,
+      body {
+        background-color: #111827;
+        margin: 0;
+        padding: 0;
+      }
+      html[data-theme='light'],
+      html[data-theme='light'] body {
+        background-color: #f9fafb;
+      }
+    </style>
+    <!-- Anti-flash: sync theme before paint -->
+    <script>
+      (function () {
+        const t =
+          localStorage.getItem('theme') ||
+          (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
+    <style>
+      .breadcrumb[data-astro-cid-qaanghzh] {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--color-text-muted);
+        margin-bottom: 0.625rem;
+      }
+      .breadcrumb-divider[data-astro-cid-qaanghzh] {
+        height: 1px;
+        background-color: var(--color-border);
+        margin-bottom: 1rem;
+      }
+      .breadcrumb-link[data-astro-cid-qaanghzh] {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        color: var(--color-text-secondary);
+        text-decoration: none;
+      }
+      .breadcrumb-link[data-astro-cid-qaanghzh]:hover {
+        color: var(--color-text-accent);
+        text-decoration: none;
+      }
+      .breadcrumb-logo[data-astro-cid-qaanghzh] {
+        width: 1rem;
+        height: 1rem;
+        object-fit: contain;
+        flex-shrink: 0;
+      }
+      .breadcrumb-sep[data-astro-cid-qaanghzh] {
+        color: var(--color-text-muted);
+      }
+      .breadcrumb-current[data-astro-cid-qaanghzh] {
+        color: var(--color-text-primary);
+      }
+    </style>
+    <link rel="stylesheet" href="/_astro/WikiLayout.C-h4Q9Sx.css" />
+    <link rel="stylesheet" href="/_astro/index@_@astro.CK0y_EhR.css" />
+    <!-- Analytics: injected by inject-analytics.js -->
+    <!-- GTG mode: gtag.js loaded automatically by Cloudflare Google Tag Gateway -->
+    <script>
+      (function () {
+        var GA4_ID = 'G-SKJD3SK5YG';
+        var PRODUCTION_HOSTS = ['end.wiki', 'www.end.wiki', 'ngae.end.wiki'];
+        var isProduction = PRODUCTION_HOSTS.indexOf(location.hostname) !== -1;
+
+        // --- Debug 模式控制 ---
+        //
+        // 两种运行模式下 DebugView 的触发机制不同：
+        //
+        //   标准模式（hybrid-global）：
+        //     gtag('config', { debug_mode: true }) → gtag.js 在客户端添加 _dbg=1 → DebugView 生效
+        //
+        //   GTG 模式（Google Tag Gateway via Cloudflare）：
+        //     Cloudflare 在边缘节点检测**原始页面请求** URL 中的 ?debug_mode=true，
+        //     在服务端为后续 GA4 收集请求注入 _dbg=1。此为纯服务端行为，
+        //     客户端的 config debug_mode、ep.debug_mode、dl 参数均不影响。
+        //     history.replaceState 修改的是客户端 URL，Cloudflare 不可见，因此无效。
+        //
+        // 统一方案：
+        //   1. URL 参数 ?debug_mode=true 开启（GTG 和标准模式通用）
+        //   2. sessionStorage 在同标签页内保持状态（标准模式下跨 SPA 导航保持 config）
+        //   3. ?debug_mode=false 手动关闭
+        //   4. 非生产域名自动启用 debug_mode（仅影响标准模式的 DebugView）
+        //
+        // GTG 模式下使用 DebugView 的注意事项：
+        //   - 必须在浏览器地址栏直接访问带 ?debug_mode=true 的 URL
+        //   - SPA 导航无需重复添加（GTG 的 debug 状态跟随初始页面请求）
+        //   - 全量页面加载（非 SPA）需要 URL 中再次携带 ?debug_mode=true
+        var _dbgKey = '_gtag_debug';
+        var forceDebug = /[?&]debug_mode=true(?:&|$)/.test(location.search);
+        if (forceDebug) {
+          try {
+            sessionStorage.setItem(_dbgKey, '1');
+          } catch (e) {}
+        }
+        if (/[?&]debug_mode=false(?:&|$)/.test(location.search)) {
+          try {
+            sessionStorage.removeItem(_dbgKey);
+            forceDebug = false;
+          } catch (e) {}
+        }
+        if (!forceDebug) {
+          try {
+            forceDebug = sessionStorage.getItem(_dbgKey) === '1';
+          } catch (e) {}
+        }
+
+        var debugMode = !isProduction || forceDebug;
+
+        // 初始化 dataLayer 和 gtag 函数
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          dataLayer.push(arguments);
+        }
+        window.gtag = gtag;
+        gtag('js', new Date());
+
+        // 配置 GA4
+        // debug_mode 在标准模式下触发 DebugView；GTG 模式下作为事件参数记录但不影响 DebugView
+        gtag('config', GA4_ID, {
+          debug_mode: debugMode,
+        });
+
+        // SPA scroll 追踪：Enhanced Measurement 的 scroll 事件在首次触发后设置内部 flag，
+        // Astro View Transitions（SPA 导航）不会重置该 flag，且 gtag('config', ...) 重调也无效（已验证）。
+        // 策略：首次加载由 Enhanced Measurement 处理；SPA 导航后由自定义代码补充。
+        var _pageLoads = 0;
+        var _spaScrollFired = false;
+
+        function _checkScroll() {
+          if (_pageLoads < 2 || _spaScrollFired) return;
+          var docHeight = document.documentElement.scrollHeight;
+          var scrolled = window.scrollY + window.innerHeight;
+          if (docHeight > 0 && scrolled / docHeight >= 0.9) {
+            _spaScrollFired = true;
+            gtag('event', 'scroll', { percent_scrolled: 90 });
+          }
+        }
+
+        window.addEventListener('scroll', _checkScroll, { passive: true });
+
+        document.addEventListener('astro:page-load', function () {
+          _pageLoads++;
+          _spaScrollFired = false;
+        });
+
+        if (debugMode) {
+          console.log(
+            '[Analytics] GA4 debug mode enabled (' +
+              (forceDebug ? 'URL param override' : 'non-production host: ' + location.hostname) +
+              ')',
+          );
+        }
+      })();
+    </script>
+    <!-- /Analytics -->
+    <!-- Event Tracking: injected by inject-analytics.js -->
+    <script>
+      (function () {
+        // Prevent duplicate initialization (for SPA/Astro View Transitions)
+        if (window.__wiki_event_tracking_initialized) return;
+        window.__wiki_event_tracking_initialized = true;
+
+        function trackEvent(eventName, params) {
+          if (typeof gtag === 'function') {
+            gtag('event', eventName, params || {});
+          }
+        }
+
+        // ========== 通用层：自动追踪，不依赖上游 ==========
+
+        // 外链点击追踪
+        document.addEventListener('click', function (e) {
+          var link = e.target.closest('a');
+          if (link && link.hostname && link.hostname !== location.hostname) {
+            trackEvent('outbound_click', { url: link.href });
+          }
+        });
+
+        // ========== 业务层：监听上游触发的自定义事件 ==========
+
+        window.addEventListener('wiki:analytics', function (e) {
+          var d = e.detail || {};
+          switch (d.action) {
+            case 'language_switch':
+              trackEvent('language_switch', { from: d.from, to: d.to });
+              break;
+            case 'search':
+              trackEvent('search', { query: d.query });
+              break;
+            case 'view_item':
+              trackEvent('view_item', { type: d.type, name: d.name });
+              break;
+            default:
+              if (d.action) {
+                trackEvent(d.action, d);
+              }
+          }
+        });
+      })();
+    </script>
+    <!-- /Event Tracking -->
+  </head>
+  <body>
+    <div class="layout-wrapper">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <a href="/zh-Hans/" class="sidebar-title">
+            <img src="/ui/ngae.png" alt="END Wiki" class="sidebar-logo" />
+            END WIKI
+          </a>
+        </div>
+        <nav class="sidebar-nav">
+          <!-- 首页 -->
+          <a href="/zh-Hans/" class="nav-link"> 首页 </a>
+          <!-- ═══ 官方活动 ═══ -->
+          <a href="/zh-Hans/activities/" class="nav-link nav-link-top"> 官方活动 </a>
+          <!-- ═══ 寻访 ═══ -->
+          <a href="/zh-Hans/gacha/" class="nav-link nav-link-top"> 寻访 </a>
+          <!-- ═══ 游戏数据 ═══ -->
+          <div class="nav-group open" data-nav-group>
+            <div class="nav-group-toggle nav-group-toggle-top active">
+              <a href="/zh-Hans/database/" class="nav-group-link"><span>游戏数据</span></a>
+              <button type="button" class="nav-group-chevron" aria-label="Toggle">
+                <svg
+                  class="nav-chevron"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+            <div class="nav-children">
+              <!-- 干员 -->
+              <a href="/zh-Hans/characters/" class="nav-link"> 干员 </a>
+              <!-- 武器 -->
+              <a href="/zh-Hans/weapons/" class="nav-link"> 武器 </a>
+              <!-- 装备 -->
+              <a href="/zh-Hans/equips/" class="nav-link"> 装备 </a>
+              <!-- 基质 -->
+              <a href="/zh-Hans/essences/" class="nav-link"> 基质 </a>
+              <!-- 物品 -->
+              <a href="/zh-Hans/items/" class="nav-link"> 物品 </a>
+              <!-- 副本 (nested expandable) -->
+              <div class="nav-group" data-nav-group>
+                <div class="nav-group-toggle">
+                  <a href="/zh-Hans/dungeons/" class="nav-group-link"><span>副本</span></a>
+                  <button type="button" class="nav-group-chevron" aria-label="Toggle">
+                    <svg
+                      class="nav-chevron"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </button>
+                </div>
+                <div class="nav-children">
+                  <a href="/zh-Hans/dungeons/resource/" class="nav-link"> 协议空间 </a
+                  ><a href="/zh-Hans/dungeons/highdifficulty/" class="nav-link"> 影拓丰碑 </a
+                  ><a href="/zh-Hans/dungeons/bossrush/" class="nav-link"> 危境再现 </a
+                  ><a href="/zh-Hans/dungeons/challenge/" class="nav-link"> 密境初显 </a
+                  ><a href="/zh-Hans/dungeons/grotto/" class="nav-link"> 行探险窟 </a
+                  ><a href="/zh-Hans/dungeons/chartutorial/" class="nav-link"> 干员教学 </a
+                  ><a href="/zh-Hans/dungeons/train/" class="nav-link"> 基础训练 </a
+                  ><a href="/zh-Hans/dungeons/actmonster/" class="nav-link"> 生存特训 </a
+                  ><a href="/zh-Hans/etchspace/" class="nav-link"> 蚀像寻遗 </a>
+                </div>
+              </div>
+              <!-- 威胁 -->
+              <a href="/zh-Hans/enemies/" class="nav-link"> 威胁 </a>
+              <!-- 成就 -->
+              <a href="/zh-Hans/achievements/" class="nav-link"> 光荣之路 </a>
+              <!-- 生产 (nested expandable) -->
+              <div class="nav-group open" data-nav-group>
+                <button type="button" class="nav-group-toggle active">
+                  <span>生产</span>
+                  <svg
+                    class="nav-chevron"
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </button>
+                <div class="nav-children">
+                  <a href="/zh-Hans/factory/simspace/" class="nav-link"> 模拟空间 </a
+                  ><a href="/zh-Hans/factory/buildings/" class="nav-link active"> 设备 </a
+                  ><a href="/zh-Hans/factory/recipes/" class="nav-link"> 配方 </a>
+                </div>
+              </div>
+              <!-- 帝江号 (single top-level link; subpages reachable from /spaceship/ index) -->
+              <a href="/zh-Hans/spaceship/" class="nav-link"> 帝江号 </a>
+              <!-- 通行证 -->
+              <a href="/zh-Hans/battle-pass/" class="nav-link"> 通行证 </a>
+            </div>
+          </div>
+          <!-- ═══ 攻略 ═══ -->
+          <div class="nav-group" data-nav-group>
+            <div class="nav-group-toggle nav-group-toggle-top">
+              <a href="/zh-Hans/strategies/" class="nav-group-link"><span>攻略</span></a>
+              <button type="button" class="nav-group-chevron" aria-label="Toggle">
+                <svg
+                  class="nav-chevron"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+            <div class="nav-children">
+              <a href="/zh-Hans/guides/team-building/" class="nav-link"> 组队指南 </a>
+              <a href="/zh-Hans/guides/farming-priority/" class="nav-link">
+                干员养成素材需求总览
+              </a>
+              <a href="/zh-Hans/guides/weapon-materials/" class="nav-link"> 武器素材需求总览 </a>
+              <!-- 副本与探索活动导览 -->
+              <a href="/zh-Hans/mechanics/" class="nav-link"> 副本与探索活动导览 </a>
+              <!-- 玩家攻略（链接到列表页） -->
+              <div class="nav-divider"></div>
+              <a href="/zh-Hans/guides/" class="nav-link"> 玩家攻略 </a>
+            </div>
+          </div>
+          <!-- ═══ 工具 ═══ -->
+          <div class="nav-group" data-nav-group>
+            <div class="nav-group-toggle nav-group-toggle-top">
+              <a href="/zh-Hans/strategies/" class="nav-group-link"><span>工具</span></a>
+              <button type="button" class="nav-group-chevron" aria-label="Toggle">
+                <svg
+                  class="nav-chevron"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+            <div class="nav-children">
+              <a href="/zh-Hans/tools/essence-farming/" class="nav-link"> 基质刷取方案 </a>
+              <a href="/zh-Hans/tools/essence-scoring/" class="nav-link"> 基质筛选工具 </a>
+              <a href="/zh-Hans/tools/team-builder/" class="nav-link"> 队伍配置 </a>
+              <a href="/zh-Hans/tools/material-calculator/" class="nav-link">
+                干员养成素材计算器
+              </a>
+              <a href="/zh-Hans/tools/exp-calculator/" class="nav-link"> 升级经验素材计算器 </a>
+            </div>
+          </div>
+          <!-- ═══ 教程 ═══ -->
+          <div class="nav-group" data-nav-group>
+            <div class="nav-group-toggle nav-group-toggle-top">
+              <a href="/zh-Hans/tutorials/" class="nav-group-link"><span>教程</span></a>
+              <button type="button" class="nav-group-chevron" aria-label="Toggle">
+                <svg
+                  class="nav-chevron"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </div>
+            <div class="nav-children">
+              <a href="/zh-Hans/tutorials/adventure/" class="nav-link">
+                <img
+                  src="https://cdn.end.wiki/images/ui/landing-page/tut-icon-explore__48x48__4e41197f375a.svg"
+                  alt=""
+                  width="16"
+                  height="16"
+                  class="tutorial-nav-icon"
+                />
+                探索 </a
+              ><a href="/zh-Hans/tutorials/factory/" class="nav-link">
+                <img
+                  src="https://cdn.end.wiki/images/ui/landing-page/tut-icon-industry__48x48__868568d2fee2.svg"
+                  alt=""
+                  width="16"
+                  height="16"
+                  class="tutorial-nav-icon"
+                />
+                工业 </a
+              ><a href="/zh-Hans/tutorials/battle/" class="nav-link">
+                <img
+                  src="https://cdn.end.wiki/images/ui/landing-page/tut-icon-combat__48x48__66c9c635436b.svg"
+                  alt=""
+                  width="16"
+                  height="16"
+                  class="tutorial-nav-icon"
+                />
+                战斗 </a
+              ><a href="/zh-Hans/tutorials/system/" class="nav-link">
+                <img
+                  src="https://cdn.end.wiki/images/ui/landing-page/tut-icon-system__48x48__dee86aa919ef.svg"
+                  alt=""
+                  width="16"
+                  height="16"
+                  class="tutorial-nav-icon"
+                />
+                系统
+              </a>
+            </div>
+          </div>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="lang-dropdown" id="langDropdown">
+            <button class="lang-dropdown-trigger" type="button" aria-expanded="false">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path
+                  d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                ></path>
+              </svg>
+              <span class="lang-dropdown-label">简体中文</span>
+              <svg
+                class="lang-dropdown-arrow"
+                xmlns="http://www.w3.org/2000/svg"
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </button>
+            <div class="lang-dropdown-menu">
+              <a
+                href="/en/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="en"
+                onclick="localStorage.setItem('preferred-language', 'en')"
+              >
+                English </a
+              ><a
+                href="/es/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="es"
+                onclick="localStorage.setItem('preferred-language', 'es')"
+              >
+                Español </a
+              ><a
+                href="/de/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="de"
+                onclick="localStorage.setItem('preferred-language', 'de')"
+              >
+                Deutsch </a
+              ><a
+                href="/fr/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="fr"
+                onclick="localStorage.setItem('preferred-language', 'fr')"
+              >
+                Français </a
+              ><a
+                href="/id/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="id"
+                onclick="localStorage.setItem('preferred-language', 'id')"
+              >
+                Bahasa Indonesia </a
+              ><a
+                href="/it/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="it"
+                onclick="localStorage.setItem('preferred-language', 'it')"
+              >
+                Italiano </a
+              ><a
+                href="/pt/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="pt"
+                onclick="localStorage.setItem('preferred-language', 'pt')"
+              >
+                Português </a
+              ><a
+                href="/ru/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="ru"
+                onclick="localStorage.setItem('preferred-language', 'ru')"
+              >
+                Русский </a
+              ><a
+                href="/th/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="th"
+                onclick="localStorage.setItem('preferred-language', 'th')"
+              >
+                ไทย </a
+              ><a
+                href="/ko/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="ko"
+                onclick="localStorage.setItem('preferred-language', 'ko')"
+              >
+                한국어 </a
+              ><a
+                href="/vi/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="vi"
+                onclick="localStorage.setItem('preferred-language', 'vi')"
+              >
+                Tiếng Việt </a
+              ><a
+                href="/ja/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="ja"
+                onclick="localStorage.setItem('preferred-language', 'ja')"
+              >
+                日本語 </a
+              ><a
+                href="/zh-Hans/factory/buildings/"
+                class="lang-dropdown-item selected"
+                data-lang="zh-Hans"
+                onclick="localStorage.setItem('preferred-language', 'zh-Hans')"
+              >
+                简体中文 </a
+              ><a
+                href="/zh-Hant/factory/buildings/"
+                class="lang-dropdown-item"
+                data-lang="zh-Hant"
+                onclick="localStorage.setItem('preferred-language', 'zh-Hant')"
+              >
+                繁體中文
+              </a>
+            </div>
+          </div>
+        </div>
+      </aside>
+      <script type="module">
+        const n = document.getElementById('langDropdown');
+        if (n) {
+          const e = n.querySelector('.lang-dropdown-trigger');
+          (e?.addEventListener('click', () => {
+            (n.classList.toggle('open'),
+              e.setAttribute('aria-expanded', n.classList.contains('open') ? 'true' : 'false'));
+          }),
+            document.addEventListener('click', (t) => {
+              n.contains(t.target) ||
+                (n.classList.remove('open'), e?.setAttribute('aria-expanded', 'false'));
+            }));
+        }
+        document.querySelectorAll('[data-nav-group]').forEach((e) => {
+          const t = e.querySelector(':scope > .nav-group-toggle');
+          if (!t) return;
+          const r = t.querySelector(':scope > .nav-group-chevron'),
+            s = t.querySelector(':scope > .nav-group-link');
+          r
+            ? (r.addEventListener('click', (o) => {
+                (o.stopPropagation(), e.classList.toggle('open'));
+              }),
+              s?.addEventListener('click', (o) => {
+                o.stopPropagation();
+              }))
+            : t.addEventListener('click', () => {
+                e.classList.toggle('open');
+              });
+        });
+      </script>
+      <div class="layout-content">
+        <main>
+          <div class="container">
+            <nav class="breadcrumb" aria-label="Breadcrumb" data-astro-cid-qaanghzh>
+              <a href="/zh-Hans/" class="breadcrumb-link" data-astro-cid-qaanghzh>
+                <img
+                  src="/ui/ngae.png"
+                  alt="END Wiki"
+                  class="breadcrumb-logo"
+                  style="
+                    width: 1rem;
+                    height: 1rem;
+                    object-fit: contain;
+                    flex-shrink: 0;
+                    display: inline-block;
+                  "
+                  data-astro-cid-qaanghzh
+                />
+                首页 </a
+              ><span class="breadcrumb-sep" data-astro-cid-qaanghzh>/</span
+              ><span class="breadcrumb-current" data-astro-cid-qaanghzh>生产</span
+              ><span class="breadcrumb-sep" data-astro-cid-qaanghzh>/</span
+              ><span class="breadcrumb-current" data-astro-cid-qaanghzh>设备</span>
+            </nav>
+            <div class="breadcrumb-divider" data-astro-cid-qaanghzh></div>
+            <script type="application/ld+json">
+              {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                  {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "首页",
+                    "item": "https://end.wiki/zh-Hans/"
+                  },
+                  { "@type": "ListItem", "position": 2, "name": "生产" },
+                  { "@type": "ListItem", "position": 3, "name": "设备" }
+                ]
+              }
+            </script>
+            <section class="building-list-shell" data-astro-cid-xrykrr62>
+              <div class="building-list-header" data-astro-cid-xrykrr62>
+                <div data-astro-cid-xrykrr62><h1 data-astro-cid-xrykrr62>设备</h1></div>
+                <span class="count-pill" data-count-pill data-astro-cid-xrykrr62>69</span>
+              </div>
+              <!-- Tab filter -->
+              <div class="building-tabs" data-tabs data-astro-cid-xrykrr62>
+                <button class="building-tab active" data-tab="all" data-astro-cid-xrykrr62>
+                  全部 <span class="tab-count" data-astro-cid-xrykrr62>69</span>
+                </button>
+                <button
+                  class="building-tab"
+                  data-tab="wiki_group_building_source"
+                  data-astro-cid-xrykrr62
+                >
+                  资源开采 <span class="tab-count" data-astro-cid-xrykrr62>6</span></button
+                ><button
+                  class="building-tab"
+                  data-tab="wiki_group_building_storage"
+                  data-astro-cid-xrykrr62
+                >
+                  仓储存取 <span class="tab-count" data-astro-cid-xrykrr62>10</span></button
+                ><button
+                  class="building-tab"
+                  data-tab="wiki_group_building_basic"
+                  data-astro-cid-xrykrr62
+                >
+                  基础生产 <span class="tab-count" data-astro-cid-xrykrr62>7</span></button
+                ><button
+                  class="building-tab"
+                  data-tab="wiki_group_building_assemble"
+                  data-astro-cid-xrykrr62
+                >
+                  合成制造 <span class="tab-count" data-astro-cid-xrykrr62>9</span></button
+                ><button
+                  class="building-tab"
+                  data-tab="wiki_group_building_electric"
+                  data-astro-cid-xrykrr62
+                >
+                  电力供应 <span class="tab-count" data-astro-cid-xrykrr62>5</span></button
+                ><button
+                  class="building-tab"
+                  data-tab="wiki_group_building_extra"
+                  data-astro-cid-xrykrr62
+                >
+                  功能设备 <span class="tab-count" data-astro-cid-xrykrr62>6</span></button
+                ><button
+                  class="building-tab"
+                  data-tab="wiki_group_building_battle"
+                  data-astro-cid-xrykrr62
+                >
+                  战斗辅助 <span class="tab-count" data-astro-cid-xrykrr62>16</span></button
+                ><button
+                  class="building-tab"
+                  data-tab="wiki_group_building_soil"
+                  data-astro-cid-xrykrr62
+                >
+                  种植调配 <span class="tab-count" data-astro-cid-xrykrr62>10</span>
+                </button>
+              </div>
+              <!-- Search -->
+              <div class="search-bar" data-astro-cid-xrykrr62>
+                <svg
+                  class="search-icon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  data-astro-cid-xrykrr62
+                >
+                  <circle cx="11" cy="11" r="8" data-astro-cid-xrykrr62></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" data-astro-cid-xrykrr62></line>
+                </svg>
+                <input
+                  type="text"
+                  id="buildingSearch"
+                  class="search-input"
+                  placeholder="搜索建筑…"
+                  autocomplete="off"
+                  data-astro-cid-xrykrr62
+                />
+              </div>
+              <!-- Groups by category -->
+              <details
+                class="building-group"
+                data-building-group
+                data-category="wiki_group_building_source"
+                open
+                data-astro-cid-xrykrr62
+              >
+                <summary class="building-group-header" data-astro-cid-xrykrr62>
+                  <svg
+                    class="building-group-arrow"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    data-astro-cid-xrykrr62
+                  >
+                    <polyline points="6 9 12 15 18 9" data-astro-cid-xrykrr62></polyline>
+                  </svg>
+                  <span class="building-group-name" data-astro-cid-xrykrr62>资源开采</span>
+                  <span class="building-group-meta" data-group-count data-astro-cid-xrykrr62
+                    >6</span
+                  >
+                </summary>
+                <div class="building-grid" data-astro-cid-xrykrr62>
+                  <a
+                    href="/zh-Hans/factory/buildings/miner-1/"
+                    class="building-card"
+                    data-name="便携源石矿机"
+                    data-category="wiki_group_building_source"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-miner-1__128x128__1b710e6228af.webp"
+                        alt="便携源石矿机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-miner-1__128x128__1b710e6228af.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-miner-1__148x148__03fa3813592a.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>便携源石矿机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/miner-2/"
+                    class="building-card"
+                    data-name="电驱矿机"
+                    data-category="wiki_group_building_source"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-miner-2__128x128__959a86fcc183.webp"
+                        alt="电驱矿机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-miner-2__128x128__959a86fcc183.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-miner-2__144x144__6df6ac3a1705.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>电驱矿机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/miner-3/"
+                    class="building-card"
+                    data-name="二型电驱矿机"
+                    data-category="wiki_group_building_source"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-miner-3__128x128__186e94b7c27f.webp"
+                        alt="二型电驱矿机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-miner-3__128x128__186e94b7c27f.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-miner-3__148x148__a7055dde4e5f.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>二型电驱矿机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/pump-2/"
+                    class="building-card"
+                    data-name="二型耐酸水泵"
+                    data-category="wiki_group_building_source"
+                    data-astro-cid-xrykrr62
+                  >
+                    <span class="new-badge" data-astro-cid-xrykrr62>NEW</span>
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-pump-2__128x128__17377f08d439.webp"
+                        alt="二型耐酸水泵"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-pump-2__128x128__17377f08d439.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-pump-2__204x204__dea69382ddc0.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>二型耐酸水泵</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/pump-1/"
+                    class="building-card"
+                    data-name="水泵"
+                    data-category="wiki_group_building_source"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-pump-1__123x126__e90fcada6242.webp"
+                        alt="水泵"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-pump-1__123x126__e90fcada6242.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-pump-1__148x148__b0a11eee7629.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>水泵</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/miner-4/"
+                    class="building-card"
+                    data-name="水驱矿机"
+                    data-category="wiki_group_building_source"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-miner-4__128x128__ca2905774b3c.webp"
+                        alt="水驱矿机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-miner-4__128x128__ca2905774b3c.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-liquid-miner__148x148__f2bb0c6b6033.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>水驱矿机</span>
+                    </div>
+                  </a>
+                </div>
+              </details>
+              <details
+                class="building-group"
+                data-building-group
+                data-category="wiki_group_building_storage"
+                open
+                data-astro-cid-xrykrr62
+              >
+                <summary class="building-group-header" data-astro-cid-xrykrr62>
+                  <svg
+                    class="building-group-arrow"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    data-astro-cid-xrykrr62
+                  >
+                    <polyline points="6 9 12 15 18 9" data-astro-cid-xrykrr62></polyline>
+                  </svg>
+                  <span class="building-group-name" data-astro-cid-xrykrr62>仓储存取</span>
+                  <span class="building-group-meta" data-group-count data-astro-cid-xrykrr62
+                    >10</span
+                  >
+                </summary>
+                <div class="building-grid" data-astro-cid-xrykrr62>
+                  <a
+                    href="/zh-Hans/factory/buildings/udpipe-unloader-1/"
+                    class="building-card"
+                    data-name="暗管出口"
+                    data-category="wiki_group_building_storage"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-udpipe-unloader-1__115x126__ba9effb0ba3c.webp"
+                        alt="暗管出口"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-udpipe-unloader-1__115x126__ba9effb0ba3c.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-pot-udpipe-unloader-1__204x204__299d48647a03.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>暗管出口</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/udpipe-loader-1/"
+                    class="building-card"
+                    data-name="暗管入口"
+                    data-category="wiki_group_building_storage"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-udpipe-loader-1__115x126__03a955f43a79.webp"
+                        alt="暗管入口"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-udpipe-loader-1__115x126__03a955f43a79.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-pot-udpipe-loader-1__200x200__1b98dc3ece6b.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>暗管入口</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/loader-1/"
+                    class="building-card"
+                    data-name="仓库存货口"
+                    data-category="wiki_group_building_storage"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-loader-1__126x123__4f70fdb52595.webp"
+                        alt="仓库存货口"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-loader-1__126x123__4f70fdb52595.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-loader-1__148x148__8ef85df8383f.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>仓库存货口</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/log-hongs-bus/"
+                    class="building-card"
+                    data-name="仓库存取线基段"
+                    data-category="wiki_group_building_storage"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-log-hongs-bus__126x126__4ef4c17d99b6.webp"
+                        alt="仓库存取线基段"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-log-hongs-bus__126x126__4ef4c17d99b6.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-log-hongs-bus__148x148__9cca6f28d58f.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>仓库存取线基段</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/log-hongs-bus-source/"
+                    class="building-card"
+                    data-name="仓库存取线源桩"
+                    data-category="wiki_group_building_storage"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-log-hongs-bus-source__128x128__3e7fb9513629.webp"
+                        alt="仓库存取线源桩"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-log-hongs-bus-source__128x128__3e7fb9513629.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-log-hongs-bus-source__144x127__3b8a4832fa19.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>仓库存取线源桩</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/unloader-1/"
+                    class="building-card"
+                    data-name="仓库取货口"
+                    data-category="wiki_group_building_storage"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-unloader-1__126x123__1d33e8825d11.webp"
+                        alt="仓库取货口"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-unloader-1__126x123__1d33e8825d11.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-unloader-1__148x148__f7e8348c48db.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>仓库取货口</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/liquid-storager-1/"
+                    class="building-card"
+                    data-name="储液罐"
+                    data-category="wiki_group_building_storage"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-liquid-storager-1__106x126__625ee3e78073.webp"
+                        alt="储液罐"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-liquid-storager-1__106x126__625ee3e78073.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-liquid-storager-1__148x148__6e4f08c38b85.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>储液罐</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/udpipe-unloader-2/"
+                    class="building-card"
+                    data-name="多口暗管出口"
+                    data-category="wiki_group_building_storage"
+                    data-astro-cid-xrykrr62
+                  >
+                    <span class="new-badge" data-astro-cid-xrykrr62>NEW</span>
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-udpipe-unloader-2__119x126__f56952081fe1.webp"
+                        alt="多口暗管出口"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-udpipe-unloader-2__119x126__f56952081fe1.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-pot-udpipe-unloader-2__204x204__a62109a4fbe5.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>多口暗管出口</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/udpipe-loader-2/"
+                    class="building-card"
+                    data-name="多口暗管入口"
+                    data-category="wiki_group_building_storage"
+                    data-astro-cid-xrykrr62
+                  >
+                    <span class="new-badge" data-astro-cid-xrykrr62>NEW</span>
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-udpipe-loader-2__128x128__3cd9ce093467.webp"
+                        alt="多口暗管入口"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-udpipe-loader-2__128x128__3cd9ce093467.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-pot-udpipe-loader-2__204x204__858fe30e1502.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>多口暗管入口</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/storager-1/"
+                    class="building-card"
+                    data-name="协议储存箱"
+                    data-category="wiki_group_building_storage"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-storager-1__117x126__d7dc6ecf6e0e.webp"
+                        alt="协议储存箱"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-storager-1__117x126__d7dc6ecf6e0e.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-storager-1__114x130__1a46081a4b04.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>协议储存箱</span>
+                    </div>
+                  </a>
+                </div>
+              </details>
+              <details
+                class="building-group"
+                data-building-group
+                data-category="wiki_group_building_basic"
+                open
+                data-astro-cid-xrykrr62
+              >
+                <summary class="building-group-header" data-astro-cid-xrykrr62>
+                  <svg
+                    class="building-group-arrow"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    data-astro-cid-xrykrr62
+                  >
+                    <polyline points="6 9 12 15 18 9" data-astro-cid-xrykrr62></polyline>
+                  </svg>
+                  <span class="building-group-name" data-astro-cid-xrykrr62>基础生产</span>
+                  <span class="building-group-meta" data-group-count data-astro-cid-xrykrr62
+                    >7</span
+                  >
+                </summary>
+                <div class="building-grid" data-astro-cid-xrykrr62>
+                  <a
+                    href="/zh-Hans/factory/buildings/seedcollector-1/"
+                    class="building-card"
+                    data-name="采种机"
+                    data-category="wiki_group_building_basic"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-seedcol-1__124x126__12c18e51c20a.webp"
+                        alt="采种机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-seedcol-1__124x126__12c18e51c20a.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-seedcol-1__144x144__a975a0492beb.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>采种机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/liquid-cleaner-1/"
+                    class="building-card"
+                    data-name="废水处理机"
+                    data-category="wiki_group_building_basic"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-liquid-cleaner-1__128x128__a54a593e0d27.webp"
+                        alt="废水处理机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-liquid-cleaner-1__128x128__a54a593e0d27.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-liquid-cleaner-1__200x200__af15ce71c9a9.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>废水处理机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/grinder-1/"
+                    class="building-card"
+                    data-name="粉碎机"
+                    data-category="wiki_group_building_basic"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-grinder-1__106x126__2c53a70f58bd.webp"
+                        alt="粉碎机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-grinder-1__106x126__2c53a70f58bd.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-grinder-1__148x148__526c756883ac.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>粉碎机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/furnance-1/"
+                    class="building-card"
+                    data-name="精炼炉"
+                    data-category="wiki_group_building_basic"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-furnance-1__128x128__c65017d2d8ad.webp"
+                        alt="精炼炉"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-furnance-1__128x128__c65017d2d8ad.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-furnance-1__129x134__958018c07077.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>精炼炉</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/component-mc-1/"
+                    class="building-card"
+                    data-name="配件机"
+                    data-category="wiki_group_building_basic"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-cmpt-mc-1__128x128__20db9e815928.webp"
+                        alt="配件机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-cmpt-mc-1__128x128__20db9e815928.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-cmpt-mc-1__148x148__a4a43d80c049.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>配件机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/shaper-1/"
+                    class="building-card"
+                    data-name="塑形机"
+                    data-category="wiki_group_building_basic"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-shaper-1__126x126__885edaa60d3c.webp"
+                        alt="塑形机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-shaper-1__126x126__885edaa60d3c.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-shaper-1__130x129__417a8437e847.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>塑形机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/planter-1/"
+                    class="building-card"
+                    data-name="种植机"
+                    data-category="wiki_group_building_basic"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-planter-1__128x128__abe450900fe8.webp"
+                        alt="种植机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-planter-1__128x128__abe450900fe8.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-planter-1__135x129__4ac4f9995686.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>种植机</span>
+                    </div>
+                  </a>
+                </div>
+              </details>
+              <details
+                class="building-group"
+                data-building-group
+                data-category="wiki_group_building_assemble"
+                open
+                data-astro-cid-xrykrr62
+              >
+                <summary class="building-group-header" data-astro-cid-xrykrr62>
+                  <svg
+                    class="building-group-arrow"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    data-astro-cid-xrykrr62
+                  >
+                    <polyline points="6 9 12 15 18 9" data-astro-cid-xrykrr62></polyline>
+                  </svg>
+                  <span class="building-group-name" data-astro-cid-xrykrr62>合成制造</span>
+                  <span class="building-group-meta" data-group-count data-astro-cid-xrykrr62
+                    >9</span
+                  >
+                </summary>
+                <div class="building-grid" data-astro-cid-xrykrr62>
+                  <a
+                    href="/zh-Hans/factory/buildings/dismantler-1/"
+                    class="building-card"
+                    data-name="拆解机"
+                    data-category="wiki_group_building_assemble"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-dismantler-1__128x128__8f2a4b844d88.webp"
+                        alt="拆解机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-dismantler-1__128x128__8f2a4b844d88.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-dismantler-1__130x130__b734505a5942.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>拆解机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/mix-pool-1/"
+                    class="building-card"
+                    data-name="反应池"
+                    data-category="wiki_group_building_assemble"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-mix-pool-1__128x128__d30161eb897e.webp"
+                        alt="反应池"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-mix-pool-1__128x128__d30161eb897e.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-mix-pool-1__148x148__d7ce454ca05b.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>反应池</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/tools-assebling-mc-1/"
+                    class="building-card"
+                    data-name="封装机"
+                    data-category="wiki_group_building_assemble"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-tools-asm-mc-1__126x126__b5c1fa9d9caf.webp"
+                        alt="封装机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-tools-asm-mc-1__126x126__b5c1fa9d9caf.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-tools-asm-mc-1__148x148__c88d17db7f42.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>封装机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/filling-powder-mc-1/"
+                    class="building-card"
+                    data-name="灌装机"
+                    data-category="wiki_group_building_assemble"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-filling-pd-mc-1__126x126__1f1384991526.webp"
+                        alt="灌装机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-filling-pd-mc-1__126x126__1f1384991526.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-filling-pd-mc-1__148x148__27d3947a438d.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>灌装机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/mix-pool-2/"
+                    class="building-card"
+                    data-name="扩容反应池"
+                    data-category="wiki_group_building_assemble"
+                    data-astro-cid-xrykrr62
+                  >
+                    <span class="new-badge" data-astro-cid-xrykrr62>NEW</span>
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-mix-pool-2__125x126__a3629204a9b6.webp"
+                        alt="扩容反应池"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-mix-pool-2__125x126__a3629204a9b6.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-mix-pool-2__204x204__0d8fe3998186.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>扩容反应池</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/liquid-purifier-1/"
+                    class="building-card"
+                    data-name="提纯机"
+                    data-category="wiki_group_building_assemble"
+                    data-astro-cid-xrykrr62
+                  >
+                    <span class="new-badge" data-astro-cid-xrykrr62>NEW</span>
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-liquid-purifier-1__128x128__5a6cad0a72d5.webp"
+                        alt="提纯机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-liquid-purifier-1__128x128__5a6cad0a72d5.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-liquid-purifier-1__204x204__3efbff49274c.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>提纯机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/xiranite-oven-1/"
+                    class="building-card"
+                    data-name="天有洪炉"
+                    data-category="wiki_group_building_assemble"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-xiranite-oven-1__116x126__1dda0b3339ad.webp"
+                        alt="天有洪炉"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-xiranite-oven-1__116x126__1dda0b3339ad.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-xiranite-oven-1__119x134__e30c6b220254.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>天有洪炉</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/thickener-1/"
+                    class="building-card"
+                    data-name="研磨机"
+                    data-category="wiki_group_building_assemble"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-thickener-1__128x128__f8a3e9bdfff9.webp"
+                        alt="研磨机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-thickener-1__128x128__f8a3e9bdfff9.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-thickener-1__148x148__1e06353d1aa1.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>研磨机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/winder-1/"
+                    class="building-card"
+                    data-name="装备原件机"
+                    data-category="wiki_group_building_assemble"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-winder-1__128x128__eb6a45971976.webp"
+                        alt="装备原件机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-winder-1__128x128__eb6a45971976.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-winder-1__148x148__bc6e042e2a77.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>装备原件机</span>
+                    </div>
+                  </a>
+                </div>
+              </details>
+              <details
+                class="building-group"
+                data-building-group
+                data-category="wiki_group_building_electric"
+                open
+                data-astro-cid-xrykrr62
+              >
+                <summary class="building-group-header" data-astro-cid-xrykrr62>
+                  <svg
+                    class="building-group-arrow"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    data-astro-cid-xrykrr62
+                  >
+                    <polyline points="6 9 12 15 18 9" data-astro-cid-xrykrr62></polyline>
+                  </svg>
+                  <span class="building-group-name" data-astro-cid-xrykrr62>电力供应</span>
+                  <span class="building-group-meta" data-group-count data-astro-cid-xrykrr62
+                    >5</span
+                  >
+                </summary>
+                <div class="building-grid" data-astro-cid-xrykrr62>
+                  <a
+                    href="/zh-Hans/factory/buildings/power-diffuser-1/"
+                    class="building-card"
+                    data-name="供电桩"
+                    data-category="wiki_group_building_electric"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-power-diffuser-1__128x128__fdfe057d3216.webp"
+                        alt="供电桩"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-power-diffuser-1__128x128__fdfe057d3216.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-power-diffuser-1__144x144__3c83956cfe8e.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>供电桩</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/power-station-1/"
+                    class="building-card"
+                    data-name="热能池"
+                    data-category="wiki_group_building_electric"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-power-sta-1__118x126__9c78b0d71ed5.webp"
+                        alt="热能池"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-power-sta-1__118x126__9c78b0d71ed5.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-power-sta-1__131x130__9ba2cc8295d6.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>热能池</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/power-diffuser-2/"
+                    class="building-card"
+                    data-name="息壤供电桩"
+                    data-category="wiki_group_building_electric"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-power-diffuser-2__122x121__62372ab438bf.webp"
+                        alt="息壤供电桩"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-power-diffuser-2__122x121__62372ab438bf.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-power-pole-2__126x123__d4f80f3813de.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-power-pole-2__144x144__bca34f1bc402.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>息壤供电桩</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/power-pole-3/"
+                    class="building-card"
+                    data-name="息壤中继器"
+                    data-category="wiki_group_building_electric"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-power-pole-3__126x124__40210bbb63f8.webp"
+                        alt="息壤中继器"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-power-pole-3__126x124__40210bbb63f8.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-power-pole-3__148x148__6d5dfef37b03.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>息壤中继器</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/power-pole-2/"
+                    class="building-card"
+                    data-name="中继器"
+                    data-category="wiki_group_building_electric"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-power-pole-2__126x123__d4f80f3813de.webp"
+                        alt="中继器"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-power-pole-2__126x123__d4f80f3813de.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-power-pole-2__144x144__bca34f1bc402.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>中继器</span>
+                    </div>
+                  </a>
+                </div>
+              </details>
+              <details
+                class="building-group"
+                data-building-group
+                data-category="wiki_group_building_extra"
+                open
+                data-astro-cid-xrykrr62
+              >
+                <summary class="building-group-header" data-astro-cid-xrykrr62>
+                  <svg
+                    class="building-group-arrow"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    data-astro-cid-xrykrr62
+                  >
+                    <polyline points="6 9 12 15 18 9" data-astro-cid-xrykrr62></polyline>
+                  </svg>
+                  <span class="building-group-name" data-astro-cid-xrykrr62>功能设备</span>
+                  <span class="building-group-meta" data-group-count data-astro-cid-xrykrr62
+                    >6</span
+                  >
+                </summary>
+                <div class="building-grid" data-astro-cid-xrykrr62>
+                  <a
+                    href="/zh-Hans/factory/buildings/carrier-1/"
+                    class="building-card"
+                    data-name="便捷存取站"
+                    data-category="wiki_group_building_extra"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-carrier-1__120x126__95b3ed3951c4.webp"
+                        alt="便捷存取站"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-carrier-1__120x126__95b3ed3951c4.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-carrier-1__126x130__46259b67edad.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>便捷存取站</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/dumper-1/"
+                    class="building-card"
+                    data-name="给水器"
+                    data-category="wiki_group_building_extra"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-dumper-1__128x128__06f64a6eaa11.webp"
+                        alt="给水器"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-dumper-1__128x128__06f64a6eaa11.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-dumper-1__148x148__f9a520949bd8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>给水器</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/travel-pole-1/"
+                    class="building-card"
+                    data-name="滑索架"
+                    data-category="wiki_group_building_extra"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-travel-pole-1__126x126__f356eea05bed.webp"
+                        alt="滑索架"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-travel-pole-1__126x126__f356eea05bed.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-travel-pole-1__148x148__19f06d5292c2.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>滑索架</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/marker-1/"
+                    class="building-card"
+                    data-name="留言信标"
+                    data-category="wiki_group_building_extra"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-marker-1__128x128__1a5a8fe4bca2.webp"
+                        alt="留言信标"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-marker-1__128x128__1a5a8fe4bca2.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-marker-1__148x148__5eaf45e6210d.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>留言信标</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/squirter-1/"
+                    class="building-card"
+                    data-name="洒水机"
+                    data-category="wiki_group_building_extra"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-squirter-1__128x128__0a7190427753.webp"
+                        alt="洒水机"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-squirter-1__128x128__0a7190427753.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-squirter-1__148x148__24c26a520794.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>洒水机</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/travel-pole-2/"
+                    class="building-card"
+                    data-name="长距滑索架"
+                    data-category="wiki_group_building_extra"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-travel-pole-2__128x128__a12b39135e84.webp"
+                        alt="长距滑索架"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-travel-pole-2__128x128__a12b39135e84.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-travel-pole-2__148x148__ea8490952f7f.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>长距滑索架</span>
+                    </div>
+                  </a>
+                </div>
+              </details>
+              <details
+                class="building-group"
+                data-building-group
+                data-category="wiki_group_building_battle"
+                open
+                data-astro-cid-xrykrr62
+              >
+                <summary class="building-group-header" data-astro-cid-xrykrr62>
+                  <svg
+                    class="building-group-arrow"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    data-astro-cid-xrykrr62
+                  >
+                    <polyline points="6 9 12 15 18 9" data-astro-cid-xrykrr62></polyline>
+                  </svg>
+                  <span class="building-group-name" data-astro-cid-xrykrr62>战斗辅助</span>
+                  <span class="building-group-meta" data-group-count data-astro-cid-xrykrr62
+                    >16</span
+                  >
+                </summary>
+                <div class="building-grid" data-astro-cid-xrykrr62>
+                  <a
+                    href="/zh-Hans/factory/buildings/battle-fog-1/"
+                    class="building-card"
+                    data-name="“毒沼”mk-ⅰ"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-fog-1__128x128__ca68427d2c0f.webp"
+                        alt="“毒沼”MK-Ⅰ"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-fog-1__128x128__ca68427d2c0f.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-fog-1__148x148__accef14679f4.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>“毒沼”MK-Ⅰ</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-debuff-1/"
+                    class="building-card"
+                    data-name="“酸洗”mk-ⅰ"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <span class="new-badge" data-astro-cid-xrykrr62>NEW</span>
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-debuff-1__126x126__275f8f651698.webp"
+                        alt="“酸洗”MK-Ⅰ"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-debuff-1__126x126__275f8f651698.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-debuff-1__200x188__46aee8bff8fa.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>“酸洗”MK-Ⅰ</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-turret-1/"
+                    class="building-card"
+                    data-name="铳械塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-turret-1__126x126__a7ae9f37efd7.webp"
+                        alt="铳械塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-turret-1__126x126__a7ae9f37efd7.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-turret-1__121x132__d11ebaf77363.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>铳械塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-lightning-1/"
+                    class="building-card"
+                    data-name="电涌塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-lightning-1__126x126__8d393b17d8ba.webp"
+                        alt="电涌塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-lightning-1__126x126__8d393b17d8ba.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-lightning-1__148x148__f2129818ad6c.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>电涌塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-cannon-2/"
+                    class="building-card"
+                    data-name="高爆榴弹塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-cannon-2__110x126__52fe07b1cd82.webp"
+                        alt="高爆榴弹塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-cannon-2__110x126__52fe07b1cd82.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-cannon-2__121x133__596ba8f70c6a.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>高爆榴弹塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-laser-2/"
+                    class="building-card"
+                    data-name="高能射线塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <span class="new-badge" data-astro-cid-xrykrr62>NEW</span>
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-laser-2__128x128__de178194cd74.webp"
+                        alt="高能射线塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-laser-2__128x128__de178194cd74.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-laser-2__200x186__f65cbc6e7101.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>高能射线塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-jet-1/"
+                    class="building-card"
+                    data-name="激流塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-jet-1__128x128__bf4ee9449e27.webp"
+                        alt="激流塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-jet-1__128x128__bf4ee9449e27.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-jet-1__172x188__d5a2fdd4a4cd.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>激流塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-turret-2/"
+                    class="building-card"
+                    data-name="扩装铳械塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-turret-2__126x126__f10d05350516.webp"
+                        alt="扩装铳械塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-turret-2__126x126__f10d05350516.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-turret-2__148x148__5ae57d1251eb.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>扩装铳械塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-cannon-1/"
+                    class="building-card"
+                    data-name="榴弹塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-cannon-1__116x124__5193b3a6414d.webp"
+                        alt="榴弹塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-cannon-1__116x124__5193b3a6414d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-cannon-1__121x134__59f72c12d087.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>榴弹塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-shockwave-1/"
+                    class="building-card"
+                    data-name="全向声波塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-shockwave-1__128x128__16690c50b57a.webp"
+                        alt="全向声波塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-shockwave-1__128x128__16690c50b57a.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-shockwave-1__148x148__9814105ed57a.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>全向声波塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-sniper-1/"
+                    class="building-card"
+                    data-name="哨戒塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-sniper-1__128x128__4cd774468578.webp"
+                        alt="哨戒塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-sniper-1__128x128__4cd774468578.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-sniper-1__117x134__eb8691bced93.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>哨戒塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-laser-1/"
+                    class="building-card"
+                    data-name="射线塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-laser-1__126x126__320e24899935.webp"
+                        alt="射线塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-laser-1__126x126__320e24899935.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-laser-1__148x148__06b889f236d9.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>射线塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-frost-1/"
+                    class="building-card"
+                    data-name="液氮塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-frost-1__128x128__447af05f5082.webp"
+                        alt="液氮塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-frost-1__128x128__447af05f5082.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-frost-1__117x132__6f58cff104bd.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>液氮塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-medic-1/"
+                    class="building-card"
+                    data-name="医疗塔"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-medic-1__126x126__26bdedb60581.webp"
+                        alt="医疗塔"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-medic-1__126x126__26bdedb60581.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-medic-1__148x148__a8d72c373334.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>医疗塔</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-rocket-1/"
+                    class="building-card"
+                    data-name="重锤迫击炮"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <span class="new-badge" data-astro-cid-xrykrr62>NEW</span>
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-rocket-1__128x128__d35819e97382.webp"
+                        alt="重锤迫击炮"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-rocket-1__128x128__d35819e97382.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-rocket-1__200x191__22a10c82cc3b.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>重锤迫击炮</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/battle-trap-1/"
+                    class="building-card"
+                    data-name="af1“熔甲者”"
+                    data-category="wiki_group_building_battle"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-battle-trap-1__126x126__4eac20cb9d6c.webp"
+                        alt="AF1“熔甲者”"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-battle-trap-1__126x126__4eac20cb9d6c.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-battle-trap-1__204x204__9fa6090bbcb1.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>AF1“熔甲者”</span>
+                    </div>
+                  </a>
+                </div>
+              </details>
+              <details
+                class="building-group"
+                data-building-group
+                data-category="wiki_group_building_soil"
+                open
+                data-astro-cid-xrykrr62
+              >
+                <summary class="building-group-header" data-astro-cid-xrykrr62>
+                  <svg
+                    class="building-group-arrow"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    data-astro-cid-xrykrr62
+                  >
+                    <polyline points="6 9 12 15 18 9" data-astro-cid-xrykrr62></polyline>
+                  </svg>
+                  <span class="building-group-name" data-astro-cid-xrykrr62>种植调配</span>
+                  <span class="building-group-meta" data-group-count data-astro-cid-xrykrr62
+                    >10</span
+                  >
+                </summary>
+                <div class="building-grid" data-astro-cid-xrykrr62>
+                  <a
+                    href="/zh-Hans/factory/buildings/soil-moss-2/"
+                    class="building-card"
+                    data-name="柑实田块"
+                    data-category="wiki_group_building_soil"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-soil-moss-2__126x126__a5267672c074.webp"
+                        alt="柑实田块"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-soil-moss-2__126x126__a5267672c074.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-soil-1__256x256__bf7973e3065d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-soil-1__62x62__46b7b6fa35e8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>柑实田块</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/soil-sp-1/"
+                    class="building-card"
+                    data-name="灰芦麦田块"
+                    data-category="wiki_group_building_soil"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-soil-sp-1__126x126__4f9dbbebbd5d.webp"
+                        alt="灰芦麦田块"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-soil-sp-1__126x126__4f9dbbebbd5d.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-soil-1__256x256__bf7973e3065d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-soil-1__62x62__46b7b6fa35e8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>灰芦麦田块</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/soil-sp-4/"
+                    class="building-card"
+                    data-name="金石稻田块"
+                    data-category="wiki_group_building_soil"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-soil-sp-4__126x126__3e2dce401fac.webp"
+                        alt="金石稻田块"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-soil-sp-4__126x126__3e2dce401fac.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-soil-1__256x256__bf7973e3065d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-soil-1__62x62__46b7b6fa35e8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>金石稻田块</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/soil-grass-1/"
+                    class="building-card"
+                    data-name="锦草田块"
+                    data-category="wiki_group_building_soil"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-soil-grass-1__128x128__74e3825f96fc.webp"
+                        alt="锦草田块"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-soil-grass-1__128x128__74e3825f96fc.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-soil-1__256x256__bf7973e3065d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-soil-1__62x62__46b7b6fa35e8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>锦草田块</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/soil-sp-2/"
+                    class="building-card"
+                    data-name="苦叶椒田块"
+                    data-category="wiki_group_building_soil"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-soil-sp-2__128x128__796fa9d571a4.webp"
+                        alt="苦叶椒田块"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-soil-sp-2__128x128__796fa9d571a4.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-soil-1__256x256__bf7973e3065d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-soil-1__62x62__46b7b6fa35e8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>苦叶椒田块</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/soil-moss-1/"
+                    class="building-card"
+                    data-name="荞花田块"
+                    data-category="wiki_group_building_soil"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-soil-moss-1__126x126__6ccf95e8c933.webp"
+                        alt="荞花田块"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-soil-moss-1__126x126__6ccf95e8c933.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-soil-1__256x256__bf7973e3065d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-soil-1__62x62__46b7b6fa35e8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>荞花田块</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/soil-sp-3/"
+                    class="building-card"
+                    data-name="琼叶参田块"
+                    data-category="wiki_group_building_soil"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-soil-sp-3__128x128__a5b8a0cedc19.webp"
+                        alt="琼叶参田块"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-soil-sp-3__128x128__a5b8a0cedc19.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-soil-1__256x256__bf7973e3065d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-soil-1__62x62__46b7b6fa35e8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>琼叶参田块</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/soil-moss-3/"
+                    class="building-card"
+                    data-name="砂叶田块"
+                    data-category="wiki_group_building_soil"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-soil-moss-3__128x128__dc3fb5ea9d1b.webp"
+                        alt="砂叶田块"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-soil-moss-3__128x128__dc3fb5ea9d1b.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-soil-1__256x256__bf7973e3065d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-soil-1__62x62__46b7b6fa35e8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>砂叶田块</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/soil-bbflower-1/"
+                    class="building-card"
+                    data-name="酮化灌木田块"
+                    data-category="wiki_group_building_soil"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-soil-bbflower-1__126x126__4d8846a46ecf.webp"
+                        alt="酮化灌木田块"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-soil-bbflower-1__126x126__4d8846a46ecf.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-soil-1__256x256__bf7973e3065d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-soil-1__62x62__46b7b6fa35e8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>酮化灌木田块</span>
+                    </div> </a
+                  ><a
+                    href="/zh-Hans/factory/buildings/soil-grass-2/"
+                    class="building-card"
+                    data-name="芽针田块"
+                    data-category="wiki_group_building_soil"
+                    data-astro-cid-xrykrr62
+                  >
+                    <div class="building-card-media" data-astro-cid-xrykrr62>
+                      <img
+                        src="https://cdn.end.wiki/images/materials/item-port-soil-grass-2__126x126__ccd8c8cb3520.webp"
+                        alt="芽针田块"
+                        width="64"
+                        height="64"
+                        loading="lazy"
+                        data-fallbacks="[&#34;https://cdn.end.wiki/images/materials/item-port-soil-grass-2__126x126__ccd8c8cb3520.webp&#34;,&#34;https://cdn.end.wiki/images/materials/item-port-soil-1__256x256__bf7973e3065d.webp&#34;,&#34;https://cdn.end.wiki/images/buildings/icon-port-soil-1__62x62__46b7b6fa35e8.webp&#34;]"
+                        onerror="
+                          var f = JSON.parse(this.dataset.fallbacks || '[]');
+                          if (f.length) {
+                            this.dataset.fallbacks = JSON.stringify(f.slice(1));
+                            this.src = f[0];
+                          } else {
+                            this.onerror = null;
+                            this.parentElement.classList.add('no-icon');
+                          }
+                        "
+                        data-astro-cid-xrykrr62
+                      />
+                    </div>
+                    <div class="building-card-bottom" data-astro-cid-xrykrr62>
+                      <span class="building-card-name" data-astro-cid-xrykrr62>芽针田块</span>
+                    </div>
+                  </a>
+                </div>
+              </details>
+            </section>
+          </div>
+        </main>
+      </div>
+      <!-- Hamburger (mobile) -->
+      <button class="hamburger" aria-label="Menu" id="hamburgerBtn">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <line x1="3" y1="6" x2="21" y2="6"></line>
+          <line x1="3" y1="12" x2="21" y2="12"></line>
+          <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+      </button>
+      <!-- Theme toggle (fixed top-right) -->
+      <div class="theme-toggle-fixed">
+        <button
+          class="theme-toggle"
+          aria-label="Toggle theme"
+          type="button"
+          data-astro-cid-x3pjskd3
+        >
+          <svg
+            class="icon-sun"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            data-astro-cid-x3pjskd3
+          >
+            <circle cx="12" cy="12" r="5" data-astro-cid-x3pjskd3></circle>
+            <line x1="12" y1="1" x2="12" y2="3" data-astro-cid-x3pjskd3></line>
+            <line x1="12" y1="21" x2="12" y2="23" data-astro-cid-x3pjskd3></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" data-astro-cid-x3pjskd3></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" data-astro-cid-x3pjskd3></line>
+            <line x1="1" y1="12" x2="3" y2="12" data-astro-cid-x3pjskd3></line>
+            <line x1="21" y1="12" x2="23" y2="12" data-astro-cid-x3pjskd3></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" data-astro-cid-x3pjskd3></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" data-astro-cid-x3pjskd3></line>
+          </svg>
+          <svg
+            class="icon-moon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            data-astro-cid-x3pjskd3
+          >
+            <path
+              d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+              data-astro-cid-x3pjskd3
+            ></path>
+          </svg>
+        </button>
+        <script type="module">
+          document.querySelectorAll('.theme-toggle').forEach((c) => {
+            c.addEventListener('click', () => {
+              const e = document.documentElement,
+                t = (e.dataset.theme || 'dark') === 'dark' ? 'light' : 'dark';
+              ((e.dataset.theme = t), localStorage.setItem('theme', t));
+            });
+          });
+        </script>
+      </div>
+      <!-- Trigger button --><button
+        class="feedback-trigger"
+        aria-label="反馈"
+        type="button"
+        id="feedbackTrigger"
+        data-astro-cid-7dsiz7fs
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          data-astro-cid-7dsiz7fs
+        >
+          <path
+            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+            data-astro-cid-7dsiz7fs
+          ></path>
+        </svg>
+      </button>
+      <!-- Feedback panel -->
+      <div class="feedback-panel" id="feedbackPanel" data-astro-cid-7dsiz7fs>
+        <div class="feedback-panel-header" data-astro-cid-7dsiz7fs>
+          <span class="feedback-panel-title" data-astro-cid-7dsiz7fs>反馈问题</span>
+          <button
+            class="feedback-panel-close"
+            type="button"
+            id="feedbackClose"
+            aria-label="Close"
+            data-astro-cid-7dsiz7fs
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              width="16"
+              height="16"
+              data-astro-cid-7dsiz7fs
+            >
+              <line x1="18" y1="6" x2="6" y2="18" data-astro-cid-7dsiz7fs></line>
+              <line x1="6" y1="6" x2="18" y2="18" data-astro-cid-7dsiz7fs></line>
+            </svg>
+          </button>
+        </div>
+        <form
+          class="feedback-form"
+          id="feedbackForm"
+          data-entity-id
+          data-module
+          data-worker-url="https://worker.end.wiki/v1/feedback"
+          data-success-msg="感谢反馈！"
+          data-error-msg="提交失败，请稍后重试"
+          data-minlength-msg="请至少输入 5 个字符"
+          data-astro-cid-7dsiz7fs
+        >
+          <label class="feedback-label" for="feedbackType" data-astro-cid-7dsiz7fs>类型</label>
+          <select
+            name="type"
+            id="feedbackType"
+            class="feedback-select"
+            required
+            data-astro-cid-7dsiz7fs
+          >
+            <optgroup label="错误报告" data-astro-cid-7dsiz7fs>
+              <option value="data" data-astro-cid-7dsiz7fs>数值/属性错误</option>
+              <option value="text" data-astro-cid-7dsiz7fs>文本/描述错误</option>
+              <option value="image" data-astro-cid-7dsiz7fs>图标/图片错误</option>
+              <option value="translation" data-astro-cid-7dsiz7fs>翻译问题</option>
+              <option value="link" data-astro-cid-7dsiz7fs>链接/页面错误</option>
+              <option value="missing-content" data-astro-cid-7dsiz7fs>内容缺失</option>
+              <option value="display" data-astro-cid-7dsiz7fs>显示/排版异常</option>
+            </optgroup>
+            <optgroup label="功能建议" data-astro-cid-7dsiz7fs>
+              <option value="guide-request" data-astro-cid-7dsiz7fs>攻略需求</option>
+              <option value="tool-request" data-astro-cid-7dsiz7fs>工具需求</option>
+              <option value="other" data-astro-cid-7dsiz7fs>其他建议</option>
+            </optgroup>
+          </select>
+          <label class="feedback-label" for="feedbackDesc" data-astro-cid-7dsiz7fs>描述</label>
+          <textarea
+            name="description"
+            id="feedbackDesc"
+            class="feedback-textarea"
+            placeholder="请描述你发现的问题..."
+            required
+            minlength="5"
+            rows="4"
+            data-astro-cid-7dsiz7fs
+          ></textarea>
+          <button
+            type="submit"
+            class="feedback-submit"
+            id="feedbackSubmitBtn"
+            data-astro-cid-7dsiz7fs
+          >
+            提交反馈
+          </button>
+          <div
+            class="feedback-context-hint"
+            id="feedbackContextHint"
+            data-template
+            data-page-template="当前页面：{page}"
+            data-astro-cid-7dsiz7fs
+          ></div>
+        </form>
+        <div
+          class="feedback-status"
+          id="feedbackStatus"
+          style="display: none"
+          data-astro-cid-7dsiz7fs
+        ></div>
+      </div>
+      <script>
+        (function () {
+          var trigger = document.getElementById('feedbackTrigger');
+          var panel = document.getElementById('feedbackPanel');
+          var closeBtn = document.getElementById('feedbackClose');
+          var form = document.getElementById('feedbackForm');
+          var statusEl = document.getElementById('feedbackStatus');
+          var submitBtn = document.getElementById('feedbackSubmitBtn');
+
+          if (!trigger || !panel || !form) return;
+
+          var WORKER_URL = form.dataset.workerUrl || 'https://worker.end.wiki/v1/feedback';
+
+          // Generate idempotency nonce when panel opens
+          var nonce = '';
+
+          // Populate context hint: use entity template for detail pages, path for list/home pages
+          var hintEl = document.getElementById('feedbackContextHint');
+          if (hintEl) {
+            var entityText = hintEl.dataset.template;
+            if (entityText) {
+              hintEl.textContent = entityText;
+            } else {
+              var pageTemplate = hintEl.dataset.pageTemplate || 'Current page: {page}';
+              hintEl.textContent = pageTemplate.replace('{page}', location.pathname);
+            }
+          }
+
+          function toggle() {
+            var isOpen = panel.classList.toggle('is-open');
+            if (isOpen) nonce = crypto.randomUUID();
+          }
+          function close() {
+            panel.classList.remove('is-open');
+          }
+
+          trigger.addEventListener('click', toggle);
+          closeBtn && closeBtn.addEventListener('click', close);
+
+          // Close on outside click
+          document.addEventListener('click', function (e) {
+            if (
+              panel.classList.contains('is-open') &&
+              !panel.contains(e.target) &&
+              e.target !== trigger &&
+              !trigger.contains(e.target)
+            ) {
+              close();
+            }
+          });
+
+          // Compute idempotency key: SHA-256(nonce + body) → first 32 hex chars
+          function computeIdempotencyKey(body) {
+            var raw = nonce + JSON.stringify(body);
+            return crypto.subtle
+              .digest('SHA-256', new TextEncoder().encode(raw))
+              .then(function (buf) {
+                return Array.from(new Uint8Array(buf))
+                  .map(function (b) {
+                    return b.toString(16).padStart(2, '0');
+                  })
+                  .join('')
+                  .slice(0, 32);
+              });
+          }
+
+          // Clear minlength hint once user types enough
+          var descInput = form.querySelector('[name="description"]');
+          descInput &&
+            descInput.addEventListener('input', function () {
+              if (descInput.value.trim().length >= 5 && statusEl.style.display !== 'none') {
+                statusEl.style.display = 'none';
+              }
+            });
+
+          form.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            var typeEl = form.querySelector('[name="type"]');
+            var descEl = form.querySelector('[name="description"]');
+            var desc = descEl.value.trim();
+
+            if (desc.length < 5) {
+              statusEl.className = 'feedback-status is-error';
+              statusEl.textContent =
+                form.dataset.minlengthMsg || 'Please enter at least 5 characters';
+              statusEl.style.display = 'block';
+              return;
+            }
+
+            submitBtn.disabled = true;
+            statusEl.style.display = 'none';
+
+            var body = {
+              type: typeEl.value,
+              description: desc,
+              page: location.pathname,
+              lang: document.documentElement.lang || 'en',
+            };
+
+            // Add optional fields only when present
+            var entityId = form.dataset.entityId;
+            if (entityId) body.entityId = entityId;
+            var module = form.dataset.module;
+            if (module) body.module = module;
+
+            computeIdempotencyKey(body)
+              .then(function (idempotencyKey) {
+                return fetch(WORKER_URL, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Idempotency-Key': idempotencyKey,
+                  },
+                  body: JSON.stringify(body),
+                });
+              })
+              .then(function (res) {
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                return res.json();
+              })
+              .then(function (json) {
+                // 4xx = validation error the user can fix → show error
+                if (json.code >= 400 && json.code < 500) {
+                  throw new Error(json.message || 'fail');
+                }
+                // Everything else (2xx success, 5xx server-side) → show success to user
+                statusEl.className = 'feedback-status is-success';
+                statusEl.textContent = form.dataset.successMsg || 'Thanks!';
+                statusEl.style.display = 'block';
+                form.style.display = 'none';
+                setTimeout(function () {
+                  close();
+                  form.style.display = '';
+                  form.reset();
+                  statusEl.style.display = 'none';
+                }, 2000);
+              })
+              .catch(function () {
+                statusEl.className = 'feedback-status is-error';
+                statusEl.textContent = form.dataset.errorMsg || 'Failed';
+                statusEl.style.display = 'block';
+              })
+              .finally(function () {
+                submitBtn.disabled = false;
+              });
+          });
+        })();
+      </script>
+      <button class="back-to-top" aria-label="Back to top" type="button" data-astro-cid-wlspcwf4>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          data-astro-cid-wlspcwf4
+        >
+          <polyline points="18 15 12 9 6 15" data-astro-cid-wlspcwf4></polyline>
+        </svg>
+      </button>
+      <script type="module">
+        const o = document.querySelector('.back-to-top');
+        o &&
+          (window.addEventListener(
+            'scroll',
+            () => {
+              o.classList.toggle('visible', window.scrollY > 300);
+            },
+            { passive: !0 },
+          ),
+          o.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }));
+      </script>
+    </div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <script type="module">
+      const n = document.getElementById('hamburgerBtn'),
+        t = document.getElementById('sidebar'),
+        e = document.getElementById('sidebarOverlay');
+      function s() {
+        (t?.classList.add('open'), e?.classList.add('active'));
+      }
+      function a() {
+        (t?.classList.remove('open'), e?.classList.remove('active'));
+      }
+      n?.addEventListener('click', s);
+      e?.addEventListener('click', a);
+    </script>
+    <!-- Global hover card portal -->
+    <script>
+      (function () {
+        if (window.matchMedia('(hover: none)').matches) return;
+
+        var MARGIN = 8,
+          GAP = 6;
+        var portal = document.createElement('div');
+        portal.className = 'mat-hover-card-portal';
+        portal.style.display = 'none';
+        document.body.appendChild(portal);
+
+        var activeItem = null;
+
+        // Match both ItemChip (.mat-item.has-hover > .mat-hover-card)
+        // and recipe items (.recipe-item > .recipe-item-hover)
+        function findHoverPair(target) {
+          var item = target.closest && target.closest('.mat-item.has-hover');
+          if (item) {
+            var card = item.querySelector('.mat-hover-card');
+            if (card) return { item: item, card: card, width: 220 };
+          }
+          item = target.closest && target.closest('.recipe-item');
+          if (item) {
+            var card = item.querySelector('.recipe-item-hover');
+            if (card) return { item: item, card: card, width: 200 };
+          }
+          return null;
+        }
+
+        function positionPortal(itemEl, cardWidth) {
+          var rect = itemEl.getBoundingClientRect();
+          var h = portal.offsetHeight;
+          var left = rect.left + rect.width / 2 - cardWidth / 2;
+          left = Math.max(MARGIN, Math.min(left, window.innerWidth - cardWidth - MARGIN));
+          portal.style.width = cardWidth + 'px';
+          portal.style.left = left + 'px';
+          var arrowLeft = rect.left + rect.width / 2 - left;
+          portal.style.setProperty('--arrow-left', arrowLeft + 'px');
+          if (rect.top - GAP - h >= MARGIN) {
+            portal.style.top = rect.top - GAP - h + 'px';
+            portal.classList.remove('is-below');
+          } else {
+            portal.style.top = rect.bottom + GAP + 'px';
+            portal.classList.add('is-below');
+          }
+        }
+
+        document.addEventListener(
+          'mouseenter',
+          function (e) {
+            var pair = findHoverPair(e.target);
+            if (!pair) return;
+            activeItem = pair.item;
+            portal.innerHTML = pair.card.innerHTML;
+            portal.className = 'mat-hover-card-portal';
+            portal.style.display = 'block';
+            requestAnimationFrame(function () {
+              positionPortal(pair.item, pair.width);
+            });
+          },
+          true,
+        );
+
+        document.addEventListener(
+          'mouseleave',
+          function (e) {
+            var pair = findHoverPair(e.target);
+            if (!pair || pair.item !== activeItem) return;
+            portal.style.display = 'none';
+            activeItem = null;
+          },
+          true,
+        );
+      })();
+    </script>
+    <!-- Mobile: make floating buttons draggable -->
+    <script>
+      (function () {
+        if (!window.matchMedia('(hover: none)').matches) return;
+        function makeDraggable(el) {
+          if (!el) return;
+          var startX,
+            startY,
+            origX,
+            origY,
+            dragging = false,
+            moved = false;
+          el.addEventListener(
+            'touchstart',
+            function (e) {
+              if (e.touches.length !== 1) return;
+              var t = e.touches[0];
+              var rect = el.getBoundingClientRect();
+              startX = t.clientX;
+              startY = t.clientY;
+              origX = rect.left;
+              origY = rect.top;
+              dragging = true;
+              moved = false;
+            },
+            { passive: true },
+          );
+          el.addEventListener(
+            'touchmove',
+            function (e) {
+              if (!dragging) return;
+              var t = e.touches[0];
+              var dx = t.clientX - startX,
+                dy = t.clientY - startY;
+              if (!moved && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+              moved = true;
+              e.preventDefault();
+              var nx = origX + dx,
+                ny = origY + dy;
+              var maxX = window.innerWidth - el.offsetWidth;
+              var maxY = window.innerHeight - el.offsetHeight;
+              nx = Math.max(0, Math.min(nx, maxX));
+              ny = Math.max(0, Math.min(ny, maxY));
+              el.style.position = 'fixed';
+              el.style.left = nx + 'px';
+              el.style.top = ny + 'px';
+              el.style.right = 'auto';
+              el.style.bottom = 'auto';
+            },
+            { passive: false },
+          );
+          el.addEventListener(
+            'touchend',
+            function () {
+              if (!dragging) return;
+              dragging = false;
+              if (moved) {
+                // Snap to nearest horizontal edge
+                var rect = el.getBoundingClientRect();
+                var mid = window.innerWidth / 2;
+                if (rect.left + rect.width / 2 < mid) {
+                  el.style.left = '0.75rem';
+                } else {
+                  el.style.left = window.innerWidth - el.offsetWidth - 12 + 'px';
+                }
+              }
+            },
+            { passive: true },
+          );
+          // Prevent click when dragged
+          el.addEventListener(
+            'click',
+            function (e) {
+              if (moved) {
+                e.preventDefault();
+                e.stopPropagation();
+                moved = false;
+              }
+            },
+            true,
+          );
+        }
+        makeDraggable(document.querySelector('.feedback-trigger'));
+        makeDraggable(document.querySelector('.back-to-top'));
+      })();
+    </script>
+    <!-- Cloudflare Pages Analytics -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "60957764092c4458afc19fcdc7a8d77c"}'
+    ></script>
+    <!-- Cloudflare Pages Analytics -->
+  </body>
+</html>
+<script>
+  (function () {
+    var searchInput = document.getElementById('buildingSearch');
+    var cards = Array.from(document.querySelectorAll('.building-card'));
+    var groups = Array.from(document.querySelectorAll('[data-building-group]'));
+    var tabs = Array.from(document.querySelectorAll('[data-tab]'));
+    var countPill = document.querySelector('[data-count-pill]');
+    var activeTab = 'all';
+
+    if (!searchInput || !cards.length) return;
+
+    // Tab click
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        tabs.forEach(function (t) {
+          t.classList.remove('active');
+        });
+        tab.classList.add('active');
+        activeTab = tab.dataset.tab;
+        apply();
+      });
+    });
+
+    // Search
+    var timer = null;
+    searchInput.addEventListener('input', function () {
+      clearTimeout(timer);
+      timer = setTimeout(apply, 150);
+    });
+
+    function apply() {
+      var q = searchInput.value.trim().toLowerCase();
+      var total = 0;
+
+      cards.forEach(function (c) {
+        var name = c.dataset.name || '';
+        var cat = c.dataset.category || '';
+        var matchSearch = !q || name.indexOf(q) !== -1;
+        var matchTab = activeTab === 'all' || cat === activeTab;
+        var vis = matchSearch && matchTab;
+        c.hidden = !vis;
+        if (vis) total++;
+      });
+
+      groups.forEach(function (g) {
+        var cat = g.dataset.category || '';
+        var tabMatch = activeTab === 'all' || cat === activeTab;
+        var visCards = Array.from(g.querySelectorAll('.building-card')).filter(function (c) {
+          return !c.hidden;
+        });
+        g.hidden = !tabMatch || visCards.length === 0;
+        var countEl = g.querySelector('[data-group-count]');
+        if (countEl) countEl.textContent = String(visCards.length);
+      });
+
+      if (countPill) countPill.textContent = String(total);
+    }
+  })();
+</script>
