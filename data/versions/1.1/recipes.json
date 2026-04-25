@@ -1,0 +1,18 @@
+[
+  {
+    "id": "recipe-iron-cmpt",
+    "display_name_zh_hans": "铁制零件",
+    "cycle_seconds": 3,
+    "inputs": [{ "item_id": "item-iron-nugget", "qty_per_cycle": 1 }],
+    "outputs": [{ "item_id": "item-iron-cmpt", "qty_per_cycle": 1 }],
+    "compatible_devices": ["furnance-1"]
+  },
+  {
+    "id": "recipe-obsolete",
+    "display_name_zh_hans": "已淘汰配方",
+    "cycle_seconds": 5,
+    "inputs": [],
+    "outputs": [{ "item_id": "item-iron-nugget", "qty_per_cycle": 1 }],
+    "compatible_devices": ["obsolete-furnance-0"]
+  }
+]

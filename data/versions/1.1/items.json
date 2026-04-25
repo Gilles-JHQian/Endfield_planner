@@ -1,0 +1,14 @@
+[
+  {
+    "id": "item-iron-nugget",
+    "display_name_zh_hans": "蓝铁块",
+    "kind": "solid",
+    "rarity": 1
+  },
+  {
+    "id": "item-iron-cmpt",
+    "display_name_zh_hans": "铁制零件",
+    "kind": "solid",
+    "rarity": 2
+  }
+]
