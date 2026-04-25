@@ -1,0 +1,43 @@
+{
+  "app.title": "Endfield Planner — 产能解算器",
+  "app.summary": "数据版本 {version} · {devices} 设备 · {recipes} 配方 · {items} 物品",
+
+  "form.region": "区域",
+  "form.targetItem": "目标物品",
+  "form.rate": "产能（每分钟）",
+  "form.solve": "解算",
+  "form.invalidRate": "请输入大于零的产能（单位：每分钟）。",
+
+  "loading.text": "正在加载 v{version} 数据 …",
+  "loading.error": "数据加载失败：{message}",
+  "loading.unknownError": "未知错误",
+
+  "summary.targetRate": "目标产量",
+  "summary.totalMachines": "总机器数",
+  "summary.totalPower": "总功耗",
+  "summary.totalFootprint": "总占地",
+  "summary.cells": "格",
+
+  "results.recipeNodes": "配方节点",
+  "results.rawInputs": "原料消耗",
+  "results.byproducts": "副产物",
+  "results.noRawInputs": "无原料消耗 — 整条产线自给自足。",
+  "results.noByproducts": "无副产物。",
+
+  "table.recipe": "配方",
+  "table.device": "设备",
+  "table.runsPerMin": "次/分",
+  "table.machineCount": "机器数",
+  "table.power": "功耗",
+  "table.footprint": "占地",
+  "table.item": "物品",
+  "table.kind": "类型",
+  "table.ratePerMin": "每分钟",
+
+  "kind.solid": "固体",
+  "kind.fluid": "流体",
+
+  "warning.cycles": "检测到环路配方（已截断展开）：{cycles}",
+
+  "lang.toggle": "English"
+}

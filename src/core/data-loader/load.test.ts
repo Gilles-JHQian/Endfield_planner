@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadDataBundle } from './load.ts';
+import { loadDataBundle } from './load-from-fs.ts';
 
 describe('loadDataBundle', () => {
   it('loads v1.2 with the full scraped catalog (69 devices)', async () => {

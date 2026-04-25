@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadDataBundle } from './load.ts';
+import { loadDataBundle } from './load-from-fs.ts';
 import { diffDataBundles } from './diff.ts';
 
 describe('diffDataBundles', () => {

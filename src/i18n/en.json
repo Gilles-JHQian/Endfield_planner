@@ -1,0 +1,43 @@
+{
+  "app.title": "Endfield Planner — Throughput Solver",
+  "app.summary": "Data v{version} · {devices} devices · {recipes} recipes · {items} items",
+
+  "form.region": "Region",
+  "form.targetItem": "Target item",
+  "form.rate": "Rate (per minute)",
+  "form.solve": "Solve",
+  "form.invalidRate": "Enter a rate greater than zero (units per minute).",
+
+  "loading.text": "Loading v{version} data …",
+  "loading.error": "Data load failed: {message}",
+  "loading.unknownError": "Unknown error",
+
+  "summary.targetRate": "Target rate",
+  "summary.totalMachines": "Total machines",
+  "summary.totalPower": "Total power",
+  "summary.totalFootprint": "Total footprint",
+  "summary.cells": "cells",
+
+  "results.recipeNodes": "Recipe nodes",
+  "results.rawInputs": "Raw inputs",
+  "results.byproducts": "Byproducts",
+  "results.noRawInputs": "No raw inputs — the line is self-sufficient.",
+  "results.noByproducts": "No byproducts.",
+
+  "table.recipe": "Recipe",
+  "table.device": "Device",
+  "table.runsPerMin": "Runs/min",
+  "table.machineCount": "Machines",
+  "table.power": "Power",
+  "table.footprint": "Footprint",
+  "table.item": "Item",
+  "table.kind": "Kind",
+  "table.ratePerMin": "Per minute",
+
+  "kind.solid": "solid",
+  "kind.fluid": "fluid",
+
+  "warning.cycles": "Detected cyclic recipes (expansion truncated): {cycles}",
+
+  "lang.toggle": "中文"
+}
