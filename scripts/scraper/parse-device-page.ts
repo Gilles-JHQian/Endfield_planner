@@ -90,18 +90,13 @@ export function parseDevicePage(html: string, slug: string): ScrapedDevice {
 
   fields.display_name_zh_hans = parseDisplayNameFromTitle($('title').text());
 
-  const required: (keyof DeviceFields)[] = [
-    'display_name_zh_hans',
-    'category',
-    'requires_power',
-    'power_draw',
-    'bandwidth',
-    'has_fluid_interface',
-    'footprint',
-  ];
+  // Strictly required: name + category + footprint. The numeric/boolean fields
+  // are optional on storage/utility/combat devices that don't consume power or
+  // have a bandwidth — default those to 0 / false.
+  const required: (keyof DeviceFields)[] = ['display_name_zh_hans', 'category', 'footprint'];
   for (const key of required) {
     if (fields[key] === undefined) {
-      throw new Error(`Device "${slug}" page is missing field "${key}"`);
+      throw new Error(`Device "${slug}" page is missing required field "${key}"`);
     }
   }
 
@@ -109,10 +104,10 @@ export function parseDevicePage(html: string, slug: string): ScrapedDevice {
     id: slug,
     display_name_zh_hans: fields.display_name_zh_hans,
     footprint: fields.footprint!,
-    bandwidth: fields.bandwidth!,
-    power_draw: fields.power_draw!,
-    requires_power: fields.requires_power!,
-    has_fluid_interface: fields.has_fluid_interface!,
+    bandwidth: fields.bandwidth ?? 0,
+    power_draw: fields.power_draw ?? 0,
+    requires_power: fields.requires_power ?? false,
+    has_fluid_interface: fields.has_fluid_interface ?? false,
     io_ports: [],
     tech_prereq: [],
     category: fields.category!,
