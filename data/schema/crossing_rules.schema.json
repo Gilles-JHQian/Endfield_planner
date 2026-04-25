@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://endfield-planner/schema/crossing_rules.json",
+  "title": "Crossing rules",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["same_layer_crossing", "bridge_port_constraint", "cross_layer_crossing"],
+  "properties": {
+    "same_layer_crossing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["solid", "fluid"],
+      "properties": {
+        "solid": { "$ref": "#/$defs/SameLayerRule" },
+        "fluid": { "$ref": "#/$defs/SameLayerRule" }
+      }
+    },
+    "bridge_port_constraint": { "type": "string", "enum": ["paired_opposite"] },
+    "cross_layer_crossing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["default", "exceptions"],
+      "properties": {
+        "default": { "type": "string", "enum": ["allowed", "forbidden"] },
+        "exceptions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CrossLayerException" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "SameLayerRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_without_component", "crossing_component_id"],
+      "properties": {
+        "allowed_without_component": { "type": "boolean" },
+        "crossing_component_id": { "type": "string" },
+        "latency_penalty": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["model", "thresholds"],
+              "properties": {
+                "model": { "type": "string", "enum": ["bridge_count_step"] },
+                "thresholds": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["at_least", "throughput_multiplier"],
+                    "properties": {
+                      "at_least": { "type": "integer", "minimum": 1 },
+                      "throughput_multiplier": {
+                        "type": "number",
+                        "exclusiveMinimum": 0,
+                        "maximum": 1
+                      }
+                    }
+                  }
+                },
+                "source": { "type": "string" }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "CrossLayerException": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["when", "result"],
+      "properties": {
+        "when": { "type": "object" },
+        "result": { "type": "string", "enum": ["allowed", "forbidden"] },
+        "reason_zh_hans": { "type": "string" },
+        "reason_en": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://endfield-planner/schema/regions.json",
+  "title": "Region list",
+  "type": "array",
+  "items": { "$ref": "#/$defs/Region" },
+  "$defs": {
+    "Region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "display_name_zh_hans",
+        "plot_default_size",
+        "core_position",
+        "sub_core_positions",
+        "available_tech_tiers",
+        "mining_nodes"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "display_name_zh_hans": { "type": "string", "minLength": 1 },
+        "display_name_zh_hant": { "type": "string" },
+        "display_name_en": { "type": "string" },
+        "display_name_ja": { "type": "string" },
+        "plot_default_size": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["width", "height"],
+          "properties": {
+            "width": { "type": "integer", "minimum": 1 },
+            "height": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "core_position": { "$ref": "#/$defs/Cell" },
+        "sub_core_positions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Cell" }
+        },
+        "available_tech_tiers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "mining_nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["item_id", "position"],
+            "properties": {
+              "item_id": { "type": "string" },
+              "position": { "$ref": "#/$defs/Cell" }
+            }
+          }
+        }
+      }
+    },
+    "Cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "integer", "minimum": 0 },
+        "y": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

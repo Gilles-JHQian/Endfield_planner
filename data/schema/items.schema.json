@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://endfield-planner/schema/items.json",
+  "title": "Item list",
+  "type": "array",
+  "items": { "$ref": "#/$defs/Item" },
+  "$defs": {
+    "Item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "display_name_zh_hans", "kind", "rarity"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "display_name_zh_hans": { "type": "string", "minLength": 1 },
+        "display_name_zh_hant": { "type": "string" },
+        "display_name_en": { "type": "string" },
+        "display_name_ja": { "type": "string" },
+        "display_name_ko": { "type": "string" },
+        "display_name_es": { "type": "string" },
+        "display_name_de": { "type": "string" },
+        "display_name_fr": { "type": "string" },
+        "kind": { "type": "string", "enum": ["solid", "fluid"] },
+        "rarity": { "type": "integer", "minimum": 1, "maximum": 5 }
+      }
+    }
+  }
+}

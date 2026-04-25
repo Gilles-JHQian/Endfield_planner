@@ -1,0 +1,30 @@
+[
+  {
+    "id": "smelter-1",
+    "display_name_zh_hans": "精炼炉",
+    "display_name_en": "Smelter",
+    "footprint": { "width": 3, "height": 2 },
+    "bandwidth": 2,
+    "power_draw": 80,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": ["t1"],
+    "category": "basic_production",
+    "recipes": ["smelt-iron"]
+  },
+  {
+    "id": "assembler-1",
+    "display_name_zh_hans": "组装机",
+    "display_name_en": "Assembler",
+    "footprint": { "width": 3, "height": 3 },
+    "bandwidth": 2,
+    "power_draw": 120,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": ["t2"],
+    "category": "synthesis",
+    "recipes": ["craft-battery"]
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "id": "valley_4",
+    "display_name_zh_hans": "四号谷地",
+    "display_name_en": "Valley No. 4",
+    "plot_default_size": { "width": 80, "height": 80 },
+    "core_position": { "x": 0, "y": 0 },
+    "sub_core_positions": [],
+    "available_tech_tiers": ["t1", "t2"],
+    "mining_nodes": []
+  },
+  {
+    "id": "wuling",
+    "display_name_zh_hans": "武陵",
+    "display_name_en": "Wuling",
+    "plot_default_size": { "width": 90, "height": 90 },
+    "core_position": { "x": 0, "y": 0 },
+    "sub_core_positions": [],
+    "available_tech_tiers": ["t1", "t2", "t3"],
+    "mining_nodes": []
+  }
+]

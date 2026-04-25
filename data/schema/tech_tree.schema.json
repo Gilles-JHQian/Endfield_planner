@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://endfield-planner/schema/tech_tree.json",
+  "title": "Tech tree (placeholder)",
+  "description": "Phase 1 does not consume the tech tree; rule TECH_001 stays disabled until §10.5 is resolved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["nodes"],
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "display_name_zh_hans": { "type": "string" },
+          "display_name_en": { "type": "string" },
+          "prerequisites": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "unlocks": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

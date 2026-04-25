@@ -1,0 +1,14 @@
+# Normalize all text files to LF on commit and on checkout.
+# Prettier writes LF (see .prettierrc.json), so this stops the editor / git from
+# flipping line endings back and forth on Windows.
+* text=auto eol=lf
+
+# Binary types — explicit so git doesn't try to translate them.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
