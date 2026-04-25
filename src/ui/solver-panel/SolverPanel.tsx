@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { solveThroughput, type SolveResult, type SolveTarget } from '@core/solver/index.ts';
 import type { DataBundle } from '@core/data-loader/types.ts';
-import { LOCALES, useI18n } from '@i18n/index.ts';
+import { LOCALES, useI18n } from '@i18n/index.tsx';
 import { useDataBundle } from './use-data-bundle.ts';
 import { RecipeNodes } from './RecipeNodes.tsx';
 import { RawInputsTable } from './RawInputsTable.tsx';

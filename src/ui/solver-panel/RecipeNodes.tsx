@@ -1,6 +1,6 @@
 import type { DataBundle } from '@core/data-loader/types.ts';
 import type { SolveResult } from '@core/solver/index.ts';
-import { useI18n } from '@i18n/index.ts';
+import { useI18n } from '@i18n/index.tsx';
 
 interface Props {
   result: SolveResult;

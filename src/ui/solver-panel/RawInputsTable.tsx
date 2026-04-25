@@ -1,5 +1,5 @@
 import type { DataBundle } from '@core/data-loader/types.ts';
-import { useI18n } from '@i18n/index.ts';
+import { useI18n } from '@i18n/index.tsx';
 
 interface Props {
   /** Map of item_id → rate per minute. */
