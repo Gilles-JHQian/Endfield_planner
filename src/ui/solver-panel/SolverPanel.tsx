@@ -1,6 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { solveThroughput, type SolveResult, type SolveTarget } from '@core/solver/index.ts';
 import type { DataBundle } from '@core/data-loader/types.ts';
+import { LOCALES, useI18n } from '@i18n/index.ts';
 import { useDataBundle } from './use-data-bundle.ts';
 import { RecipeNodes } from './RecipeNodes.tsx';
 import { RawInputsTable } from './RawInputsTable.tsx';
@@ -9,6 +10,7 @@ import { SummaryCard } from './SummaryCard.tsx';
 const DEFAULT_VERSION = '1.2';
 
 export function SolverPanel() {
+  const { t, locale, setLocale } = useI18n();
   const { bundle, error, loading } = useDataBundle(DEFAULT_VERSION);
 
   const [regionId, setRegionId] = useState<string>('');
@@ -32,7 +34,7 @@ export function SolverPanel() {
     if (!bundle) return;
     const numericRate = Number.parseFloat(rate);
     if (!Number.isFinite(numericRate) || numericRate <= 0) {
-      setSolveError('请输入大于零的产能（单位：每分钟）。');
+      setSolveError(t('form.invalidRate'));
       setResult(null);
       return;
     }
@@ -52,20 +54,45 @@ export function SolverPanel() {
   }
 
   if (loading) {
-    return <p className="p-8 text-neutral-600">正在加载 v{DEFAULT_VERSION} 数据 …</p>;
+    return (
+      <p className="p-8 text-neutral-600">{t('loading.text', { version: DEFAULT_VERSION })}</p>
+    );
   }
   if (error || !bundle) {
-    return <p className="p-8 text-red-700">数据加载失败：{error?.message ?? '未知错误'}</p>;
+    return (
+      <p className="p-8 text-red-700">
+        {t('loading.error', { message: error?.message ?? t('loading.unknownError') })}
+      </p>
+    );
+  }
+
+  // Toggle to the "next" locale when the language button is clicked.
+  function nextLocale() {
+    const idx = LOCALES.indexOf(locale);
+    setLocale(LOCALES[(idx + 1) % LOCALES.length]!);
   }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Endfield Planner — 产能解算器</h1>
-        <p className="mt-1 text-sm text-neutral-600">
-          数据版本 {bundle.version} · {bundle.devices.length} 设备 · {bundle.recipes.length} 配方 ·{' '}
-          {bundle.items.length} 物品
-        </p>
+      <header className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">{t('app.title')}</h1>
+          <p className="mt-1 text-sm text-neutral-600">
+            {t('app.summary', {
+              version: bundle.version,
+              devices: bundle.devices.length,
+              recipes: bundle.recipes.length,
+              items: bundle.items.length,
+            })}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={nextLocale}
+          className="rounded border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+        >
+          {t('lang.toggle')}
+        </button>
       </header>
 
       <form
@@ -73,7 +100,7 @@ export function SolverPanel() {
         className="grid grid-cols-1 gap-4 rounded-lg border border-neutral-200 bg-white p-4 sm:grid-cols-3"
       >
         <label className="flex flex-col text-sm">
-          <span className="mb-1 font-medium">区域</span>
+          <span className="mb-1 font-medium">{t('form.region')}</span>
           <select
             value={regionId}
             onChange={(e) => setRegionId(e.target.value)}
@@ -88,7 +115,7 @@ export function SolverPanel() {
         </label>
 
         <label className="flex flex-col text-sm">
-          <span className="mb-1 font-medium">目标物品</span>
+          <span className="mb-1 font-medium">{t('form.targetItem')}</span>
           <input
             type="text"
             value={itemId}
@@ -107,7 +134,7 @@ export function SolverPanel() {
         </label>
 
         <label className="flex flex-col text-sm">
-          <span className="mb-1 font-medium">产能（每分钟）</span>
+          <span className="mb-1 font-medium">{t('form.rate')}</span>
           <div className="flex gap-2">
             <input
               type="number"
@@ -121,7 +148,7 @@ export function SolverPanel() {
               type="submit"
               className="rounded bg-neutral-900 px-4 py-1 text-sm font-medium text-white hover:bg-neutral-700"
             >
-              解算
+              {t('form.solve')}
             </button>
           </div>
         </label>
@@ -139,6 +166,7 @@ export function SolverPanel() {
 }
 
 function ResultArea({ result, bundle }: { result: SolveResult; bundle: DataBundle }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-6">
       <SummaryCard result={result} />
@@ -146,20 +174,20 @@ function ResultArea({ result, bundle }: { result: SolveResult; bundle: DataBundl
       <RawInputsTable
         flows={result.raw_inputs}
         bundle={bundle}
-        title="原料消耗 (raw inputs)"
-        emptyText="无原料消耗 — 整条产线自给自足。"
+        title={t('results.rawInputs')}
+        emptyText={t('results.noRawInputs')}
       />
       {Object.keys(result.byproducts).length > 0 && (
         <RawInputsTable
           flows={result.byproducts}
           bundle={bundle}
-          title="副产物 (byproducts)"
-          emptyText="无副产物。"
+          title={t('results.byproducts')}
+          emptyText={t('results.noByproducts')}
         />
       )}
       {result.cycles.length > 0 && (
         <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-          检测到环路配方（已截断展开）：{result.cycles.join(', ')}
+          {t('warning.cycles', { cycles: result.cycles.join(', ') })}
         </p>
       )}
     </div>

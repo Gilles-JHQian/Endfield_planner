@@ -1,5 +1,10 @@
 import { SolverPanel } from '@ui/solver-panel/index.ts';
+import { I18nProvider } from '@i18n/index.ts';
 
 export function App() {
-  return <SolverPanel />;
+  return (
+    <I18nProvider>
+      <SolverPanel />
+    </I18nProvider>
+  );
 }

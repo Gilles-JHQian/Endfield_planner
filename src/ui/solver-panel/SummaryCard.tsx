@@ -1,18 +1,26 @@
 import type { SolveResult } from '@core/solver/index.ts';
+import { useI18n } from '@i18n/index.ts';
 
 interface Props {
   result: SolveResult;
 }
 
 export function SummaryCard({ result }: Props) {
+  const { t } = useI18n();
   const totalMachines = result.nodes.reduce((s, n) => s + n.machine_count, 0);
 
   return (
     <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-      <Stat label="目标产量" value={`${result.target.rate_per_minute.toString()}/min`} />
-      <Stat label="总机器数" value={totalMachines.toString()} />
-      <Stat label="总功耗" value={result.total_power_draw.toString()} />
-      <Stat label="总占地" value={`${result.total_footprint.toString()} 格`} />
+      <Stat
+        label={t('summary.targetRate')}
+        value={`${result.target.rate_per_minute.toString()}/min`}
+      />
+      <Stat label={t('summary.totalMachines')} value={totalMachines.toString()} />
+      <Stat label={t('summary.totalPower')} value={result.total_power_draw.toString()} />
+      <Stat
+        label={t('summary.totalFootprint')}
+        value={`${result.total_footprint.toString()} ${t('summary.cells')}`}
+      />
     </section>
   );
 }
