@@ -28,7 +28,6 @@ const minimalBundle = (recipes: Recipe[]): DataBundle => ({
 });
 
 const r = (overrides: Partial<Recipe> & { id: string }): Recipe => ({
-  id: overrides.id,
   display_name_zh_hans: overrides.id,
   cycle_seconds: 1,
   inputs: [],

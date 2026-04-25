@@ -5,7 +5,6 @@ import { expand } from './expand.ts';
 import { aggregate } from './aggregate.ts';
 
 const dev = (overrides: Partial<Device> & { id: string }): Device => ({
-  id: overrides.id,
   display_name_zh_hans: overrides.id,
   footprint: { width: 1, height: 1 },
   bandwidth: 1,
@@ -20,7 +19,6 @@ const dev = (overrides: Partial<Device> & { id: string }): Device => ({
 });
 
 const rec = (overrides: Partial<Recipe> & { id: string }): Recipe => ({
-  id: overrides.id,
   display_name_zh_hans: overrides.id,
   cycle_seconds: 1,
   inputs: [],
