@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://endfield-planner/schema/recipes.json",
+  "title": "Recipe list",
+  "type": "array",
+  "items": { "$ref": "#/$defs/Recipe" },
+  "$defs": {
+    "Recipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "display_name_zh_hans",
+        "cycle_seconds",
+        "inputs",
+        "outputs",
+        "compatible_devices"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "display_name_zh_hans": { "type": "string", "minLength": 1 },
+        "display_name_zh_hant": { "type": "string" },
+        "display_name_en": { "type": "string" },
+        "display_name_ja": { "type": "string" },
+        "display_name_ko": { "type": "string" },
+        "display_name_es": { "type": "string" },
+        "display_name_de": { "type": "string" },
+        "display_name_fr": { "type": "string" },
+        "cycle_seconds": { "type": "integer", "exclusiveMinimum": 0 },
+        "inputs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/RecipePort" }
+        },
+        "outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/RecipePort" }
+        },
+        "compatible_devices": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "regions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "RecipePort": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "qty_per_cycle"],
+      "properties": {
+        "item_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "qty_per_cycle": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    }
+  }
+}

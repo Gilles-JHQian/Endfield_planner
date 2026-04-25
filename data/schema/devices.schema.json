@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://endfield-planner/schema/devices.json",
+  "title": "Device list",
+  "type": "array",
+  "items": { "$ref": "#/$defs/Device" },
+  "$defs": {
+    "Device": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "display_name_zh_hans",
+        "footprint",
+        "bandwidth",
+        "power_draw",
+        "requires_power",
+        "has_fluid_interface",
+        "io_ports",
+        "tech_prereq",
+        "category",
+        "recipes"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "display_name_zh_hans": { "type": "string", "minLength": 1 },
+        "display_name_zh_hant": { "type": "string" },
+        "display_name_en": { "type": "string" },
+        "display_name_ja": { "type": "string" },
+        "display_name_ko": { "type": "string" },
+        "display_name_es": { "type": "string" },
+        "display_name_de": { "type": "string" },
+        "display_name_fr": { "type": "string" },
+        "footprint": { "$ref": "#/$defs/Footprint" },
+        "bandwidth": { "type": "integer", "minimum": 0 },
+        "power_draw": { "type": "integer", "minimum": 0 },
+        "requires_power": { "type": "boolean" },
+        "has_fluid_interface": { "type": "boolean" },
+        "io_ports": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Port" }
+        },
+        "tech_prereq": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "miner",
+            "storage",
+            "basic_production",
+            "synthesis",
+            "power",
+            "utility",
+            "combat",
+            "planting",
+            "logistics"
+          ]
+        },
+        "recipes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "Footprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["width", "height"],
+      "properties": {
+        "width": { "type": "integer", "minimum": 1 },
+        "height": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "Port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["side", "offset", "kind", "direction_constraint"],
+      "properties": {
+        "side": { "type": "string", "enum": ["N", "E", "S", "W"] },
+        "offset": { "type": "integer", "minimum": 0 },
+        "kind": { "type": "string", "enum": ["solid", "fluid", "power"] },
+        "direction_constraint": {
+          "type": "string",
+          "enum": ["input", "output", "bidirectional", "paired_opposite"]
+        }
+      }
+    }
+  }
+}
