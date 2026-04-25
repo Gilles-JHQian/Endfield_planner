@@ -7,7 +7,7 @@ import globals from 'globals';
 
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'scripts/.cache/**'],
+    ignores: ['dist/**', 'node_modules/**', 'coverage/**', 'scripts/.cache/**', '.scratch/**'],
   },
   js.configs.recommended,
   // Type-checked rules only apply to TS files; JS config files (eslint.config.js)
