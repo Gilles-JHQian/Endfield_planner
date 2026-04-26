@@ -8,3 +8,6 @@ plan
 # Scraped data is owned by scripts/scrape-endwiki.ts; prettier rewriting
 # short arrays to multi-line form causes infinite churn between scrapes.
 data/versions
+# Designer handoff is the source of truth for the visual language —
+# we read it, we don't reformat it.
+design/handoff

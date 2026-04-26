@@ -1,5 +1,11 @@
 /** Output shapes the scraper produces. They mirror data/schema/*.schema.json. */
 
+export interface ScrapedPowerAoe {
+  kind: 'square_centered';
+  edge: number;
+  purpose: 'device_supply' | 'pole_link';
+}
+
 export interface ScrapedDevice {
   id: string;
   display_name_zh_hans: string;
@@ -13,6 +19,7 @@ export interface ScrapedDevice {
   tech_prereq: string[];
   category: DeviceCategory;
   recipes: string[]; // recipe ids, filled in by the cross-reference pass.
+  power_aoe?: ScrapedPowerAoe; // §10.4 — populated by hand for power devices.
 }
 
 export type DeviceCategory =
