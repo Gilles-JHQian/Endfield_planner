@@ -392,6 +392,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
    *  back to READY instead — owners can abort a mis-started path without
    *  reaching for Esc. */
   function handleCellRightClick(cell: Cell): void {
+    // P4 v7: right-click in PLACE mode cancels the device-placement ghost,
+    // symmetric with the v6 belt/pipe-tool right-click cancel.
+    if (toolApi.tool.kind === 'place') {
+      toolApi.setSelect();
+      setPickedDevice(null);
+      return;
+    }
     if (linkDraft) {
       setLinkDraft(null);
       return;
@@ -420,6 +427,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
    *  draft cancel — same as handleCellRightClick. Avoids accidentally
    *  starting a box-select while the user is trying to abort. */
   function handleBoxSelect(rect: { from: Cell; to: Cell }): void {
+    // P4 v7: right-mouse drag in PLACE mode also cancels (slipping a drag
+    // while trying to abort the placement should still abort).
+    if (toolApi.tool.kind === 'place') {
+      toolApi.setSelect();
+      setPickedDevice(null);
+      return;
+    }
     if (linkDraft) {
       setLinkDraft(null);
       return;
