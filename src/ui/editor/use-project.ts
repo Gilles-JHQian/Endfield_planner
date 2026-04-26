@@ -63,6 +63,13 @@ export interface ProjectStore {
   /** Apply an action. Returns ok with the (possibly newly-created) instance
    *  id for place_device, otherwise ok({}). On failure returns an EditError. */
   apply: (action: ProjectAction) => Result<{ placed?: PlacedDevice }, EditError>;
+  /** Apply a batch of actions atomically as a single history snapshot. If any
+   *  action fails the whole batch is rolled back and the error is returned;
+   *  on success returns the list of placed devices for any place_device
+   *  actions in the batch (in order). */
+  applyMany: (
+    actions: readonly ProjectAction[],
+  ) => Result<{ placed: readonly PlacedDevice[] }, EditError>;
   undo: () => void;
   redo: () => void;
   reset: (project: Project) => void;
@@ -83,6 +90,27 @@ export function useProject(initial: Project, lookup: DeviceLookup): ProjectStore
         future: [],
       }));
       return { ok: true, value: placed ? { placed } : {} };
+    },
+    [history.present, lookup],
+  );
+
+  const applyMany = useCallback(
+    (actions: readonly ProjectAction[]): Result<{ placed: readonly PlacedDevice[] }, EditError> => {
+      let current = history.present;
+      const placed: PlacedDevice[] = [];
+      for (const action of actions) {
+        const result = applyAction(current, action, lookup);
+        if (!result.ok) return result; // entire batch rolls back — current never committed
+        current = result.value.project;
+        if (result.value.placed) placed.push(result.value.placed);
+      }
+      const final = current;
+      setHistory((h) => ({
+        past: [...h.past, h.present].slice(-HISTORY_LIMIT),
+        present: final,
+        future: [],
+      }));
+      return { ok: true, value: { placed } };
     },
     [history.present, lookup],
   );
@@ -113,11 +141,12 @@ export function useProject(initial: Project, lookup: DeviceLookup): ProjectStore
       canUndo: history.past.length > 0,
       canRedo: history.future.length > 0,
       apply,
+      applyMany,
       undo,
       redo,
       reset,
     }),
-    [history, apply, undo, redo, reset],
+    [history, apply, applyMany, undo, redo, reset],
   );
 }
 
