@@ -443,7 +443,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         gridTemplateColumns: 'var(--rail-w) var(--library-w) 1fr var(--inspector-w)',
       }}
     >
-      <aside aria-label="category rail" className="border-r border-line bg-surface-1">
+      <aside
+        aria-label="category rail"
+        className="flex h-full min-h-0 flex-col overflow-hidden border-r border-line bg-surface-1"
+      >
         <Rail
           active={category}
           onChange={(c) => {
@@ -454,7 +457,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       </aside>
       <aside
         aria-label="device library"
-        className="flex flex-col border-r border-line bg-surface-1"
+        className="flex h-full min-h-0 flex-col overflow-hidden border-r border-line bg-surface-1"
       >
         <Library
           devices={bundle.devices}

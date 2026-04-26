@@ -58,7 +58,7 @@ export function Library({ devices, category, selectedDeviceId, onPick }: Props) 
         />
       </div>
 
-      <div className="scroll-y flex-1 px-3 pb-3">
+      <div className="scroll-y min-h-0 flex-1 px-3 pb-3">
         {filtered.length === 0 ? (
           <div className="grid h-32 place-items-center font-cn text-[12px] text-fg-faint">
             {t('library.empty')}
