@@ -27,7 +27,7 @@ describe('clean-layout integration', () => {
     }
   });
 
-  it('all 20 rules from REQUIREMENT.md §5.5 are registered (17 v3 + 3 v4)', () => {
+  it('all 22 rules from REQUIREMENT.md §5.5 are registered (17 v3 + 3 v4 + 2 v5)', () => {
     const ids = new Set(ALL_RULES.map((r) => r.id));
     for (const expected of [
       'REGION_001',
@@ -50,9 +50,11 @@ describe('clean-layout integration', () => {
       'LAYER_CROSS_003',
       'TECH_001',
       'STORAGE_001',
+      'STORAGE_PORT_001',
+      'STORAGE_LINE_001',
     ] as const) {
       expect(ids.has(expected), `missing rule: ${expected}`).toBe(true);
     }
-    expect(ALL_RULES.length).toBe(20);
+    expect(ALL_RULES.length).toBe(22);
   });
 });

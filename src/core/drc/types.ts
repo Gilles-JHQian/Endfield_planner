@@ -32,7 +32,9 @@ export type RuleId =
   | 'LAYER_CROSS_002'
   | 'LAYER_CROSS_003'
   | 'TECH_001'
-  | 'STORAGE_001';
+  | 'STORAGE_001'
+  | 'STORAGE_PORT_001'
+  | 'STORAGE_LINE_001';
 
 /** Data prerequisites a rule needs to produce results. When any are missing
  *  the rule is skipped and reported in DrcReport.skipped; the lint panel
@@ -46,7 +48,9 @@ export type DataPrereq =
   | 'bridge_devices_fluid'
   | 'logistics_category'
   | 'tech_tree'
-  | 'storage_sink_metadata';
+  | 'storage_sink_metadata'
+  | 'storage_port_devices'
+  | 'storage_line_devices';
 
 export interface Issue {
   readonly rule_id: RuleId;

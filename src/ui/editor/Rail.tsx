@@ -29,7 +29,7 @@ const CATEGORIES: { cat: DeviceCategory; glyph: string }[] = [
 export function Rail({ active, onChange }: Props) {
   const { t } = useI18n();
   return (
-    <div className="scroll-y flex h-full flex-col gap-0.5 py-2">
+    <div className="scroll-y flex h-full min-h-0 flex-col gap-0.5 py-2">
       {CATEGORIES.map(({ cat, glyph }) => (
         <RailItem
           key={cat}

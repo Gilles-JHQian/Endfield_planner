@@ -43,6 +43,16 @@ export interface PowerAoe {
   readonly purpose: 'device_supply' | 'pole_link';
 }
 
+/** Storage-line membership tag. Owners populate this on relevant devices via
+ *  the device editor; STORAGE_PORT_001 / STORAGE_LINE_001 DRC rules wake up
+ *  once at least one device of each role is declared. See REQUIREMENT.md
+ *  §10.12 / §5.5 for the rule semantics.
+ *  - 'port': storage I/O port (仓库存货 / 取货口) — must touch a base or pole
+ *  - 'base': storage line base segment (仓库存取线基段) — must transitively
+ *    touch a pole
+ *  - 'pole': storage line source pole (仓库存取线源桩) — root of the network */
+export type StorageLineRole = 'port' | 'base' | 'pole';
+
 export interface Device {
   readonly id: string;
   readonly display_name_zh_hans: string;
@@ -61,6 +71,7 @@ export interface Device {
   readonly category: DeviceCategory;
   readonly recipes: readonly string[];
   readonly power_aoe?: PowerAoe;
+  readonly storage_line_role?: StorageLineRole;
 }
 
 export interface RecipePort {
