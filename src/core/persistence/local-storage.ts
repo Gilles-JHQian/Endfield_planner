@@ -16,6 +16,12 @@ const SAVE_THROTTLE_MS = 1000;
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pending: Project | null = null;
+let lastSavedAt: number | null = null;
+
+/** Epoch ms of the last successful localStorage write, or null if none. */
+export function getLastSavedAt(): number | null {
+  return lastSavedAt;
+}
 
 /** Schedule a write of `project` to localStorage. Coalesces calls within
  *  SAVE_THROTTLE_MS — only the latest project state actually lands on disk. */
@@ -27,6 +33,7 @@ export function scheduleSave(project: Project): void {
     if (pending) {
       try {
         localStorage.setItem(KEY, exportProject(pending));
+        lastSavedAt = Date.now();
       } catch {
         // Storage quota / disabled / SecurityError — silently ignore for now;
         // the editor still works in-memory.
@@ -47,6 +54,7 @@ export function flushSave(): void {
   if (pending) {
     try {
       localStorage.setItem(KEY, exportProject(pending));
+      lastSavedAt = Date.now();
     } catch {
       /* see scheduleSave */
     }
@@ -67,4 +75,5 @@ export function loadCurrent(): Project | null {
 export function clearCurrent(): void {
   if (typeof localStorage === 'undefined') return;
   localStorage.removeItem(KEY);
+  lastSavedAt = null;
 }
