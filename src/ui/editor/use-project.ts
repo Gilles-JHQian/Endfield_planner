@@ -17,6 +17,7 @@ import {
   resizePlot,
   rotateDevice,
   setDeviceRecipe,
+  splitLink,
 } from '@core/edits/index.ts';
 import type {
   Cell,
@@ -32,7 +33,16 @@ import type { Device } from '@core/data-loader/types.ts';
 import type { DeviceLookup } from '@core/domain/occupancy.ts';
 
 export type ProjectAction =
-  | { type: 'place_device'; device: Device; position: Cell; rotation?: Rotation }
+  | {
+      type: 'place_device';
+      device: Device;
+      position: Cell;
+      rotation?: Rotation;
+      /** P4 v6: pinning the instance_id lets the auto-bridge flow forward-
+       *  reference the bridge's id from sibling actions in the same applyMany
+       *  batch (e.g. `split_link.left_dst.device_instance_id`). */
+      instance_id?: string;
+    }
   | { type: 'move_device'; instance_id: string; position: Cell }
   | { type: 'rotate_device'; instance_id: string }
   | { type: 'delete_device'; instance_id: string }
@@ -46,6 +56,13 @@ export type ProjectAction =
       dst?: PortRef;
     }
   | { type: 'delete_link'; link_id: string }
+  | {
+      type: 'split_link';
+      link_id: string;
+      at_cell: Cell;
+      left_dst: PortRef;
+      right_src: PortRef;
+    }
   | { type: 'resize_plot'; width: number; height: number };
 
 interface History {
@@ -162,6 +179,7 @@ function applyAction(
         device: action.device,
         position: action.position,
         ...(action.rotation !== undefined ? { rotation: action.rotation } : {}),
+        ...(action.instance_id !== undefined ? { instance_id: action.instance_id } : {}),
         lookup,
       });
       if (!r.ok) return r;
@@ -190,6 +208,17 @@ function applyAction(
     }
     case 'delete_link':
       return wrap(deleteLink(project, action.link_id));
+    case 'split_link': {
+      const r = splitLink({
+        project,
+        link_id: action.link_id,
+        at_cell: action.at_cell,
+        left_dst: action.left_dst,
+        right_src: action.right_src,
+      });
+      if (!r.ok) return r;
+      return { ok: true, value: { project: r.value.project } };
+    }
     case 'resize_plot':
       return wrap(resizePlot(project, action.width, action.height, lookup));
   }

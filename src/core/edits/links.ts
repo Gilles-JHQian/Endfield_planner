@@ -103,6 +103,109 @@ export function deleteLink(project: Project, link_id: string): Result<Project> {
   return ok({ ...project, solid_links, fluid_links, updated_at: new Date().toISOString() });
 }
 
+interface SplitLinkArgs {
+  project: Project;
+  link_id: string;
+  at_cell: Cell;
+  /** PortRef the LEFT half's dst should point at (typically the new
+   *  cross-bridge's port on the side the link enters). */
+  left_dst: PortRef;
+  /** PortRef the RIGHT half's src should point at (typically the new
+   *  cross-bridge's port on the side the link exits). */
+  right_src: PortRef;
+  /** Pinned ids for the two halves. The auto-bridge flow needs these upfront
+   *  so it can wire other links being added in the same batch. */
+  ids?: { left?: string; right?: string };
+}
+
+/** Split a Link at `at_cell` into two new Links. Drops `at_cell` from both
+ *  halves (the bridge that triggers the split now occupies the cell). The
+ *  original link is removed; the new halves carry the original's src/dst on
+ *  the outer ends and `left_dst` / `right_src` on the inner ends. */
+export function splitLink({
+  project,
+  link_id,
+  at_cell,
+  left_dst,
+  right_src,
+  ids,
+}: SplitLinkArgs): Result<{ project: Project; left_id: string; right_id: string }> {
+  const original =
+    project.solid_links.find((l) => l.id === link_id) ??
+    project.fluid_links.find((l) => l.id === link_id);
+  if (!original) return err('not_found', `No link with id=${link_id}.`);
+
+  const idx = original.path.findIndex((c) => c.x === at_cell.x && c.y === at_cell.y);
+  if (idx < 0) {
+    return err('invalid_link', `Link ${link_id} does not cover cell (${at_cell.x.toString()}, ${at_cell.y.toString()}).`);
+  }
+  if (idx === 0 || idx === original.path.length - 1) {
+    return err(
+      'invalid_link',
+      `Cannot split link ${link_id} at an endpoint cell — would leave one half empty.`,
+      { at: at_cell },
+    );
+  }
+
+  const leftPath = original.path.slice(0, idx);
+  const rightPath = original.path.slice(idx + 1);
+  if (leftPath.length === 0 || rightPath.length === 0) {
+    return err('invalid_link', `Split would produce an empty half.`, { at: at_cell });
+  }
+
+  const left_id = ids?.left ?? generateInstanceId('lnk');
+  const right_id = ids?.right ?? generateInstanceId('lnk');
+  const updated_at = new Date().toISOString();
+
+  const baseLeft = {
+    id: left_id,
+    tier_id: original.tier_id,
+    path: leftPath,
+    ...(original.src ? { src: original.src } : {}),
+    dst: left_dst,
+  };
+  const baseRight = {
+    id: right_id,
+    tier_id: original.tier_id,
+    path: rightPath,
+    src: right_src,
+    ...(original.dst ? { dst: original.dst } : {}),
+  };
+
+  if (original.layer === 'solid') {
+    const left: SolidLink = { ...baseLeft, layer: 'solid' };
+    const right: SolidLink = { ...baseRight, layer: 'solid' };
+    return ok({
+      project: {
+        ...project,
+        solid_links: [
+          ...project.solid_links.filter((l) => l.id !== link_id),
+          left,
+          right,
+        ],
+        updated_at,
+      },
+      left_id,
+      right_id,
+    });
+  }
+  const left: FluidLink = { ...baseLeft, layer: 'fluid' };
+  const right: FluidLink = { ...baseRight, layer: 'fluid' };
+  return ok({
+    project: {
+      ...project,
+      fluid_links: [
+        ...project.fluid_links.filter((l) => l.id !== link_id),
+        left,
+        right,
+      ],
+      updated_at,
+    },
+    left_id,
+    right_id,
+  });
+}
+
 function validatePortRef(
   project: Project,
   ref: PortRef | undefined,

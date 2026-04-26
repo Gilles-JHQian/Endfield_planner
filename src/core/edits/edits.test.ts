@@ -9,6 +9,7 @@ import {
   resizePlot,
   rotateDevice,
   setDeviceRecipe,
+  splitLink,
 } from './index.ts';
 
 const REGION: Region = {
@@ -340,6 +341,137 @@ describe('resizePlot', () => {
     ).project;
     const after = unwrap(resizePlot(project, 5, 5, lookup));
     expect(after.plot).toEqual({ width: 5, height: 5 });
+  });
+});
+
+describe('splitLink', () => {
+  function mkProjectWithLink(
+    path: { x: number; y: number }[],
+    src?: { device_instance_id: string; port_index: number },
+    dst?: { device_instance_id: string; port_index: number },
+  ): Project {
+    const r = addLink({
+      project: freshProject(),
+      layer: 'solid',
+      tier_id: 'belt-1',
+      path,
+      ...(src ? { src } : {}),
+      ...(dst ? { dst } : {}),
+      lookup,
+      id: 'L0',
+    });
+    if (!r.ok) throw new Error('addLink failed in fixture');
+    return r.value.project;
+  }
+
+  it('splits a 5-cell horizontal link at the middle cell', () => {
+    const path = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+      { x: 3, y: 0 },
+      { x: 4, y: 0 },
+    ];
+    const project = mkProjectWithLink(path);
+    const r = splitLink({
+      project,
+      link_id: 'L0',
+      at_cell: { x: 2, y: 0 },
+      left_dst: { device_instance_id: 'br', port_index: 3 },
+      right_src: { device_instance_id: 'br', port_index: 1 },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.project.solid_links).toHaveLength(2);
+    expect(r.value.project.solid_links.find((l) => l.id === 'L0')).toBeUndefined();
+    const left = r.value.project.solid_links.find((l) => l.id === r.value.left_id)!;
+    const right = r.value.project.solid_links.find((l) => l.id === r.value.right_id)!;
+    expect(left.path).toEqual([
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+    ]);
+    expect(right.path).toEqual([
+      { x: 3, y: 0 },
+      { x: 4, y: 0 },
+    ]);
+    expect(left.dst).toEqual({ device_instance_id: 'br', port_index: 3 });
+    expect(right.src).toEqual({ device_instance_id: 'br', port_index: 1 });
+  });
+
+  it('preserves original src/dst on the outer ends', () => {
+    // Place a real device so the src PortRef passes addLink's validation.
+    const placed = unwrap(
+      placeDevice({
+        project: freshProject(),
+        device: FURNACE,
+        position: { x: 5, y: 5 },
+        lookup,
+        instance_id: 'src-dev',
+      }),
+    ).project;
+    const linked = unwrap(
+      addLink({
+        project: placed,
+        layer: 'solid',
+        tier_id: 'belt-1',
+        path: [
+          { x: 0, y: 0 },
+          { x: 1, y: 0 },
+          { x: 2, y: 0 },
+        ],
+        src: { device_instance_id: 'src-dev', port_index: 0 },
+        lookup,
+        id: 'L0',
+      }),
+    ).project;
+    const r = splitLink({
+      project: linked,
+      link_id: 'L0',
+      at_cell: { x: 1, y: 0 },
+      left_dst: { device_instance_id: 'br', port_index: 3 },
+      right_src: { device_instance_id: 'br', port_index: 1 },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const left = r.value.project.solid_links.find((l) => l.id === r.value.left_id)!;
+    const right = r.value.project.solid_links.find((l) => l.id === r.value.right_id)!;
+    expect(left.src).toEqual({ device_instance_id: 'src-dev', port_index: 0 });
+    // Right half had no original dst → stays undefined.
+    expect(right.dst).toBeUndefined();
+  });
+
+  it('rejects splits at endpoint cells', () => {
+    const project = mkProjectWithLink([
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+    ]);
+    const r = splitLink({
+      project,
+      link_id: 'L0',
+      at_cell: { x: 0, y: 0 },
+      left_dst: { device_instance_id: 'br', port_index: 0 },
+      right_src: { device_instance_id: 'br', port_index: 0 },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.kind).toBe('invalid_link');
+  });
+
+  it('rejects splits at cells not on the path', () => {
+    const project = mkProjectWithLink([
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+    ]);
+    const r = splitLink({
+      project,
+      link_id: 'L0',
+      at_cell: { x: 5, y: 5 },
+      left_dst: { device_instance_id: 'br', port_index: 0 },
+      right_src: { device_instance_id: 'br', port_index: 0 },
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.kind).toBe('invalid_link');
   });
 });
 

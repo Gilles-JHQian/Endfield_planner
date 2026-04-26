@@ -4,7 +4,7 @@ A design automation tool for the integrated industry system in *Arknights: Endfi
 
 This document is the single source of truth for scope, priorities, and technical decisions. Read it end-to-end before starting work.
 
-**Document version:** v5 — Phase 4 belt-routing + selection model rewrite. Incorporates owner P3 testing feedback: belts now auto-place cross-bridges on legal perpendicular crossings (no avoid-belts in BFS); ghost validates legality before allowing the next waypoint; angle-based forward-vs-side preference for the live segment; clicking the same waypoint twice force-commits the in-progress path. Right-mouse-button replaces the X tool — drag = box-select, click = single-select. Belts are now selectable + deletable (single-click selects the whole link). Port geometry visualization moves to per-face buttons + inward/outward triangles in the canvas. Power AoE coverage relaxed from "all footprint cells" to "any footprint cell". Storage I/O port + storage line connectivity DRC rules registered as data-gated dormants. See `RESEARCH_FINDINGS.md` for community-sourced domain research and `DRC_REPORT.md` for data-source mapping. Changelog at the end of this document.
+**Document version:** v6 — Phase 4 testing-feedback round on top of v5. Eight-issue bundle from owner testing: belts are now box-selectable; right-click is a pure highlight that no longer changes Inspector content (Inspector pin is reserved for left-click in the select tool); input-port direction is now validated (a belt arriving from the wrong side fails the ghost); power-pole AoE preview matches the helper's "any cell counts" predicate; auto-bridge insertion now truncates BOTH belts at the crossing and wires them to the bridge's ports (preparing the data model for the auto-router); link `src` / `dst` PortRefs populated by the drafter and indexed by a new `topology.ts` helper; first segment after the initial waypoint follows the diagonal-quadrant heuristic (larger axis first); explicit READY/PLACING state machine with right-click cancel during drafting and a cursor-following dot in READY (enlarged when on an output port); rounded belt corners and flatter port direction triangles. Changelog at the end of this document.
 
 ---
 
@@ -113,7 +113,7 @@ The game has two transport systems. **They do not share a simulation model.** Th
 
 - Discrete items, FIFO-like flow on a 1D path.
 - Tiered by speed. Base belt: 30 items/min (1 item per 2 seconds per output port). Upgraded belt: 60 items/min. These rates apply to ports on the protocol core and to fully-provisioned machine outputs; actual machine output depends on recipe cycle time.
-- Modeled as: `SolidLink { layer: 'solid', tier: number, path: Cell[], src_port, dst_port }`.
+- Modeled as: `SolidLink { layer: 'solid', tier: number, path: Cell[], src_port, dst_port }`. The `src` / `dst` PortRef fields are the **canonical** "what is connected where" representation (P4 v6); `src/core/domain/topology.ts` derives the inverse port→link index for callers that need the reverse view (auto-router, sim, DRC PORT_002). The belt drafter populates both whenever the start/end cells sit on declared ports; force-commits at empty cells leave the relevant end unset.
 - Simulator treats each belt segment as a FIFO queue with capacity `tier × length_in_cells`.
 - Backpressure: when a downstream queue saturates, upstream machines idle.
 
@@ -232,9 +232,10 @@ A 2D grid-based canvas where the user can:
 
 - Pan, zoom, and scroll. Middle-mouse drag = pan.
 - Place devices from a palette, with rotation (R key) and mirroring.
-- **Right-mouse-button drives selection (P4 v5):** right-click = single-select the device or belt under the cursor (or clear if empty); right-mouse drag = box-select rectangle. Right-click context menu is disabled inside the canvas. The legacy X tool from P3 is removed; selection state is global rather than tool-bound.
-- Selected devices: M move, R rotate-around-centroid, F delete, Ctrl+C / Ctrl+V copy/paste. Single-select (1 device or 1 belt) shows in the inspector; multi-select gets blue brackets and bypasses the inspector.
-- **Belts and pipes are selectable** as a unit (P4 v5): single-clicking any cell of an existing link selects the entire link; Delete removes the link in one history snapshot.
+- **Right-mouse-button drives a "highlight" selection (P4 v6 split):** right-click on a device or belt adds it to the highlight set (visual brackets / halo + keyboard targets); right-mouse drag adds every device or belt fully inside the rectangle. Right-click on an empty cell clears the highlight only. Right-click context menu is disabled inside the canvas.
+- **Inspector pin is a separate concept (P4 v6).** The right-column Inspector panel shows the device that was last left-clicked in the `select` tool — right-click never changes it. This lets owners highlight things to delete / rotate without losing their inspect-pin context.
+- Selected devices: M move, R rotate-around-centroid, F delete, Ctrl+C / Ctrl+V copy/paste. The selection drives the Inspector pin only via left-click in the select tool.
+- **Belts and pipes are selectable** as a unit: single right-click on any cell of an existing link adds the link to the highlight set; right-mouse drag adds every link whose path is fully inside the rectangle (P4 v6). Delete removes every highlighted link AND device in one history snapshot.
 - Undo / redo with unlimited history within a session. Group operations share a single history snapshot.
 - Draw a solid belt or fluid pipe path **as a multi-segment polyline**. First click sets the start; each subsequent click commits a waypoint and starts a new segment from there. Drafting commits when:
   - the cursor lands on another device's input port of the matching `kind` (sets `dst` PortRef);
@@ -249,24 +250,37 @@ A 2D grid-based canvas where the user can:
 
 **Live ghost preview (mandatory):** while the user is drawing a belt or pipe, or has a device selected from the palette, the tool renders a **real-time ghost** of the placement at the current mouse position. The ghost updates every mouse-move event, shows the candidate path/footprint, and color-codes validity (green = valid, red = DRC violation, yellow = valid but sub-optimal). Performance budget: ghost render must complete within one frame (~16ms) at the performance targets in §6.5.
 
-**Belt routing (P4 v5):** the ghost path planner does NOT detour around existing same-layer links. Instead, when the planned segment would cross an existing belt:
-- **Perpendicular crossing** + cell free of any other device → the cell is tagged "auto-bridge" and shown as legal green in the ghost. On commit, an `add_device` for the matching cross-bridge is bundled into the same history snapshot as the `add_link`.
+**Belt routing (P4 v6 — auto-bridge truncation):** the ghost path planner does NOT detour around existing same-layer links. Instead, when the planned segment would cross an existing belt:
+- **Perpendicular crossing** + cell free of any other device → the cell is tagged "auto-bridge" and shown as legal green in the ghost. On commit, an atomic `applyMany` transaction:
+  1. Pre-generates an `instance_id` for the new cross-bridge.
+  2. Emits `place_device` for the bridge with the pinned id (rotation 0).
+  3. Emits `split_link` for the existing same-layer link covering the cell — the existing link's path is split at the bridge cell into two halves; the bridge cell is dropped from both halves; each half's inner endpoint (`left.dst` / `right.src`) is wired to the bridge's port on the side the existing belt enters / exits.
+  4. The NEW link being committed is also broken into segments at every bridge cell; each segment becomes its own `add_link` with `src` / `dst` pointing at the adjacent bridge's port (or the original endpoints at the outer ends).
 - **Parallel / corner overlap, or cell already hosts a non-bridge device** → ghost goes red and the next click is rejected (no waypoint added). Owners must back out (Backspace / Esc) and re-route.
 
 The planner still detours around placed device cells (excluding the path's own port-cell endpoints).
 
-**Forward-vs-side preference (P4 v5):** when computing the live segment from the last waypoint to the cursor, the planner classifies the cursor's position relative to the previous segment's heading via the interior angle at the waypoint vertex:
+**Forward-vs-side preference:** when computing the live segment from the last waypoint to the cursor, the planner classifies the cursor's position relative to the previous segment's heading via the interior angle at the waypoint vertex:
 - 135°–180° (cursor is roughly forward of the heading): extend straight in the same axis first, then turn perpendicular toward the cursor;
 - 0°–135° (cursor is to the side or behind): turn perpendicular first, then align;
 - exactly 0° (cursor sits directly on the previous segment's reverse axis = would U-turn back along the path): ghost goes red, no waypoint can be placed.
 
-For the very first segment (no previous heading) the planner falls back to plain Manhattan order (horizontal first).
+**First-segment quadrant routing (P4 v6):** for the very first segment (no previous heading and no port lock), the planner picks the L-bend's leading axis by comparing `|dx|` vs `|dy|` from the start cell to the cursor — larger axis goes first. This matches the diagonal-quadrant mental model owners are used to from later segments. When the start cell sits on an output port, the port's `face_direction` overrides this choice (port lock wins).
 
-**Port-direction enforcement (P4 v5):** when a belt/pipe leaves a device through a declared output port, the first cell of the path after the device must lie in the direction the port faces. A belt leaving an east-facing output port and immediately trying to go north fails ghost validation (red, can't place).
+**Port-direction enforcement (P4 v6 — both ends):** the start cell rule from v5 still applies — when a belt/pipe leaves a device through a declared output port, the first cell of the path after the device must lie in the direction the port faces. NEW in v6: the same rule applies at the destination — a belt arriving at an input port must arrive via the side opposite to the port's face. A belt approaching an east-facing input port from the south fails ghost validation (red, can't place).
 
-**Belt/pipe rendering:** committed links are drawn per-cell with rounded corner caps (visualization style mirrors `enkad.enka.network`): each cell shows a solid filled segment matching the local in/out direction, periodic V-shaped flow arrows, and a small badge at the cell where an auto-bridge was inserted. Solid uses amber; fluid uses teal.
+**Belt drafting state machine (P4 v6 — explicit READY/PLACING):**
+- `READY`: belt/pipe tool is active but no waypoints have been placed yet. A small dot follows the cursor; if the cursor sits on an output port matching the layer, the dot enlarges and tints (amber for solid, teal for fluid) to signal "this would commit a port-anchored start".
+- `PLACING`: at least one waypoint has been placed; the in-progress draft renders as a dashed colored polyline with chevron arrows.
+- Transitions:
+  - READY + click → PLACING with the click cell as the first waypoint.
+  - PLACING + click → commit-or-extend (existing logic).
+  - PLACING + Esc / Backspace-to-empty → READY.
+  - PLACING + **right-click** → READY (P4 v6 — was no-op in v5, leaving owners with only Esc as the abort path).
 
-**Port visualization (P4 v5):** placed devices render small inward-pointing triangles on input port faces and outward-pointing triangles on output port faces, color-coded by `kind` (amber = solid, teal = fluid, yellow = power). The triangles sit just inside the device border on the relevant face, half a cell long.
+**Belt/pipe rendering (P4 v6 — rounded corners):** committed links are drawn as a wide translucent body fill + two thin parallel edge lines + periodic V-shaped flow arrows. At every corner cell the renderer inserts pre-bend and post-bend chamfer points (offset `CORNER_INSET = 0.3 cell` along each axis) and uses `lineJoin=round` on every stroke — corners read as a smooth arc instead of a sharp 90° miter. Auto-bridge cells get a small ⊕ badge. Solid uses amber; fluid uses teal.
+
+**Port visualization (P4 v6 — flatter triangles):** placed devices render small inward-pointing triangles on input port faces and outward-pointing triangles on output port faces, color-coded by `kind` (amber = solid, teal = fluid, yellow = power). Triangle dimensions: `LEN = 0.22 cell` (halved from v5's 0.4) and `WING = 0.18 cell` so the base is wider than the height. Bidirectional / paired_opposite ports render as a small `0.18 cell` square instead.
 
 **Power-coverage visualization:** any `requires_power=true` device that isn't covered by some 供电桩 AoE (no footprint cell inside any AoE — see §4.6) displays a small red "unplugged" badge in its top-right corner. While ghosting a power pole, the candidate AoE square is shown as a dashed outline and any existing devices that would fall inside are highlighted with a white shadow. The "power" view mode dims devices+links and overlays every placed pole's AoE (供电桩 = solid amber, 中继器 = dashed teal).
 
@@ -828,7 +842,20 @@ A feature is "done" when:
 
 ## Changelog
 
-### v5 (this document)
+### v6 (this document)
+
+Phase 4 testing-feedback round on top of v5, eight-issue bundle from owner P4 v5 testing:
+
+- **§5.1 F3 editor — selection model split:** right-click is now a pure "highlight" that drives the visual brackets and the F/R/Ctrl-C/V keyboard shortcuts; it no longer changes the Inspector pin. The Inspector pin is reserved for left-click in the `select` tool. Empty-cell right-click clears the highlight only. Belts and pipes are now also box-selectable — right-mouse-drag adds every link whose path is fully inside the rectangle. F/Delete deletes the highlighted devices AND links in one transaction.
+- **§5.1 F3 editor — port-direction enforcement at both ends:** v5 only validated the source port; v6 also validates the destination — a belt arriving from a wrong side fails the ghost.
+- **§5.1 F3 editor — first-segment quadrant routing:** v5 defaulted to horizontal-first when there was no prior heading; v6 picks the larger axis (|dx| vs |dy|) so the bend follows the cursor's diagonal quadrant.
+- **§5.1 F3 editor — explicit READY/PLACING state machine:** READY shows a small cursor-following dot (enlarged on output ports); PLACING accepts right-click as cancel back to READY.
+- **§5.1 F3 editor — auto-bridge truncation:** v5 placed the bridge but didn't split either belt; v6 splits both at the crossing cell and wires them to the bridge's ports via a new `split_link` core edit. Bundled in one applyMany so undo wipes everything.
+- **§4.6 Power AoE:** the ghost preview's "covered devices" highlight now uses `cells.some` (matches the helper that's already correct); v5 left it as `cells.every`, which was the last consumer still on the v4 strict predicate.
+- **§5.1 F3 editor — visual polish:** belt corners now use chamfer-inset points + `lineJoin=round` for soft arcs instead of sharp miters. Port direction triangles flattened (LEN 0.4 → 0.22 cell).
+- **Domain model:** new `src/core/domain/topology.ts` with `buildPortConnectivity` (port→link reverse index) and `linkItem` (resolves the carried item via source device's recipe outputs). Belts now populate `Link.src` AND `Link.dst` PortRefs whenever the start/end cells sit on declared ports. The `place_device` action gains an optional `instance_id` so the auto-bridge flow can forward-reference bridge ids inside the same applyMany batch.
+
+### v5
 
 Phase 4 belt-routing + selection rewrite, driven by owner P3 testing feedback:
 

@@ -87,6 +87,7 @@ export function planSegments(
   ctx: ProjectRouteContext,
   initialHeading: { dx: number; dy: number } | null = null,
   firstStepDirection?: { dx: number; dy: number },
+  lastStepDirection?: { dx: number; dy: number },
 ): PlanSegmentsResult {
   const segments: BeltRouteResult[] = [];
   const path: Cell[] = [];
@@ -96,6 +97,7 @@ export function planSegments(
   let endHeading = initialHeading;
 
   for (let i = 0; i < waypoints.length - 1; i++) {
+    const isLastSegment = i === waypoints.length - 2;
     const opts: BeltRouteOpts = {
       deviceWalls: ctx.deviceWalls,
       sameLayerLinks: ctx.sameLayerLinks,
@@ -103,6 +105,7 @@ export function planSegments(
       bounds: ctx.bounds,
       prevHeading,
       ...(i === 0 && firstStepDirection ? { firstStepDirection } : {}),
+      ...(isLastSegment && lastStepDirection ? { lastStepDirection } : {}),
     };
     const seg = routeForBelt(waypoints[i]!, waypoints[i + 1]!, opts);
     segments.push(seg);
@@ -125,14 +128,19 @@ export function planSegments(
   return { segments, path, bridgesToAutoPlace, collisions, endHeading };
 }
 
-/** Find an output port at the given world cell. Used so the first segment's
- *  firstStepDirection can be locked to the port's face direction. */
+/** Find an output port at the given world cell. Returns its face_direction
+ *  (for first-step lock) AND its PortRef fields (so the link's `src` can be
+ *  populated, P4 v6). */
 export function findOutputPortAtCell(
   cell: Cell,
   layer: Layer,
   project: Project,
   lookup: (id: string) => Device | undefined,
-): { face_direction: { dx: number; dy: number } } | null {
+): {
+  device_instance_id: string;
+  port_index: number;
+  face_direction: { dx: number; dy: number };
+} | null {
   for (const placed of project.devices) {
     const dev = lookup(placed.device_id);
     if (!dev) continue;
@@ -141,7 +149,57 @@ export function findOutputPortAtCell(
       if (p.direction_constraint !== 'output') continue;
       const matches =
         (layer === 'solid' && p.kind === 'solid') || (layer === 'fluid' && p.kind === 'fluid');
-      if (matches) return { face_direction: p.face_direction };
+      if (matches) {
+        return {
+          device_instance_id: placed.instance_id,
+          port_index: p.port_index,
+          face_direction: p.face_direction,
+        };
+      }
+    }
+  }
+  return null;
+}
+
+/** Find an input port at world cell `cell` of the matching layer. Returns the
+ *  PortRef + the direction the link must arrive in (i.e. opposite of the
+ *  port's outward face direction).
+ *
+ *  P4 v6: a belt arriving from a wrong direction is no longer a valid commit.
+ *  Pass the actual arrival direction to check; if the port faces north and
+ *  the link arrives from the south, the arrival vector is (0, -1) (going
+ *  north into the port) and matches `-port.face_direction`. If `arrival` is
+ *  omitted, the cell match alone suffices (back-compat for legacy callers
+ *  that don't yet have a direction). */
+export function findInputPortAtCell(
+  cell: Cell,
+  layer: Layer,
+  project: Project,
+  lookup: (id: string) => Device | undefined,
+  arrival?: { dx: number; dy: number },
+): {
+  device_instance_id: string;
+  port_index: number;
+  /** Required arrival direction (= -port.face_direction). Useful for the
+   *  caller to feed back into routeForBelt's `lastStepDirection`. */
+  arrival_direction: { dx: number; dy: number };
+} | null {
+  for (const placed of project.devices) {
+    const dev = lookup(placed.device_id);
+    if (!dev) continue;
+    for (const p of portsInWorldFrame(dev, placed)) {
+      if (p.cell.x !== cell.x || p.cell.y !== cell.y) continue;
+      if (p.direction_constraint !== 'input') continue;
+      const matches =
+        (layer === 'solid' && p.kind === 'solid') || (layer === 'fluid' && p.kind === 'fluid');
+      if (!matches) continue;
+      const required = { dx: -p.face_direction.dx, dy: -p.face_direction.dy };
+      if (arrival && (arrival.dx !== required.dx || arrival.dy !== required.dy)) continue;
+      return {
+        device_instance_id: placed.instance_id,
+        port_index: p.port_index,
+        arrival_direction: required,
+      };
     }
   }
   return null;

@@ -18,7 +18,7 @@ import { Rail } from './Rail.tsx';
 import { Library } from './Library.tsx';
 import { Toolbar } from './Toolbar.tsx';
 import { DeviceLayer, findDeviceAtCell } from './DeviceLayer.tsx';
-import { DraftPath } from './DraftPath.tsx';
+import { BeltCursor, DraftPath } from './DraftPath.tsx';
 import { DrcPanel } from './DrcPanel.tsx';
 import { GhostPreview } from './GhostPreview.tsx';
 import { HistoryControls } from './HistoryControls.tsx';
@@ -31,12 +31,13 @@ import {
   buildRouteContext,
   crossBridgeId,
   defaultTierId,
+  findInputPortAtCell,
   findOutputPortAtCell,
   planSegments,
   type ProjectRouteContext,
 } from './belt-router.ts';
-import { portsInWorldFrame } from '@core/domain/geometry.ts';
 import { computePowerCoverage } from '@core/domain/power-coverage.ts';
+import { generateInstanceId } from '@core/domain/project.ts';
 import type { Layer } from '@core/domain/types.ts';
 import type { Issue } from '@core/drc/index.ts';
 import {
@@ -103,14 +104,19 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [viewMode, setViewMode] = useViewMode();
   const [category, setCategory] = useState<DeviceCategory>('basic_production');
   const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
+  // Inspector pin: the device shown in the right-column inspector panel.
+  // P4 v6: ONLY left-click on a device in the select tool drives this; right-
+  // click is now pure "highlight" (boxSelected / selectedLinkIds) and does
+  // NOT change Inspector content (per owner clarification).
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  // Box-select multi-selection. Distinct from selectedInstanceId (Inspector
-  // single-select); both can be live at once. P4 v5: built up via right-mouse
-  // drag (Canvas's onBoxSelect); right-click on a single device populates
-  // selectedInstanceId instead.
+  // P4 v6 highlight set: drives the visual selection brackets and the F/R/
+  // Ctrl-C/V keyboard shortcuts. Built up by right-click (single) and right-
+  // mouse drag (multi). Distinct from `selectedInstanceId`.
   const [boxSelected, setBoxSelected] = useState<ReadonlySet<string>>(new Set());
-  /** P4 v5: single-belt selection (right-click on any cell of a link). */
-  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
+  // P4 v6: link-side highlight set — symmetric with `boxSelected` but for
+  // belts/pipes. Right-click on a link cell adds {id}; right-mouse drag
+  // includes any link whose path is fully inside the rectangle.
+  const [selectedLinkIds, setSelectedLinkIds] = useState<ReadonlySet<string>>(new Set());
   // Multi-segment belt/pipe draft. Each click adds a waypoint; the segment
   // between consecutive waypoints is BFS-routed around devices. Drafting
   // commits when the user clicks an input port of the matching layer or
@@ -277,33 +283,39 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         return;
       }
       if (e.key === 'f' || e.key === 'F' || e.key === 'Delete') {
-        if (boxSelected.size > 0) {
+        if (boxSelected.size > 0 || selectedLinkIds.size > 0) {
           e.preventDefault();
-          const actions = Array.from(boxSelected).map((instance_id) => ({
-            type: 'delete_device' as const,
-            instance_id,
-          }));
+          const actions: ProjectAction[] = [
+            ...Array.from(boxSelected).map(
+              (instance_id) =>
+                ({
+                  type: 'delete_device',
+                  instance_id,
+                }) as const,
+            ),
+            ...Array.from(selectedLinkIds).map(
+              (link_id) =>
+                ({
+                  type: 'delete_link',
+                  link_id,
+                }) as const,
+            ),
+          ];
           store.applyMany(actions);
           setBoxSelected(new Set());
+          setSelectedLinkIds(new Set());
           if (selectedInstanceId && boxSelected.has(selectedInstanceId)) {
             setSelectedInstanceId(null);
           }
           return;
         }
-        if (selectedLinkId) {
-          e.preventDefault();
-          store.apply({ type: 'delete_link', link_id: selectedLinkId });
-          setSelectedLinkId(null);
-          return;
-        }
-        // Single-device deletion via Delete key (selected via right-click or
-        // V-tool left-click) is handled by the existing selection-aware
-        // listener below — this listener only owns multi-select + link.
+        // Single-device deletion via Delete key (selected via V-tool left-
+        // click) is handled by the existing selection-aware listener below.
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [boxSelected, store, selectedInstanceId, selectedLinkId, cursor, lookup]);
+  }, [boxSelected, store, selectedInstanceId, selectedLinkIds, cursor, lookup]);
 
   // Belt/pipe draft keybindings. Esc cancels the whole draft; Backspace pops
   // the last waypoint (so owners can correct a mis-click without restarting).
@@ -356,44 +368,79 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // The React 19 compiler memoizes Konva re-renders to the overlay layer.
   const ghost = computeGhost(toolApi.tool, cursor, store.project, lookup);
   const draftPath = computeDraftPath(linkDraft, cursor, store.project, lookup);
+  // P4 v6 READY-state cursor preview: belt/pipe tool active, no draft yet,
+  // cursor in plot. Enlarges and tints if the cursor sits on an output port.
+  const beltCursorState =
+    (toolApi.tool.kind === 'belt' || toolApi.tool.kind === 'pipe') && !linkDraft && cursor
+      ? (() => {
+          const cursorLayer: Layer = toolApi.tool.kind === 'belt' ? 'solid' : 'fluid';
+          return {
+            cell: cursor,
+            layer: cursorLayer,
+            onPort: findOutputPortAtCell(cursor, cursorLayer, store.project, lookup) !== null,
+          };
+        })()
+      : null;
 
-  /** P4 v5 right-click selection: device under cell > belt under cell > clear. */
+  /** P4 v6 right-click: device or belt under cell goes into the highlight set
+   *  (`boxSelected` for devices, `selectedLinkIds` for belts). Does NOT touch
+   *  `selectedInstanceId` — the Inspector pin only changes via left-click in
+   *  the select tool. Empty cell clears the highlight only.
+   *
+   *  In PLACING state (linkDraft active), right-click cancels the draft
+   *  back to READY instead — owners can abort a mis-started path without
+   *  reaching for Esc. */
   function handleCellRightClick(cell: Cell): void {
+    if (linkDraft) {
+      setLinkDraft(null);
+      return;
+    }
     const hitDevice = findDeviceAtCell(store.project.devices, lookup, cell);
     if (hitDevice) {
-      setSelectedInstanceId(hitDevice.instance_id);
-      setSelectedLinkId(null);
-      setBoxSelected(new Set());
+      setBoxSelected(new Set([hitDevice.instance_id]));
+      setSelectedLinkIds(new Set());
       return;
     }
     const hitLink = findLinkAtCell(store.project, cell);
     if (hitLink) {
-      setSelectedLinkId(hitLink.id);
-      setSelectedInstanceId(null);
+      setSelectedLinkIds(new Set([hitLink.id]));
       setBoxSelected(new Set());
       return;
     }
-    // Empty cell — clear all selections.
-    setSelectedInstanceId(null);
-    setSelectedLinkId(null);
+    // Empty cell — clear highlight (devices + links). Inspector pin stays.
     setBoxSelected(new Set());
+    setSelectedLinkIds(new Set());
   }
 
-  /** P4 v5 right-mouse drag: select every device fully inside the rectangle. */
+  /** P4 v6 right-mouse drag: highlight every device AND link fully inside
+   *  the rectangle. Same "every cell inside" predicate for both.
+   *
+   *  In PLACING state, treat any right-mouse release (drag or click) as a
+   *  draft cancel — same as handleCellRightClick. Avoids accidentally
+   *  starting a box-select while the user is trying to abort. */
   function handleBoxSelect(rect: { from: Cell; to: Cell }): void {
+    if (linkDraft) {
+      setLinkDraft(null);
+      return;
+    }
+    const inside = (c: Cell): boolean =>
+      c.x >= rect.from.x && c.x <= rect.to.x && c.y >= rect.from.y && c.y <= rect.to.y;
     const ids = new Set<string>();
     for (const placed of store.project.devices) {
       const dev = lookup(placed.device_id);
       if (!dev) continue;
       const cells = footprintCells(dev, placed);
-      const allInside = cells.every(
-        (c) => c.x >= rect.from.x && c.x <= rect.to.x && c.y >= rect.from.y && c.y <= rect.to.y,
-      );
-      if (allInside) ids.add(placed.instance_id);
+      if (cells.every(inside)) ids.add(placed.instance_id);
+    }
+    const linkIds = new Set<string>();
+    for (const link of store.project.solid_links) {
+      if (link.path.every(inside)) linkIds.add(link.id);
+    }
+    for (const link of store.project.fluid_links) {
+      if (link.path.every(inside)) linkIds.add(link.id);
     }
     setBoxSelected(ids);
-    setSelectedLinkId(null);
-    setSelectedInstanceId(null);
+    setSelectedLinkIds(linkIds);
   }
 
   function handleCellClick(cell: Cell, _evt: MouseEvent): void {
@@ -409,9 +456,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         return;
       }
     } else if (toolApi.tool.kind === 'select') {
+      // Inspector pin: drives the right-column panel content. Only left-click
+      // in the select tool sets it (P4 v6 — was also right-click in v5).
       const hit = findDeviceAtCell(store.project.devices, lookup, cell);
       setSelectedInstanceId(hit?.instance_id ?? null);
-      setSelectedLinkId(null);
     } else if (toolApi.tool.kind === 'belt' || toolApi.tool.kind === 'pipe') {
       handleLinkClick(cell, toolApi.tool.kind === 'belt' ? 'solid' : 'fluid');
     }
@@ -444,6 +492,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       linkDraft.waypoints.length === 1
         ? (findOutputPortAtCell(start, layer, store.project, lookup)?.face_direction ?? undefined)
         : undefined;
+    // P4 v6: detect input-port at the click cell first (without arrival-direction
+    // filter) so we can pass its required arrival_direction into the planner.
+    // The planner enforces the match and returns a collision if mismatched.
+    const portAtClick = findInputPortAtCell(cell, layer, store.project, lookup);
     const initialHeading = headingAtEnd(linkDraft.waypoints, ctx, firstStep);
     const candidate = planSegments(
       [last, cell],
@@ -452,15 +504,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       // First-step direction only applies if last is itself the first waypoint
       // (single-waypoint draft); otherwise the heading carries forward.
       linkDraft.waypoints.length === 1 ? firstStep : undefined,
+      portAtClick?.arrival_direction,
     );
     if (candidate.collisions.length > 0) return;
 
     // Commit conditions.
     const closesLoop = cell.x === start.x && cell.y === start.y && linkDraft.waypoints.length >= 2;
-    const portHit = findInputPortAtCell(cell, layer, store.project, lookup);
-    if (closesLoop || portHit) {
+    if (closesLoop || portAtClick) {
       const finalWaypoints = closesLoop ? linkDraft.waypoints : [...linkDraft.waypoints, cell];
-      commitLink(finalWaypoints, layer, portHit);
+      commitLink(finalWaypoints, layer, portAtClick);
       setLinkDraft(null);
       return;
     }
@@ -475,35 +527,119 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     portHit: { device_instance_id: string; port_index: number } | null,
   ): void {
     const ctx = buildRouteContext(store.project, layer, lookup);
-    const firstStep =
-      findOutputPortAtCell(waypoints[0]!, layer, store.project, lookup)?.face_direction ??
-      undefined;
-    const planned = planSegments(waypoints, ctx, null, firstStep);
+    const startPort = findOutputPortAtCell(waypoints[0]!, layer, store.project, lookup);
+    const lastInput = portHit
+      ? findInputPortAtCell(waypoints[waypoints.length - 1]!, layer, store.project, lookup)
+      : null;
+    const planned = planSegments(
+      waypoints,
+      ctx,
+      null,
+      startPort?.face_direction,
+      lastInput?.arrival_direction,
+    );
     if (planned.collisions.length > 0) return; // shouldn't happen — ghost gates clicks
 
-    const actions: ProjectAction[] = [];
-    const seenBridge = new Set<string>();
+    const tier_id = defaultTierId(bundle, layer);
+    const srcRef = startPort
+      ? { device_instance_id: startPort.device_instance_id, port_index: startPort.port_index }
+      : undefined;
+    const dstRef = portHit
+      ? { device_instance_id: portHit.device_instance_id, port_index: portHit.port_index }
+      : undefined;
+
+    // P4 v6 auto-bridge truncation. For each cross-bridge the planner wants
+    // to auto-place:
+    //  1. Pre-generate the bridge's instance_id so split actions can forward-
+    //     reference it inside the same applyMany batch.
+    //  2. Emit place_device with the pinned id.
+    //  3. Split the existing same-layer link covering the bridge cell — the
+    //     two halves connect to the bridge's port on the side they enter /
+    //     exit. The bridge cell is dropped from both halves (the bridge
+    //     occupies it now).
+    //  4. The NEW link is broken into segments at every bridge cell; each
+    //     segment becomes a separate add_link with src/dst pointing at the
+    //     adjacent bridge's port (or the original endpoints at the outer
+    //     ends).
     const bridgeDev = lookup(crossBridgeId(layer));
+    const bridgeIdByCell = new Map<string, string>();
     if (bridgeDev) {
       for (const c of planned.bridgesToAutoPlace) {
         const k = `${c.x.toString()},${c.y.toString()}`;
-        if (seenBridge.has(k)) continue;
-        seenBridge.add(k);
+        if (bridgeIdByCell.has(k)) continue;
+        bridgeIdByCell.set(k, generateInstanceId('d'));
+      }
+    }
+
+    const actions: ProjectAction[] = [];
+    // Step 2: place each bridge.
+    if (bridgeDev) {
+      for (const [k, instance_id] of bridgeIdByCell) {
+        const [sx, sy] = k.split(',');
         actions.push({
           type: 'place_device',
           device: bridgeDev,
-          position: c,
+          position: { x: Number.parseInt(sx!, 10), y: Number.parseInt(sy!, 10) },
           rotation: 0,
+          instance_id,
         });
       }
     }
-    actions.push({
-      type: 'add_link',
-      layer,
-      tier_id: defaultTierId(bundle, layer),
-      path: planned.path,
-      ...(portHit ? { dst: portHit } : {}),
-    });
+
+    // Step 3: split existing links covered by each new bridge.
+    for (const [k, bridgeId] of bridgeIdByCell) {
+      const [sx, sy] = k.split(',');
+      const cell = { x: Number.parseInt(sx!, 10), y: Number.parseInt(sy!, 10) };
+      const existing = findLayerLinkAtCell(store.project, layer, cell);
+      if (!existing) continue;
+      const idx = existing.path.findIndex((c) => c.x === cell.x && c.y === cell.y);
+      if (idx <= 0 || idx >= existing.path.length - 1) continue; // can't split at endpoints
+      const inDir = signDir(existing.path[idx]!, existing.path[idx - 1]!);
+      const outDir = signDir(existing.path[idx + 1]!, existing.path[idx]!);
+      actions.push({
+        type: 'split_link',
+        link_id: existing.id,
+        at_cell: cell,
+        left_dst: { device_instance_id: bridgeId, port_index: portIndexForArrival(inDir) },
+        right_src: { device_instance_id: bridgeId, port_index: portIndexForExit(outDir) },
+      });
+    }
+
+    // Step 4: emit the new link as one or more segments split at bridge cells.
+    const segments = splitPathAtBridges(planned.path, bridgeIdByCell);
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i]!;
+      const isFirst = i === 0;
+      const isLast = i === segments.length - 1;
+      const segSrc = isFirst
+        ? srcRef
+        : (() => {
+            const prevBridgeKey = seg.entryFromBridgeKey!;
+            const id = bridgeIdByCell.get(prevBridgeKey)!;
+            const [bx, by] = prevBridgeKey.split(',');
+            const bridgeCell = { x: Number.parseInt(bx!, 10), y: Number.parseInt(by!, 10) };
+            const exitDir = signDir(seg.path[0]!, bridgeCell);
+            return { device_instance_id: id, port_index: portIndexForExit(exitDir) };
+          })();
+      const segDst = isLast
+        ? dstRef
+        : (() => {
+            const nextBridgeKey = seg.exitToBridgeKey!;
+            const id = bridgeIdByCell.get(nextBridgeKey)!;
+            const [bx, by] = nextBridgeKey.split(',');
+            const bridgeCell = { x: Number.parseInt(bx!, 10), y: Number.parseInt(by!, 10) };
+            const arriveDir = signDir(bridgeCell, seg.path[seg.path.length - 1]!);
+            return { device_instance_id: id, port_index: portIndexForArrival(arriveDir) };
+          })();
+      actions.push({
+        type: 'add_link',
+        layer,
+        tier_id,
+        path: seg.path,
+        ...(segSrc ? { src: segSrc } : {}),
+        ...(segDst ? { dst: segDst } : {}),
+      });
+    }
     store.applyMany(actions);
   }
 
@@ -557,7 +693,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
               <LinkLayer
                 project={store.project}
                 viewMode={viewMode}
-                selectedLinkId={selectedLinkId}
+                selectedLinkIds={selectedLinkIds}
               />
               <DeviceLayer
                 devices={store.project.devices}
@@ -582,6 +718,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                   status={draftPath.status}
                   autoBridges={draftPath.autoBridges}
                   {...(linkDraft ? { waypoints: linkDraft.waypoints } : {})}
+                />
+              )}
+              {beltCursorState && (
+                <BeltCursor
+                  cell={beltCursorState.cell}
+                  layer={beltCursorState.layer}
+                  onPort={beltCursorState.onPort}
                 />
               )}
               {highlight && (
@@ -697,7 +840,12 @@ function computeDraftPath(
     return { path: [pts[0]!], layer: draft.layer, status: 'valid', autoBridges: [] };
   }
 
-  const planned = planSegments(pts, ctx, null, firstStep);
+  // P4 v6: if the cursor sits on an input port, lock the last segment's
+  // arrival direction. Mismatch → planSegments reports a collision → ghost
+  // goes red and the click is rejected.
+  const lastCell = pts[pts.length - 1]!;
+  const lastInput = findInputPortAtCell(lastCell, draft.layer, project, lookup);
+  const planned = planSegments(pts, ctx, null, firstStep, lastInput?.arrival_direction);
   const status: 'valid' | 'collision' = planned.collisions.length > 0 ? 'collision' : 'valid';
   return {
     path: planned.path as Cell[],
@@ -705,29 +853,6 @@ function computeDraftPath(
     status,
     autoBridges: planned.bridgesToAutoPlace as Cell[],
   };
-}
-
-/** Find an input port (matching layer) at world cell `cell`, if any. Returns
- *  the {device_instance_id, port_index} ref the link's `dst` should point to. */
-function findInputPortAtCell(
-  cell: Cell,
-  layer: Layer,
-  project: ReturnType<typeof useProject>['project'],
-  lookup: (id: string) => Device | undefined,
-): { device_instance_id: string; port_index: number } | null {
-  for (const placed of project.devices) {
-    const dev = lookup(placed.device_id);
-    if (!dev) continue;
-    const ports = portsInWorldFrame(dev, placed);
-    for (const p of ports) {
-      if (p.cell.x !== cell.x || p.cell.y !== cell.y) continue;
-      if (p.direction_constraint !== 'input') continue;
-      const matches =
-        (layer === 'solid' && p.kind === 'solid') || (layer === 'fluid' && p.kind === 'fluid');
-      if (matches) return { device_instance_id: placed.instance_id, port_index: p.port_index };
-    }
-  }
-  return null;
 }
 
 /** Find any link (solid or fluid) whose path includes `cell`. Used by P4 v5
@@ -748,4 +873,90 @@ function findLinkAtCell(
     }
   }
   return null;
+}
+
+/** Same as findLinkAtCell but restricted to one layer. Returns the full Link
+ *  so the caller can read its path (for the auto-bridge truncation flow). */
+function findLayerLinkAtCell(
+  project: ReturnType<typeof useProject>['project'],
+  layer: Layer,
+  cell: Cell,
+): { id: string; path: readonly Cell[] } | null {
+  const links = layer === 'solid' ? project.solid_links : project.fluid_links;
+  for (const link of links) {
+    for (const c of link.path) {
+      if (c.x === cell.x && c.y === cell.y) return { id: link.id, path: link.path };
+    }
+  }
+  return null;
+}
+
+/** Direction from `from` to `to` as a unit cardinal vector. Both cells are
+ *  assumed adjacent (differ by exactly 1 in one axis). */
+function signDir(to: Cell, from: Cell): { dx: number; dy: number } {
+  return { dx: Math.sign(to.x - from.x), dy: Math.sign(to.y - from.y) };
+}
+
+/** Belt port indices on cross-bridge devices (1×1, ports declared in N,E,S,W
+ *  order in the catalog devices file → indices 0,1,2,3). Bridge rotation is
+ *  always 0 in the auto-place flow, so unrotated == world side. */
+const PORT_INDEX_BY_SIDE: Record<'N' | 'E' | 'S' | 'W', number> = { N: 0, E: 1, S: 2, W: 3 };
+
+/** Belt moving in `dir` enters a cell through the side opposite to `dir`. */
+function portIndexForArrival(dir: { dx: number; dy: number }): number {
+  if (dir.dx > 0) return PORT_INDEX_BY_SIDE.W;
+  if (dir.dx < 0) return PORT_INDEX_BY_SIDE.E;
+  if (dir.dy > 0) return PORT_INDEX_BY_SIDE.N;
+  return PORT_INDEX_BY_SIDE.S;
+}
+
+/** Belt moving in `dir` exits a cell through the side aligned with `dir`. */
+function portIndexForExit(dir: { dx: number; dy: number }): number {
+  if (dir.dx > 0) return PORT_INDEX_BY_SIDE.E;
+  if (dir.dx < 0) return PORT_INDEX_BY_SIDE.W;
+  if (dir.dy > 0) return PORT_INDEX_BY_SIDE.S;
+  return PORT_INDEX_BY_SIDE.N;
+}
+
+/** Split `path` at every cell whose key is in `bridgeKeys`. The bridge cells
+ *  themselves are dropped from the segments (the bridge device occupies them
+ *  now). Each returned segment notes which bridge it borders on each side
+ *  (or undefined for the outer ends). */
+interface PathSegment {
+  readonly path: readonly Cell[];
+  readonly entryFromBridgeKey?: string;
+  readonly exitToBridgeKey?: string;
+}
+function splitPathAtBridges(
+  path: readonly Cell[],
+  bridgeKeys: ReadonlyMap<string, string>,
+): PathSegment[] {
+  const segments: PathSegment[] = [];
+  let current: Cell[] = [];
+  let entryFrom: string | undefined;
+  for (const c of path) {
+    const k = `${c.x.toString()},${c.y.toString()}`;
+    if (bridgeKeys.has(k)) {
+      if (current.length > 0) {
+        const seg: PathSegment = {
+          path: current,
+          ...(entryFrom !== undefined ? { entryFromBridgeKey: entryFrom } : {}),
+          exitToBridgeKey: k,
+        };
+        segments.push(seg);
+      }
+      current = [];
+      entryFrom = k;
+      continue;
+    }
+    current.push(c);
+  }
+  if (current.length > 0) {
+    const seg: PathSegment = {
+      path: current,
+      ...(entryFrom !== undefined ? { entryFromBridgeKey: entryFrom } : {}),
+    };
+    segments.push(seg);
+  }
+  return segments;
 }
