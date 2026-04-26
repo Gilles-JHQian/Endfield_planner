@@ -19,12 +19,16 @@ import { Library } from './Library.tsx';
 import { Toolbar } from './Toolbar.tsx';
 import { DeviceLayer, findDeviceAtCell } from './DeviceLayer.tsx';
 import { DraftPath } from './DraftPath.tsx';
+import { DrcPanel } from './DrcPanel.tsx';
 import { GhostPreview } from './GhostPreview.tsx';
 import { HistoryControls } from './HistoryControls.tsx';
 import { Inspector } from './Inspector.tsx';
+import { IssueHighlight } from './IssueHighlight.tsx';
 import { LinkLayer } from './LinkLayer.tsx';
 import { manhattanPath } from './path.ts';
 import type { Layer } from '@core/domain/types.ts';
+import type { Issue } from '@core/drc/index.ts';
+import { useDrc } from './use-drc.ts';
 import { useViewMode } from './use-view-mode.ts';
 import { useProject } from './use-project.ts';
 import { useTool } from './use-tool.ts';
@@ -74,7 +78,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const [linkAnchor, setLinkAnchor] = useState<Cell | null>(null);
+  const [highlight, setHighlight] = useState<{
+    cells: readonly Cell[];
+    severity: 'error' | 'warning' | 'info';
+  } | null>(null);
+  const [panTarget, setPanTarget] = useState<{ cell: Cell; nonce: number } | null>(null);
   const toolApi = useTool();
+  const drcReport = useDrc(store.project, bundle, lookup);
 
   // Cancel an in-progress belt/pipe draft when the tool changes away from
   // belt/pipe (e.g. user pressed Esc/V). React 19 "adjusting state during
@@ -128,6 +138,22 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedInstanceId, store, toolApi.tool]);
+
+  // Clear the issue highlight a couple seconds after it's set so it doesn't
+  // stick around forever after a click-to-pan.
+  useEffect(() => {
+    if (!highlight) return;
+    const id = window.setTimeout(() => setHighlight(null), 2500);
+    return () => window.clearTimeout(id);
+  }, [highlight]);
+
+  function handleIssueClick(issue: Issue): void {
+    if (issue.cells.length === 0) return;
+    const target = issue.cells[0]!;
+    setPanTarget({ cell: target, nonce: Date.now() });
+    setHighlight({ cells: issue.cells, severity: issue.severity });
+    if (issue.device_instance_id) setSelectedInstanceId(issue.device_instance_id);
+  }
 
   // Picking a library card auto-switches to place tool. Clearing the pick
   // (re-click on the same card) reverts to select.
@@ -242,11 +268,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                   status={draftPath.status}
                 />
               )}
+              {highlight && (
+                <IssueHighlight cells={highlight.cells} severity={highlight.severity} />
+              )}
             </>
           }
           onCellClick={handleCellClick}
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
+          panTarget={panTarget}
         />
         <Toolbar api={toolApi} />
         <LayerToggle active={viewMode} onChange={setViewMode} />
@@ -256,6 +286,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onUndo={store.undo}
           onRedo={store.redo}
         />
+        <DrcPanel report={drcReport} onIssueClick={handleIssueClick} />
         <StatusBar
           cursor={cursor}
           zoom={zoom}

@@ -50,6 +50,10 @@ export interface Device {
   readonly footprint: Footprint;
   readonly bandwidth: number;
   readonly power_draw: number;
+  /** Heat pool / generator capacity contributed when placed.
+   *  Optional so devices that don't generate power can omit it.
+   *  POWER_002 sums this across the project to verify supply ≥ demand. */
+  readonly power_supply?: number;
   readonly requires_power: boolean;
   readonly has_fluid_interface: boolean;
   readonly io_ports: readonly Port[];
