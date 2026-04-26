@@ -34,6 +34,7 @@
         "footprint": { "$ref": "#/$defs/Footprint" },
         "bandwidth": { "type": "integer", "minimum": 0 },
         "power_draw": { "type": "integer", "minimum": 0 },
+        "power_supply": { "type": "integer", "minimum": 0 },
         "requires_power": { "type": "boolean" },
         "has_fluid_interface": { "type": "boolean" },
         "io_ports": {

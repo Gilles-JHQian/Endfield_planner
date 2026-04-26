@@ -3,6 +3,8 @@
  *  they're listed in the lint panel within their severity group).
  */
 import type { Rule } from './types.ts';
+import { power001 } from './rules/power-aoe.ts';
+import { power002 } from './rules/power-balance.ts';
 import { region001 } from './rules/region.ts';
 
-export const ALL_RULES: readonly Rule[] = [region001];
+export const ALL_RULES: readonly Rule[] = [region001, power001, power002];

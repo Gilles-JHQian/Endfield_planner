@@ -4,20 +4,22 @@ import { ALL_RULES } from './registry.ts';
 import { lookupFrom, mkBundle, mkDevice, mkProject } from './fixtures.ts';
 
 describe('runDrc engine', () => {
-  it('returns 0 issues + 0 skipped for an empty project against the test bundle', () => {
+  it('produces no issues against an empty project + empty bundle', () => {
     const bundle = mkBundle();
     const report = runDrc(mkProject(), bundle, lookupFrom(bundle.devices));
     expect(report.issues).toEqual([]);
-    // Rules registered today have no data prereqs against the test bundle.
-    // (When io_ports / power_supply / bridge rules land, this assertion will
-    //  need to acknowledge skipped rules.)
-    expect(report.skipped).toEqual([]);
+    // Rules whose data prereqs aren't satisfied by the empty bundle (POWER_001
+    // wants supply poles; POWER_002 wants power_supply data) appear in skipped.
+    const skippedIds = new Set(report.skipped.map((s) => s.rule_id));
+    expect(skippedIds.has('POWER_001')).toBe(true);
+    expect(skippedIds.has('POWER_002')).toBe(true);
+    expect(skippedIds.has('REGION_001')).toBe(false); // REGION_001 has no prereqs
   });
 
-  it('exposes a non-empty rule registry', () => {
+  it('exposes a non-empty rule registry with unique ids', () => {
     expect(ALL_RULES.length).toBeGreaterThan(0);
     const ids = new Set(ALL_RULES.map((r) => r.id));
-    expect(ids.size).toBe(ALL_RULES.length); // no duplicates
+    expect(ids.size).toBe(ALL_RULES.length);
   });
 });
 
