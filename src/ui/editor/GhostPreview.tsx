@@ -93,8 +93,10 @@ function AoeBox({ zone, kind }: { zone: SupplyZone; kind: 'device_supply' | 'pol
   );
 }
 
-/** Shade existing devices whose footprint falls fully inside the candidate AoE.
- *  White-ish low-alpha overlay — the device's normal rendering remains visible. */
+/** Shade existing devices whose footprint touches the candidate AoE.
+ *  P4 v6: matches `computePowerCoverage` — any one footprint cell inside the
+ *  AoE is enough (was `cells.every` until v5; the preview was the last
+ *  consumer still using the strict v4 predicate). */
 function CoveredHighlight({
   zone,
   devices,
@@ -110,7 +112,7 @@ function CoveredHighlight({
     if (!dev?.requires_power) continue;
     const cells = footprintCells(dev, placed);
     if (
-      !cells.every(
+      !cells.some(
         (c) => c.x >= zone.minX && c.x <= zone.maxX && c.y >= zone.minY && c.y <= zone.maxY,
       )
     ) {
