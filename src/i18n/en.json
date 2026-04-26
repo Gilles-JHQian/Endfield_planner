@@ -43,5 +43,19 @@
 
   "route.editor": "Editor",
   "route.deviceEditor": "Device Editor",
-  "route.solver": "Solver"
+  "route.solver": "Solver",
+
+  "category.miner": "Mining",
+  "category.basic_production": "Basic Prod",
+  "category.synthesis": "Synthesis",
+  "category.storage": "Storage",
+  "category.power": "Power",
+  "category.utility": "Utility",
+  "category.planting": "Planting",
+  "category.combat": "Combat",
+  "category.logistics": "Logistics",
+
+  "library.title": "Device Library",
+  "library.search": "search…",
+  "library.empty": "no devices"
 }

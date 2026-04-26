@@ -43,5 +43,19 @@
 
   "route.editor": "编辑器",
   "route.deviceEditor": "设备编辑器",
-  "route.solver": "求解器"
+  "route.solver": "求解器",
+
+  "category.miner": "资源开采",
+  "category.basic_production": "基础生产",
+  "category.synthesis": "合成制造",
+  "category.storage": "仓储存取",
+  "category.power": "电力供应",
+  "category.utility": "功能设备",
+  "category.planting": "种植调配",
+  "category.combat": "战斗辅助",
+  "category.logistics": "物流",
+
+  "library.title": "设备库",
+  "library.search": "搜索…",
+  "library.empty": "无设备"
 }

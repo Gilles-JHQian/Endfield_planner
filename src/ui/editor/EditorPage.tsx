@@ -8,10 +8,12 @@
 import { useMemo, useState } from 'react';
 import { useDataBundle } from '@ui/use-data-bundle.ts';
 import { createProject } from '@core/domain/project.ts';
-import type { DataBundle } from '@core/data-loader/types.ts';
+import type { DataBundle, Device, DeviceCategory } from '@core/data-loader/types.ts';
 import { Canvas } from './Canvas.tsx';
 import { LayerToggle } from './LayerToggle.tsx';
 import { StatusBar } from './StatusBar.tsx';
+import { Rail } from './Rail.tsx';
+import { Library } from './Library.tsx';
 import { useViewMode } from './use-view-mode.ts';
 import { useProject } from './use-project.ts';
 
@@ -56,6 +58,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [viewMode, setViewMode] = useViewMode();
+  const [category, setCategory] = useState<DeviceCategory>('basic_production');
+  const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
 
   return (
     <div
@@ -64,12 +68,25 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         gridTemplateColumns: 'var(--rail-w) var(--library-w) 1fr var(--inspector-w)',
       }}
     >
-      <aside aria-label="category rail" className="border-r border-line bg-surface-1 py-2" />
+      <aside aria-label="category rail" className="border-r border-line bg-surface-1">
+        <Rail
+          active={category}
+          onChange={(c) => {
+            setCategory(c);
+            setPickedDevice(null);
+          }}
+        />
+      </aside>
       <aside
         aria-label="device library"
         className="flex flex-col border-r border-line bg-surface-1"
       >
-        <PlaceholderPanel title="LIBRARY" cn="设备库" />
+        <Library
+          devices={bundle.devices}
+          category={category}
+          selectedDeviceId={pickedDevice?.id ?? null}
+          onPick={setPickedDevice}
+        />
       </aside>
       <main aria-label="workspace" className="relative bg-canvas">
         <Canvas
@@ -87,19 +104,18 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         />
       </main>
       <aside aria-label="inspector" className="flex flex-col border-l border-line bg-surface-1">
-        <PlaceholderPanel title="INSPECTOR" cn="检视器" />
+        <div className="flex flex-col p-4">
+          <span className="font-display text-[11px] font-semibold uppercase tracking-[1.5px] text-fg-soft">
+            INSPECTOR
+          </span>
+          <span className="font-cn text-[12px] text-fg-faint">检视器 — B7 后续</span>
+          {pickedDevice && (
+            <span className="mt-3 font-tech-mono text-[11px] text-amber">
+              picked: {pickedDevice.id}
+            </span>
+          )}
+        </div>
       </aside>
-    </div>
-  );
-}
-
-function PlaceholderPanel({ title, cn }: { title: string; cn: string }) {
-  return (
-    <div className="flex flex-col p-4">
-      <span className="font-display text-[11px] font-semibold uppercase tracking-[1.5px] text-fg-soft">
-        {title}
-      </span>
-      <span className="font-cn text-[12px] text-fg-faint">{cn}</span>
     </div>
   );
 }
