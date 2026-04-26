@@ -25,6 +25,7 @@ import { HistoryControls } from './HistoryControls.tsx';
 import { Inspector } from './Inspector.tsx';
 import { IssueHighlight } from './IssueHighlight.tsx';
 import { LinkLayer } from './LinkLayer.tsx';
+import { PowerOverlay } from './PowerOverlay.tsx';
 import { ProjectMenu } from './ProjectMenu.tsx';
 import { routeAroundDevices } from './path.ts';
 import { portsInWorldFrame } from '@core/domain/geometry.ts';
@@ -390,6 +391,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                 selectedInstanceId={selectedInstanceId}
                 coveredInstanceIds={powerCoverage.coveredInstanceIds}
               />
+              {viewMode === 'power' && (
+                <PowerOverlay devices={store.project.devices} lookup={lookup} />
+              )}
             </>
           }
           overlay={
