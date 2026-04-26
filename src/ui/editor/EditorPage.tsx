@@ -33,16 +33,19 @@ import { computePowerCoverage } from '@core/domain/power-coverage.ts';
 import type { Layer } from '@core/domain/types.ts';
 import type { Issue } from '@core/drc/index.ts';
 import {
+  buildPayload,
   clearCurrent,
+  copyToClipboard,
   exportProject,
   flushSave,
   importProject,
   loadCurrent,
+  readClipboard,
   scheduleSave,
 } from '@core/persistence/index.ts';
 import { useDrc } from './use-drc.ts';
 import { useViewMode } from './use-view-mode.ts';
-import { useProject } from './use-project.ts';
+import { useProject, type ProjectAction } from './use-project.ts';
 import { useTool } from './use-tool.ts';
 
 const DATA_VERSION = '1.2';
@@ -224,13 +227,45 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedInstanceId, store, toolApi.tool]);
 
-  // Box-select group operations. F = batch-delete; Ctrl+C = copy to clipboard;
-  // Ctrl+V = enter paste sub-mode (TODO once clipboard lands).
+  // Box-select group operations. F = batch-delete; Ctrl+C = copy current
+  // selection to the clipboard; Ctrl+V = paste at cursor (offset preserved).
   useEffect(() => {
     if (toolApi.tool.kind !== 'box-select') return;
     const onKey = (e: KeyboardEvent): void => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      const meta = e.ctrlKey || e.metaKey;
+      if (meta && (e.key === 'c' || e.key === 'C')) {
+        if (boxSelected.size === 0) return;
+        e.preventDefault();
+        const devices = store.project.devices.filter((d) => boxSelected.has(d.instance_id));
+        const payload = buildPayload(devices);
+        if (payload) copyToClipboard(payload);
+        return;
+      }
+      if (meta && (e.key === 'v' || e.key === 'V')) {
+        if (!cursor) return;
+        const payload = readClipboard();
+        if (!payload) return;
+        e.preventDefault();
+        const placeActions: ProjectAction[] = [];
+        for (const item of payload.items) {
+          const dev = lookup(item.device_id);
+          if (!dev) continue;
+          placeActions.push({
+            type: 'place_device',
+            device: dev,
+            position: { x: cursor.x + item.rel_position.x, y: cursor.y + item.rel_position.y },
+            rotation: item.rotation,
+          });
+        }
+        if (placeActions.length === 0) return;
+        const result = store.applyMany(placeActions);
+        if (result.ok) {
+          setBoxSelected(new Set(result.value.placed.map((p) => p.instance_id)));
+        }
+        return;
+      }
       if (e.key === 'f' || e.key === 'F') {
         if (boxSelected.size === 0) return;
         e.preventDefault();
@@ -247,7 +282,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [boxSelected, store, toolApi.tool, selectedInstanceId]);
+  }, [boxSelected, store, toolApi.tool, selectedInstanceId, cursor, lookup]);
 
   // Belt/pipe draft keybindings. Esc cancels the whole draft; Backspace pops
   // the last waypoint (so owners can correct a mis-click without restarting).
