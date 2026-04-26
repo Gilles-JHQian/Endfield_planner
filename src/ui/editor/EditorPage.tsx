@@ -33,6 +33,7 @@ import {
   defaultTierId,
   findInputPortAtCell,
   findOutputPortAtCell,
+  hasMultipleOutputPortsAtCell,
   planSegments,
   type ProjectRouteContext,
 } from './belt-router.ts';
@@ -488,25 +489,35 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     // If it has collisions, reject the click — the ghost's red color already
     // told the user it's illegal.
     const ctx = buildRouteContext(store.project, layer, lookup);
+    // P4 v7: when start cell hosts ≥ 2 output ports, leave the lock open and
+    // resolve port post-routing. Single-port → keep v6 lock for the L-shape
+    // hint to make sense.
+    const startMulti =
+      linkDraft.waypoints.length === 1 &&
+      hasMultipleOutputPortsAtCell(start, layer, store.project, lookup);
     const firstStep =
-      linkDraft.waypoints.length === 1
+      linkDraft.waypoints.length === 1 && !startMulti
         ? (findOutputPortAtCell(start, layer, store.project, lookup)?.face_direction ?? undefined)
         : undefined;
-    // P4 v6: detect input-port at the click cell first (without arrival-direction
-    // filter) so we can pass its required arrival_direction into the planner.
-    // The planner enforces the match and returns a collision if mismatched.
-    const portAtClick = findInputPortAtCell(cell, layer, store.project, lookup);
     const initialHeading = headingAtEnd(linkDraft.waypoints, ctx, firstStep);
     const candidate = planSegments(
       [last, cell],
       ctx,
       initialHeading,
-      // First-step direction only applies if last is itself the first waypoint
-      // (single-waypoint draft); otherwise the heading carries forward.
       linkDraft.waypoints.length === 1 ? firstStep : undefined,
-      portAtClick?.arrival_direction,
     );
     if (candidate.collisions.length > 0) return;
+
+    // P4 v7: resolve input port from the actual planned arrival direction
+    // (handles multi-port-per-cell mergers). Mismatch on a port-bearing cell
+    // → reject the click.
+    let portAtClick: ReturnType<typeof findInputPortAtCell> = null;
+    if (candidate.path.length >= 2) {
+      const arrival = signDir(candidate.path[candidate.path.length - 1]!, candidate.path[candidate.path.length - 2]!);
+      portAtClick = findInputPortAtCell(cell, layer, store.project, lookup, arrival);
+      const anyInput = portAtClick ?? findInputPortAtCell(cell, layer, store.project, lookup);
+      if (anyInput && !portAtClick) return; // wrong-direction approach to a port cell
+    }
 
     // Commit conditions.
     const closesLoop = cell.x === start.x && cell.y === start.y && linkDraft.waypoints.length >= 2;
@@ -527,7 +538,14 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     portHit: { device_instance_id: string; port_index: number } | null,
   ): void {
     const ctx = buildRouteContext(store.project, layer, lookup);
-    const startPort = findOutputPortAtCell(waypoints[0]!, layer, store.project, lookup);
+    // P4 v7: when the start cell hosts ≥ 2 output ports, leave firstStepDirection
+    // unconstrained (let the user's chosen direction pick the port). The
+    // actual src PortRef is then resolved from `planned.path`'s first step
+    // post-routing.
+    const startMulti = hasMultipleOutputPortsAtCell(waypoints[0]!, layer, store.project, lookup);
+    const startSingle = startMulti
+      ? null
+      : findOutputPortAtCell(waypoints[0]!, layer, store.project, lookup);
     const lastInput = portHit
       ? findInputPortAtCell(waypoints[waypoints.length - 1]!, layer, store.project, lookup)
       : null;
@@ -535,10 +553,17 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       waypoints,
       ctx,
       null,
-      startPort?.face_direction,
+      startSingle?.face_direction,
       lastInput?.arrival_direction,
     );
     if (planned.collisions.length > 0) return; // shouldn't happen — ghost gates clicks
+
+    // Now resolve the actual output port using the planned path's first step.
+    const startDeparture =
+      planned.path.length >= 2 ? signDir(planned.path[1]!, planned.path[0]!) : undefined;
+    const startPort =
+      startSingle ??
+      findOutputPortAtCell(waypoints[0]!, layer, store.project, lookup, startDeparture);
 
     const tier_id = defaultTierId(bundle, layer);
     const srcRef = startPort
@@ -822,9 +847,19 @@ function computeDraftPath(
   // First-step direction: only set when waypoint[0] is itself the very first
   // cell (no committed segments yet) — once we've passed at least one waypoint
   // the heading carries through and overrides any port lock.
-  const firstStep =
-    findOutputPortAtCell(draft.waypoints[0]!, draft.layer, project, lookup)?.face_direction ??
-    undefined;
+  // P4 v7: skip the lock when the cell hosts ≥ 2 output ports (e.g. a
+  // splitter at the start). The user's first move chooses the port; the
+  // commit path resolves the actual port from the planned path.
+  const startMulti = hasMultipleOutputPortsAtCell(
+    draft.waypoints[0]!,
+    draft.layer,
+    project,
+    lookup,
+  );
+  const firstStep = startMulti
+    ? undefined
+    : (findOutputPortAtCell(draft.waypoints[0]!, draft.layer, project, lookup)?.face_direction ??
+      undefined);
 
   // Build the cell list to plan: waypoints + the live cursor cell if it
   // differs from the last waypoint (otherwise the cursor sits on the last
@@ -840,12 +875,21 @@ function computeDraftPath(
     return { path: [pts[0]!], layer: draft.layer, status: 'valid', autoBridges: [] };
   }
 
-  // P4 v6: if the cursor sits on an input port, lock the last segment's
-  // arrival direction. Mismatch → planSegments reports a collision → ghost
-  // goes red and the click is rejected.
+  // P4 v7: plan unconstrained first (no last-step lock). Then resolve the
+  // input port using the planned path's actual last step — needed for cells
+  // hosting multiple input ports (e.g. mergers). If the cell HAS input ports
+  // but NONE matches the actual approach, mark the last cell as a collision
+  // so the ghost goes red and the click is rejected.
   const lastCell = pts[pts.length - 1]!;
-  const lastInput = findInputPortAtCell(lastCell, draft.layer, project, lookup);
-  const planned = planSegments(pts, ctx, null, firstStep, lastInput?.arrival_direction);
+  let planned = planSegments(pts, ctx, null, firstStep);
+  if (planned.collisions.length === 0 && planned.path.length >= 2) {
+    const arrival = signDir(planned.path[planned.path.length - 1]!, planned.path[planned.path.length - 2]!);
+    const matched = findInputPortAtCell(lastCell, draft.layer, project, lookup, arrival);
+    const anyInput = matched ? matched : findInputPortAtCell(lastCell, draft.layer, project, lookup);
+    if (anyInput && !matched) {
+      planned = { ...planned, collisions: [lastCell] };
+    }
+  }
   const status: 'valid' | 'collision' = planned.collisions.length > 0 ? 'collision' : 'valid';
   return {
     path: planned.path as Cell[],
