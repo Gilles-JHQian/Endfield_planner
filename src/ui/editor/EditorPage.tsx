@@ -18,8 +18,12 @@ import { Rail } from './Rail.tsx';
 import { Library } from './Library.tsx';
 import { Toolbar } from './Toolbar.tsx';
 import { DeviceLayer, findDeviceAtCell } from './DeviceLayer.tsx';
+import { DraftPath } from './DraftPath.tsx';
 import { GhostPreview } from './GhostPreview.tsx';
 import { Inspector } from './Inspector.tsx';
+import { LinkLayer } from './LinkLayer.tsx';
+import { manhattanPath } from './path.ts';
+import type { Layer } from '@core/domain/types.ts';
 import { useViewMode } from './use-view-mode.ts';
 import { useProject } from './use-project.ts';
 import { useTool } from './use-tool.ts';
@@ -68,7 +72,19 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [category, setCategory] = useState<DeviceCategory>('basic_production');
   const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+  const [linkAnchor, setLinkAnchor] = useState<Cell | null>(null);
   const toolApi = useTool();
+
+  // Cancel an in-progress belt/pipe draft when the tool changes away from
+  // belt/pipe (e.g. user pressed Esc/V). React 19 "adjusting state during
+  // render" pattern — prevTool is mirror-state used only for change detection.
+  const [prevTool, setPrevTool] = useState(toolApi.tool.kind);
+  if (prevTool !== toolApi.tool.kind) {
+    setPrevTool(toolApi.tool.kind);
+    if (toolApi.tool.kind !== 'belt' && toolApi.tool.kind !== 'pipe') {
+      setLinkAnchor(null);
+    }
+  }
 
   // Selection-aware keyboard shortcuts (R rotates selected device, Delete
   // deletes it). useTool's R already handles ghost rotation; this only fires
@@ -102,6 +118,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // render but each call is O(footprint cells), well under the 16ms budget.
   // The React 19 compiler memoizes Konva re-renders to the overlay layer.
   const ghost = computeGhost(toolApi.tool, cursor, store.project, lookup);
+  const draftPath = computeDraftPath(toolApi.tool, linkAnchor, cursor, store.project, lookup);
 
   function handleCellClick(cell: Cell): void {
     if (toolApi.tool.kind === 'place') {
@@ -125,8 +142,31 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     } else if (toolApi.tool.kind === 'select') {
       const hit = findDeviceAtCell(store.project.devices, lookup, cell);
       setSelectedInstanceId(hit?.instance_id ?? null);
+    } else if (toolApi.tool.kind === 'belt' || toolApi.tool.kind === 'pipe') {
+      handleLinkClick(cell, toolApi.tool.kind === 'belt' ? 'solid' : 'fluid');
     }
-    // belt / pipe land in B7 commit 8.
+  }
+
+  function handleLinkClick(cell: Cell, layer: Layer): void {
+    if (!linkAnchor) {
+      setLinkAnchor(cell);
+      return;
+    }
+    if (linkAnchor.x === cell.x && linkAnchor.y === cell.y) {
+      // Click on same cell cancels the draft.
+      setLinkAnchor(null);
+      return;
+    }
+    const path = manhattanPath(linkAnchor, cell);
+    const tier_id =
+      layer === 'solid'
+        ? (bundle.transport_tiers.solid_belts[0]?.id ?? 'belt-1')
+        : (bundle.transport_tiers.fluid_pipes[0]?.id ?? 'pipe-wuling');
+    const result = store.apply({ type: 'add_link', layer, tier_id, path });
+    setLinkAnchor(null);
+    if (!result.ok) {
+      // out_of_bounds path — silently ignored. B8 will surface DRC issues.
+    }
   }
 
   return (
@@ -160,13 +200,27 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         <Canvas
           plot={store.project.plot}
           content={
-            <DeviceLayer
-              devices={store.project.devices}
-              lookup={lookup}
-              selectedInstanceId={selectedInstanceId}
-            />
+            <>
+              <LinkLayer project={store.project} viewMode={viewMode} />
+              <DeviceLayer
+                devices={store.project.devices}
+                lookup={lookup}
+                selectedInstanceId={selectedInstanceId}
+              />
+            </>
           }
-          overlay={ghost ? <GhostPreview {...ghost} /> : null}
+          overlay={
+            <>
+              {ghost && <GhostPreview {...ghost} />}
+              {draftPath && (
+                <DraftPath
+                  path={draftPath.path}
+                  layer={draftPath.layer}
+                  status={draftPath.status}
+                />
+              )}
+            </>
+          }
           onCellClick={handleCellClick}
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
@@ -223,4 +277,38 @@ function computeGhost(
     }
   }
   return { device, cell: cursor, rotation, status: 'valid' };
+}
+
+interface DraftPathState {
+  path: Cell[];
+  layer: Layer;
+  status: 'valid' | 'collision' | 'warn';
+}
+
+function computeDraftPath(
+  tool: ReturnType<typeof useTool>['tool'],
+  anchor: Cell | null,
+  cursor: Cell | null,
+  project: ReturnType<typeof useProject>['project'],
+  lookup: (id: string) => Device | undefined,
+): DraftPathState | null {
+  if (!anchor || !cursor) return null;
+  if (tool.kind !== 'belt' && tool.kind !== 'pipe') return null;
+  const layer: Layer = tool.kind === 'belt' ? 'solid' : 'fluid';
+  const path = manhattanPath(anchor, cursor);
+
+  // Out-of-plot endpoints / interiors → collision.
+  for (const c of path) {
+    if (c.x < 0 || c.y < 0 || c.x >= project.plot.width || c.y >= project.plot.height) {
+      return { path, layer, status: 'collision' };
+    }
+  }
+  // Path through a device cell → collision (devices block both layers).
+  const occ = buildOccupancy(project, lookup);
+  for (const c of path) {
+    if (cellBlockedFor(c, layer, occ) === 'device') {
+      return { path, layer, status: 'collision' };
+    }
+  }
+  return { path, layer, status: 'valid' };
 }
