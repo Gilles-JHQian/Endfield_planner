@@ -52,7 +52,10 @@ export function computePowerCoverage(project: Project, lookup: DeviceLookup): Po
     }
     if (!dev.requires_power) continue;
     const cells = footprintCells(dev, placed);
-    if (cells.every((c) => zones.some((z) => inZone(c, z)))) {
+    // P4 v5: any one footprint cell inside an AoE is enough — partial overlap
+    // counts. Was `cells.every` in v4; relaxed because the in-game pole still
+    // powers a device straddling the AoE edge.
+    if (cells.some((c) => zones.some((z) => inZone(c, z)))) {
       covered.add(placed.instance_id);
     }
   }

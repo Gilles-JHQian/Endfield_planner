@@ -84,6 +84,19 @@ describe('computePowerCoverage', () => {
     expect(cov.coveredInstanceIds.has('f')).toBe(false);
   });
 
+  it('marks a device with ANY footprint cell in the AoE as covered (P4 v5)', () => {
+    // Pole at (0,0): 2×2 footprint, center (1,1), 12-edge AoE → x ∈ [-5, 6], y ∈ [-5, 6].
+    // Place a 3×3 furnace at (5, 5) → footprint cells (5..7, 5..7). Only (5,5), (5,6),
+    // (6,5), (6,6) are inside the AoE; (7,*) and (*,7) are outside. The v4 "every cell"
+    // rule rejects this; v5 "any cell" accepts it.
+    const project = {
+      ...createProject({ region: REGION, data_version: 'test' }),
+      devices: [placed('p', 'pole', 0, 0), placed('f', 'furnace', 5, 5)],
+    };
+    const cov = computePowerCoverage(project, lookup);
+    expect(cov.coveredInstanceIds.has('f')).toBe(true);
+  });
+
   it('treats supply poles as self-covered', () => {
     const project = {
       ...createProject({ region: REGION, data_version: 'test' }),
