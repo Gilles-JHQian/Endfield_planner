@@ -4,7 +4,7 @@ A design automation tool for the integrated industry system in *Arknights: Endfi
 
 This document is the single source of truth for scope, priorities, and technical decisions. Read it end-to-end before starting work.
 
-**Document version:** v4 — Phase 3 polish round. Incorporates owner testing feedback on the P2 editor MVP: multi-segment belt drawing, BFS ghost auto-routing, direction-aware belt rendering, 6 logistics bridge devices (merger / splitter / cross-bridge × solid + fluid), 3 new belt DRC rules, asymmetric cross-layer constraint, power-coverage UX, box-select with group operations + clipboard, and dev-mode device save with scraped baseline restore. See `RESEARCH_FINDINGS.md` for community-sourced domain research and `DRC_REPORT.md` for data-source mapping. Changelog at the end of this document.
+**Document version:** v5 — Phase 4 belt-routing + selection model rewrite. Incorporates owner P3 testing feedback: belts now auto-place cross-bridges on legal perpendicular crossings (no avoid-belts in BFS); ghost validates legality before allowing the next waypoint; angle-based forward-vs-side preference for the live segment; clicking the same waypoint twice force-commits the in-progress path. Right-mouse-button replaces the X tool — drag = box-select, click = single-select. Belts are now selectable + deletable (single-click selects the whole link). Port geometry visualization moves to per-face buttons + inward/outward triangles in the canvas. Power AoE coverage relaxed from "all footprint cells" to "any footprint cell". Storage I/O port + storage line connectivity DRC rules registered as data-gated dormants. See `RESEARCH_FINDINGS.md` for community-sourced domain research and `DRC_REPORT.md` for data-source mapping. Changelog at the end of this document.
 
 ---
 
@@ -80,7 +80,7 @@ Each device has:
 - `display_name_zh_hans`, `display_name_zh_hant`, `display_name_en`, `display_name_ja`, ... (via i18n layer; end.wiki provides 14 languages).
 - `footprint`: width × height in grid cells. Most are rectangular; assume axis-aligned. The `end.wiki` field `占地面积: W×H×D` provides `W × H` — the `D` dimension is a visual-height indicator and is ignored by the grid model. Confirm this convention with a second device page during the scraper implementation.
 - `rotation`: 0°/90°/180°/270°. Footprint rotates with it.
-- `io_ports`: list of `{side, offset, kind, direction_constraint}`. `side` ∈ {N,E,S,W} relative to the device's current rotation. `offset` is the cell index along that side (0-indexed). `kind` ∈ {solid, fluid, power}. `direction_constraint` ∈ {input, output, bidirectional, paired_opposite} — see §4.5.1 for `paired_opposite`, used by 物流桥. A port occupies exactly one cell on the device's perimeter.
+- `io_ports`: list of `{side, offset, kind, direction_constraint}`. **A port belongs to a face, not a cell** (P4 v5 clarification). `side` ∈ {N,E,S,W} identifies the face on the device's unrotated frame; `offset` is the cell index along that face (0-indexed). The same cell can host multiple ports if they sit on different faces — corner cells of multi-cell devices in particular may carry up to two ports (one per exposed face). Only **external** faces (cells on the perimeter) may host ports. `kind` ∈ {solid, fluid, power}. `direction_constraint` ∈ {input, output, bidirectional, paired_opposite} — see §4.5.1 for `paired_opposite`. **Belts and pipes must enter/exit a device through a port and travel in the direction the port faces** — a belt leaving an east-facing output port moves east; one leaving and immediately turning north is illegal.
 - `bandwidth`: integer from `end.wiki` field `带宽`. Caps items/tick per port.
 - `power_draw`: from `end.wiki` field `电力消耗` (integer).
 - `requires_power`: from `end.wiki` field `需要电力` (boolean).
@@ -171,7 +171,7 @@ These rules are encoded declaratively in `data/versions/<version>/crossing_rules
 ### 4.6 Power model
 
 - **Protocol core** has **no AoE**. The core wirelessly powers **every 供电桩 placed inside the core's build plot**, with no distance constraint.
-- **供电桩** (power pole / diffuser, `power-diffuser-1`): footprint 2×2, placed anywhere inside the core's build plot. Each pole has its own **square** AoE around it (not circular); devices whose footprint overlaps the AoE are powered. **AoE = 12 cells per side, centered on the pole's footprint center.** 息壤供电桩 (`power-diffuser-2`, 武陵-tier) has the **same** 12-cell AoE — the variant differs only in tech tier / unlock, not in range.
+- **供电桩** (power pole / diffuser, `power-diffuser-1`): footprint 2×2, placed anywhere inside the core's build plot. Each pole has its own **square** AoE around it (not circular); a device is considered powered when **any cell of its footprint** falls inside the AoE — partial overlap is enough (P4 v5 clarification, was "every cell" in v4). **AoE = 12 cells per side, centered on the pole's footprint center.** 息壤供电桩 (`power-diffuser-2`, 武陵-tier) has the **same** 12-cell AoE — the variant differs only in tech tier / unlock, not in range.
 - **中继器** (repeater, `power-pole-2`): footprint 3×3. Extends pole-to-pole connectivity inside a **7-cell-per-side** square centered on the repeater. **Does not supply power to devices itself** — DRC's POWER_001 only checks 供电桩 AoE coverage. Repeaters chain poles together when a single pole's AoE doesn't reach the next. 息壤中继器 (`power-pole-3`, 武陵-tier) has the same 7-cell range.
 - **热能池** (thermal battery, `power-station-1`): power source. Capacity per battery is data-driven (see §10.4 / `device.power_supply` field; first-pass value imported from JamboChen/endfield-calc per `plan/DRC_REPORT.md`).
 - Every device with `requires_power = true` consumes its `power_draw` while running; power budget is a hard constraint.
@@ -230,21 +230,45 @@ Solver output is a **recipe graph**, not a layout. This is a separate deliverabl
 
 A 2D grid-based canvas where the user can:
 
-- Pan, zoom, and scroll.
+- Pan, zoom, and scroll. Middle-mouse drag = pan.
 - Place devices from a palette, with rotation (R key) and mirroring.
-- Box-select multiple devices (X key), then move (M), rotate as a group around the selection bounding-box centroid (R), delete (F), or copy/paste (Ctrl+C / Ctrl+V).
-- Undo / redo with unlimited history within a session. Group operations from box-select share a single history snapshot.
-- Draw a solid belt or fluid pipe path **as a multi-segment polyline**: first click sets the start; each subsequent click commits a waypoint and starts a new segment from there. Drawing only ends when the cursor lands on (a) another device's input port of the matching `kind`, (b) the start cell (closes a loop), or (c) Esc cancels the entire draft. Backspace pops the last waypoint.
+- **Right-mouse-button drives selection (P4 v5):** right-click = single-select the device or belt under the cursor (or clear if empty); right-mouse drag = box-select rectangle. Right-click context menu is disabled inside the canvas. The legacy X tool from P3 is removed; selection state is global rather than tool-bound.
+- Selected devices: M move, R rotate-around-centroid, F delete, Ctrl+C / Ctrl+V copy/paste. Single-select (1 device or 1 belt) shows in the inspector; multi-select gets blue brackets and bypasses the inspector.
+- **Belts and pipes are selectable** as a unit (P4 v5): single-clicking any cell of an existing link selects the entire link; Delete removes the link in one history snapshot.
+- Undo / redo with unlimited history within a session. Group operations share a single history snapshot.
+- Draw a solid belt or fluid pipe path **as a multi-segment polyline**. First click sets the start; each subsequent click commits a waypoint and starts a new segment from there. Drafting commits when:
+  - the cursor lands on another device's input port of the matching `kind` (sets `dst` PortRef);
+  - the cursor lands on the start cell (closes a loop);
+  - **the cursor lands on the same cell as the previous click — force-commits the path as drawn** (P4 v5; lets owners end a belt at an empty cell);
+  - Esc cancels the entire draft;
+  - Backspace pops the last waypoint.
 - Toggle between "solid layer", "fluid layer", and "power" view modes. In each non-power mode the other transport layer's paths are rendered dimmed.
 - Edit placed devices' recipe selection inline.
 
-**Keyboard shortcuts:** V = select; B / E = belt; P / Q = pipe (B/P preserved for muscle memory; Q/E added in P3 for one-hand reach); X = box-select; R = rotate ghost or selection; M = move group; F = delete group; Esc = cancel; Backspace = pop waypoint while drawing.
+**Keyboard shortcuts:** V = select; B / E = belt; P / Q = pipe (B/P preserved for muscle memory; Q/E added in P3 for one-hand reach); R = rotate ghost or selection; M = move selection; F / Delete = delete selection; Esc = cancel; Backspace = pop waypoint while drawing.
 
-**Live ghost preview (mandatory):** while the user is drawing a belt or pipe, or has a device selected from the palette, the tool renders a **real-time ghost** of the placement at the current mouse position. The ghost updates every mouse-move event, shows the candidate path/footprint, and color-codes validity (green = valid, red = DRC violation, yellow = valid but sub-optimal). The drafting ghost **automatically routes around placed devices** via 4-neighbour BFS — a candidate path that would cross a device cell detours instead. When no detour exists, the ghost falls back to direct Manhattan + colors red. Performance budget: ghost render must complete within one frame (~16ms) at the performance targets in §6.5.
+**Live ghost preview (mandatory):** while the user is drawing a belt or pipe, or has a device selected from the palette, the tool renders a **real-time ghost** of the placement at the current mouse position. The ghost updates every mouse-move event, shows the candidate path/footprint, and color-codes validity (green = valid, red = DRC violation, yellow = valid but sub-optimal). Performance budget: ghost render must complete within one frame (~16ms) at the performance targets in §6.5.
 
-**Belt/pipe rendering:** committed links are drawn with two parallel edge lines + semi-transparent fill between, with periodic V-shaped arrows indicating flow direction (src→dst, or path[0]→path[N-1] when src/dst are unset). Solid uses amber; fluid uses teal.
+**Belt routing (P4 v5):** the ghost path planner does NOT detour around existing same-layer links. Instead, when the planned segment would cross an existing belt:
+- **Perpendicular crossing** + cell free of any other device → the cell is tagged "auto-bridge" and shown as legal green in the ghost. On commit, an `add_device` for the matching cross-bridge is bundled into the same history snapshot as the `add_link`.
+- **Parallel / corner overlap, or cell already hosts a non-bridge device** → ghost goes red and the next click is rejected (no waypoint added). Owners must back out (Backspace / Esc) and re-route.
 
-**Power-coverage visualization:** any `requires_power=true` device that isn't covered by some 供电桩 AoE displays a small red "unplugged" badge in its top-right corner. While ghosting a power pole, the candidate AoE square is shown as a dashed outline and any existing devices that would fall inside are highlighted with a white shadow. The "power" view mode dims devices+links and overlays every placed pole's AoE (供电桩 = solid amber, 中继器 = dashed teal).
+The planner still detours around placed device cells (excluding the path's own port-cell endpoints).
+
+**Forward-vs-side preference (P4 v5):** when computing the live segment from the last waypoint to the cursor, the planner classifies the cursor's position relative to the previous segment's heading via the interior angle at the waypoint vertex:
+- 135°–180° (cursor is roughly forward of the heading): extend straight in the same axis first, then turn perpendicular toward the cursor;
+- 0°–135° (cursor is to the side or behind): turn perpendicular first, then align;
+- exactly 0° (cursor sits directly on the previous segment's reverse axis = would U-turn back along the path): ghost goes red, no waypoint can be placed.
+
+For the very first segment (no previous heading) the planner falls back to plain Manhattan order (horizontal first).
+
+**Port-direction enforcement (P4 v5):** when a belt/pipe leaves a device through a declared output port, the first cell of the path after the device must lie in the direction the port faces. A belt leaving an east-facing output port and immediately trying to go north fails ghost validation (red, can't place).
+
+**Belt/pipe rendering:** committed links are drawn per-cell with rounded corner caps (visualization style mirrors `enkad.enka.network`): each cell shows a solid filled segment matching the local in/out direction, periodic V-shaped flow arrows, and a small badge at the cell where an auto-bridge was inserted. Solid uses amber; fluid uses teal.
+
+**Port visualization (P4 v5):** placed devices render small inward-pointing triangles on input port faces and outward-pointing triangles on output port faces, color-coded by `kind` (amber = solid, teal = fluid, yellow = power). The triangles sit just inside the device border on the relevant face, half a cell long.
+
+**Power-coverage visualization:** any `requires_power=true` device that isn't covered by some 供电桩 AoE (no footprint cell inside any AoE — see §4.6) displays a small red "unplugged" badge in its top-right corner. While ghosting a power pole, the candidate AoE square is shown as a dashed outline and any existing devices that would fall inside are highlighted with a white shadow. The "power" view mode dims devices+links and overlays every placed pole's AoE (供电桩 = solid amber, 中继器 = dashed teal).
 
 Visuals: top-down orthographic, same grid resolution as the game. Distinct visual treatment for solid vs fluid links (color + style). Device sprites can be simple colored rectangles with icons in v1.
 
@@ -305,6 +329,8 @@ Runs continuously in the background; results shown as a lint panel with clickabl
 
 **Storage**
 - `STORAGE_001` (info): sink storage full — no drain configured.
+- `STORAGE_PORT_001` (error, **new in P4 — registered as data-gated dormant**): a storage I/O port (仓库存货 / 取货口) does not have at least one footprint cell adjacent to a storage-line segment or pole (`storage-line-base` / `storage-line-source-pole`). The storage port can't transfer items into the line network and effectively does nothing. Skipped until owner declares the storage-line / storage-port device ids in the bundle.
+- `STORAGE_LINE_001` (error, **new in P4 — registered as data-gated dormant**): a storage-line base segment is not directly or transitively connected (via adjacency) to any storage-line source pole. An orphaned base segment carries nothing. Computed as connected-component analysis over storage-line cells with poles as roots; segments outside any pole's component flag. Skipped until owner declares the storage-line device ids.
 
 Each rule has a severity (`error` | `warning` | `info`), a stable id, and a human-readable message via the i18n layer.
 
@@ -730,6 +756,22 @@ Items the coder agent should **implement TODO hooks for, but not block on**. Eac
 
 **Default:** ship the belt versions in P3-B13 first; promote to layer-parameterized rules in a follow-up if pipe-side false negatives become noticeable in practice.
 
+### 10.12 Storage system device ids (P4)
+
+**Status:** STORAGE_PORT_001 / STORAGE_LINE_001 (§5.5) need to know which device ids represent storage I/O ports vs. storage-line base segments vs. storage-line source poles. The end.wiki scrape doesn't tag them as a coherent family, and the owner hasn't enumerated the relevant ids yet (likely 仓库, 储仓 family + 仓库存取线基段 + 仓库存取线源桩).
+
+**Default:** the two rules ship as data-gated dormants. Their `requires_data` declares missing `storage_line_devices` and `storage_port_devices` prereqs and the lint panel surfaces them as skipped. Once owner adds a `storage_line_role` field to relevant devices in `data/versions/<v>/devices.json` (one of `'port' | 'base' | 'pole'`), the rules light up.
+
+**Resolution path:** owner enumerates the relevant device ids via the device editor (§5.4) and tags each device's `storage_line_role`. A new schema property is added in the same commit that flips the rules from dormant to live.
+
+### 10.13 Auto-bridge insertion rollback semantics (P4)
+
+**Status:** When the belt drafter commits a path that crosses an existing same-layer link perpendicular without a cross-bridge there, the commit transaction inserts the missing cross-bridge device + the link. If the user undoes the commit, both should disappear in one Ctrl+Z.
+
+**Default:** uses `ProjectStore.applyMany` so the bridge + link land as one history snapshot. Undo wipes both. If a future feature lets owners manually pre-place a bridge that the drafter then "uses", undo of the link should NOT remove the manually-placed bridge — the drafter's commit logic must distinguish "we inserted this bridge ourselves" from "we found it pre-placed".
+
+**Resolution path:** track the inserted bridge instance ids inside the same `applyMany` transaction; record nothing if a pre-existing bridge was reused.
+
 ---
 
 ## 11. Blueprint code interop — permanently deferred
@@ -786,7 +828,19 @@ A feature is "done" when:
 
 ## Changelog
 
-### v4 (this document)
+### v5 (this document)
+
+Phase 4 belt-routing + selection rewrite, driven by owner P3 testing feedback:
+
+- **§4.1 Port model:** clarified that ports belong to *faces*, not whole cells. The same cell can host up to two ports if it sits at a corner (one per exposed face). Belts must enter/exit a device through a port AND travel in the direction the port faces — leaving an east-facing output port immediately northward is illegal.
+- **§4.6 Power AoE:** coverage relaxed from "every footprint cell inside the AoE" to "any footprint cell inside the AoE". Devices straddling an AoE edge now count as powered.
+- **§5.1 F3 editor — belt routing rewrite:** the ghost no longer detours around existing belts. Perpendicular crossings auto-place a `belt-cross-bridge` (or `pipe-cross-bridge`) on commit; parallel/corner overlap or a non-bridge device in the path goes red and rejects the next click. The live segment uses an interior-angle classification (forward / perpendicular / reverse) at the last waypoint to decide whether to continue along the heading or turn first. Clicking the same cell twice now force-commits the path. Port-direction is enforced during ghost validation.
+- **§5.1 F3 editor — right-mouse-button selection:** right-click = single-select device or belt; right-mouse drag = box-select rectangle. The legacy X tool is removed. Belts and pipes are selectable as a unit (single-click selects the whole link) and deletable with Delete/F.
+- **§5.1 F3 editor — belt rendering:** moves to per-cell rounded-corner segments + flow chevrons + auto-bridge badges, mirroring the visualization style of `enkad.enka.network`.
+- **§5.1 F5 DRC:** added STORAGE_PORT_001 and STORAGE_LINE_001 as data-gated dormants (require owner-tagged storage device ids).
+- **§10.12 / §10.13 Unresolved:** documented storage device-id enumeration gap and auto-bridge insertion rollback semantics.
+
+### v4
 
 Phase 3 polish round, driven by owner testing feedback on the P2 editor MVP:
 

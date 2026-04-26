@@ -20,6 +20,8 @@ import { power001 } from './rules/power-aoe.ts';
 import { power002 } from './rules/power-balance.ts';
 import { region001 } from './rules/region.ts';
 import { storage001 } from './rules/storage.ts';
+import { storageLine001 } from './rules/storage-line.ts';
+import { storagePort001 } from './rules/storage-port.ts';
 import { tech001 } from './rules/tech.ts';
 
 export const ALL_RULES: readonly Rule[] = [
@@ -43,4 +45,6 @@ export const ALL_RULES: readonly Rule[] = [
   layerCross003,
   tech001,
   storage001,
+  storagePort001,
+  storageLine001,
 ];

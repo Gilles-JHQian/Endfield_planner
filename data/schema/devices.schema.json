@@ -63,7 +63,11 @@
           "type": "array",
           "items": { "type": "string" }
         },
-        "power_aoe": { "$ref": "#/$defs/PowerAoe" }
+        "power_aoe": { "$ref": "#/$defs/PowerAoe" },
+        "storage_line_role": {
+          "type": "string",
+          "enum": ["port", "base", "pole"]
+        }
       }
     },
     "PowerAoe": {
