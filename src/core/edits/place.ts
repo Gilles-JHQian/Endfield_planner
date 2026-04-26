@@ -141,19 +141,14 @@ export function deleteDevice(project: Project, instance_id: string): Result<Proj
   const exists = project.devices.some((d) => d.instance_id === instance_id);
   if (!exists) return err('not_found', `No placed device with instance_id=${instance_id}.`);
 
-  // Also drop any link whose endpoint references this device — a dangling
-  // PortRef would crash DRC and the renderer.
+  // P4 v7: do NOT cascade-delete attached links. The owner often replaces a
+  // device with a different one and wants the surrounding belts to stay in
+  // place; PORT DRC rules surface the now-dangling refs as warnings until
+  // re-attached. (Cascading also caused mixed F-delete batches to roll back
+  // because delete_link on already-removed links errored as not_found.)
   return ok(
     bumpUpdatedAt(project, {
       devices: project.devices.filter((d) => d.instance_id !== instance_id),
-      solid_links: project.solid_links.filter(
-        (l) =>
-          l.src?.device_instance_id !== instance_id && l.dst?.device_instance_id !== instance_id,
-      ),
-      fluid_links: project.fluid_links.filter(
-        (l) =>
-          l.src?.device_instance_id !== instance_id && l.dst?.device_instance_id !== instance_id,
-      ),
     }),
   );
 }

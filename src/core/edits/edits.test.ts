@@ -166,7 +166,10 @@ describe('deleteDevice', () => {
     expect(after.devices).toHaveLength(0);
   });
 
-  it('also drops links anchored to the deleted device', () => {
+  it('leaves links anchored to the deleted device dangling (P4 v7)', () => {
+    // v6 cascade-deleted these links, which made mixed F-delete batches roll
+    // back. v7 leaves them in place with their (now stale) PortRefs; DRC's
+    // PORT validators surface the dangling reference instead.
     let project = unwrap(
       placeDevice({
         project: freshProject(),
@@ -187,7 +190,9 @@ describe('deleteDevice', () => {
     project = unwrap(linkR).project;
     expect(project.solid_links).toHaveLength(1);
     const after = unwrap(deleteDevice(project, 'a'));
-    expect(after.solid_links).toHaveLength(0);
+    expect(after.solid_links).toHaveLength(1);
+    expect(after.solid_links[0]!.src?.device_instance_id).toBe('a');
+    expect(after.devices).toHaveLength(0);
   });
 });
 
