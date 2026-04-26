@@ -18,7 +18,7 @@ import { Rail } from './Rail.tsx';
 import { Library } from './Library.tsx';
 import { Toolbar } from './Toolbar.tsx';
 import { DeviceLayer, findDeviceAtCell } from './DeviceLayer.tsx';
-import { DraftPath } from './DraftPath.tsx';
+import { BeltCursor, DraftPath } from './DraftPath.tsx';
 import { DrcPanel } from './DrcPanel.tsx';
 import { GhostPreview } from './GhostPreview.tsx';
 import { HistoryControls } from './HistoryControls.tsx';
@@ -367,12 +367,36 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // The React 19 compiler memoizes Konva re-renders to the overlay layer.
   const ghost = computeGhost(toolApi.tool, cursor, store.project, lookup);
   const draftPath = computeDraftPath(linkDraft, cursor, store.project, lookup);
+  // P4 v6 READY-state cursor preview: belt/pipe tool active, no draft yet,
+  // cursor in plot. Enlarges and tints if the cursor sits on an output port.
+  const beltCursorState =
+    (toolApi.tool.kind === 'belt' || toolApi.tool.kind === 'pipe') && !linkDraft && cursor
+      ? {
+          cell: cursor,
+          layer: (toolApi.tool.kind === 'belt' ? 'solid' : 'fluid') as Layer,
+          onPort:
+            findOutputPortAtCell(
+              cursor,
+              toolApi.tool.kind === 'belt' ? 'solid' : 'fluid',
+              store.project,
+              lookup,
+            ) !== null,
+        }
+      : null;
 
   /** P4 v6 right-click: device or belt under cell goes into the highlight set
    *  (`boxSelected` for devices, `selectedLinkIds` for belts). Does NOT touch
    *  `selectedInstanceId` — the Inspector pin only changes via left-click in
-   *  the select tool. Empty cell clears the highlight only. */
+   *  the select tool. Empty cell clears the highlight only.
+   *
+   *  In PLACING state (linkDraft active), right-click cancels the draft
+   *  back to READY instead — owners can abort a mis-started path without
+   *  reaching for Esc. */
   function handleCellRightClick(cell: Cell): void {
+    if (linkDraft) {
+      setLinkDraft(null);
+      return;
+    }
     const hitDevice = findDeviceAtCell(store.project.devices, lookup, cell);
     if (hitDevice) {
       setBoxSelected(new Set([hitDevice.instance_id]));
@@ -391,8 +415,16 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   }
 
   /** P4 v6 right-mouse drag: highlight every device AND link fully inside
-   *  the rectangle. Same "every cell inside" predicate for both. */
+   *  the rectangle. Same "every cell inside" predicate for both.
+   *
+   *  In PLACING state, treat any right-mouse release (drag or click) as a
+   *  draft cancel — same as handleCellRightClick. Avoids accidentally
+   *  starting a box-select while the user is trying to abort. */
   function handleBoxSelect(rect: { from: Cell; to: Cell }): void {
+    if (linkDraft) {
+      setLinkDraft(null);
+      return;
+    }
     const inside = (c: Cell): boolean =>
       c.x >= rect.from.x && c.x <= rect.to.x && c.y >= rect.from.y && c.y <= rect.to.y;
     const ids = new Set<string>();
@@ -618,6 +650,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                   status={draftPath.status}
                   autoBridges={draftPath.autoBridges}
                   {...(linkDraft ? { waypoints: linkDraft.waypoints } : {})}
+                />
+              )}
+              {beltCursorState && (
+                <BeltCursor
+                  cell={beltCursorState.cell}
+                  layer={beltCursorState.layer}
+                  onPort={beltCursorState.onPort}
                 />
               )}
               {highlight && (

@@ -98,6 +98,51 @@ export function DraftPath({ path, waypoints, status, autoBridges }: Props) {
   );
 }
 
+/** READY-state cursor preview for the belt/pipe tool (P4 v6). When the tool
+ *  is active but no draft is in progress, a small dot follows the cursor;
+ *  hovering an output port enlarges and tints it (amber for solid, teal for
+ *  fluid) so owners can see they're aimed at a valid start. */
+export function BeltCursor({
+  cell,
+  layer,
+  onPort,
+}: {
+  cell: Cell;
+  layer: 'solid' | 'fluid';
+  /** True when `cell` sits on an output port matching `layer`. */
+  onPort: boolean;
+}) {
+  const cx = (cell.x + 0.5) * CELL_PX;
+  const cy = (cell.y + 0.5) * CELL_PX;
+  const color = layer === 'solid' ? '#ff9a3d' : '#4ec9d3';
+  const radius = onPort ? CELL_PX * 0.32 : CELL_PX * 0.14;
+  return (
+    <Group listening={false}>
+      <Rect
+        x={cx - radius}
+        y={cy - radius}
+        width={radius * 2}
+        height={radius * 2}
+        cornerRadius={radius}
+        fill={color}
+        opacity={onPort ? 0.85 : 0.6}
+      />
+      {onPort && (
+        <Rect
+          x={cx - radius - 2}
+          y={cy - radius - 2}
+          width={radius * 2 + 4}
+          height={radius * 2 + 4}
+          cornerRadius={radius + 2}
+          stroke={color}
+          strokeWidth={1.2}
+          opacity={0.5}
+        />
+      )}
+    </Group>
+  );
+}
+
 /** Visual hint at a cell where commit will auto-place a cross-bridge:
  *  a small dashed amber square + ⊕ glyph. */
 function BridgeBadge({ cell }: { cell: Cell }) {
