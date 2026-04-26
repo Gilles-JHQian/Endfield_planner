@@ -1,21 +1,43 @@
-/** BELT_CROSS_001 — two solid belts share a cell without a bridge device.
+/** BELT_CROSS_001 — two solid belts share a cell with **perpendicular**
+ *  directions but no cross-bridge is placed at that cell.
  *  PIPE_CROSS_001 — same for fluid pipes.
  *
- *  Same-layer crossing requires a bridge device at the crossing cell. The
- *  bridge id comes from crossing_rules.same_layer_crossing.{solid|fluid}
+ *  Scope narrowed in P3: parallel-direction overlap is BELT_PARALLEL_001's
+ *  job, corner cells are BELT_CORNER_001's. This rule only flags the
+ *  perpendicular case (the only one a cross-bridge can resolve).
+ *
+ *  The bridge id comes from crossing_rules.same_layer_crossing.{solid|fluid}
  *  .crossing_component_id; the rule is gated until that id maps to an actual
  *  device in bundle.devices.
- *
- *  Note: addLink already rejects same-layer same-cell collisions during the
- *  edit, so this rule mostly catches imported / legacy projects where the
- *  occupancy invariants weren't enforced.
  */
 import { footprintCells } from '@core/domain/geometry.ts';
-import type { Cell, Layer, Project } from '@core/domain/types.ts';
+import type { Cell, Layer, Link, Project } from '@core/domain/types.ts';
 import type { DataBundle } from '@core/data-loader/types.ts';
 import type { DataPrereq, Issue, Rule, RuleContext, RuleId } from '../types.ts';
 
 const cellKey = (c: Cell): string => `${c.x.toString()},${c.y.toString()}`;
+
+type Orient = 'h' | 'v';
+
+/** All orientations a link runs through cell c — empty if c not on path,
+ *  one element for straight cells, ['h','v'] for corner cells. */
+function orientationsAtCell(link: Link, cell: Cell): Orient[] {
+  const path = link.path;
+  const orients = new Set<Orient>();
+  for (let i = 0; i < path.length; i++) {
+    const p = path[i]!;
+    if (p.x !== cell.x || p.y !== cell.y) continue;
+    if (i > 0) {
+      const prev = path[i - 1]!;
+      orients.add(prev.x === p.x ? 'v' : 'h');
+    }
+    if (i < path.length - 1) {
+      const next = path[i + 1]!;
+      orients.add(next.x === p.x ? 'v' : 'h');
+    }
+  }
+  return Array.from(orients);
+}
 
 function makeRule(opts: {
   id: RuleId;
@@ -52,24 +74,42 @@ function findCrossingIssues(args: {
   // Compute the set of cells covered by a bridge device of the right id.
   const bridgeCells = bridgeFootprintCells(ctx.project, ctx.lookup, bridgeId);
 
-  // Tally which cells are covered by 2+ links of this layer.
-  const counts = new Map<string, number>();
+  // Index cells → list of {link, its orientations at that cell}.
+  const byCell = new Map<string, { link: Link; orients: Orient[] }[]>();
   for (const link of links) {
+    const seen = new Set<string>();
     for (const c of link.path) {
       const k = cellKey(c);
-      counts.set(k, (counts.get(k) ?? 0) + 1);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      const orients = orientationsAtCell(link, c);
+      if (orients.length === 0) continue;
+      const arr = byCell.get(k) ?? [];
+      arr.push({ link, orients });
+      byCell.set(k, arr);
     }
   }
+
   const issues: Issue[] = [];
-  for (const [k, n] of counts) {
-    if (n < 2) continue;
+  for (const [k, occupants] of byCell) {
+    if (occupants.length < 2) continue;
     if (bridgeCells.has(k)) continue;
+    // Skip parallel/corner cases (handled by BELT_PARALLEL_001 / BELT_CORNER_001).
+    const anyCorner = occupants.some((o) => o.orients.length >= 2);
+    if (anyCorner) continue;
+    let hasH = false;
+    let hasV = false;
+    for (const o of occupants) {
+      if (o.orients[0] === 'h') hasH = true;
+      else hasV = true;
+    }
+    if (!(hasH && hasV)) continue; // pure parallel — let BELT_PARALLEL handle it
     const [x, y] = k.split(',').map((p) => Number.parseInt(p, 10));
     issues.push({
       rule_id: ruleId,
       severity: 'error',
-      message_zh_hans: `${layer === 'solid' ? '物流带' : '流体管'} 在 (${(x ?? 0).toString()},${(y ?? 0).toString()}) 同层交叉但未放置桥接`,
-      message_en: `Same-layer ${layer} crossing at (${(x ?? 0).toString()},${(y ?? 0).toString()}) without a bridge device`,
+      message_zh_hans: `${layer === 'solid' ? '物流带' : '流体管'} 在 (${(x ?? 0).toString()},${(y ?? 0).toString()}) 垂直交叉但未放置交叉桥`,
+      message_en: `Perpendicular ${layer} crossing at (${(x ?? 0).toString()},${(y ?? 0).toString()}) without a cross-bridge device`,
       cells: [{ x: x ?? 0, y: y ?? 0 }],
     });
   }
