@@ -223,6 +223,12 @@ async function main(): Promise<void> {
   finalDevices.sort((a, b) => a.id.localeCompare(b.id));
   recipesForOutput.sort((a, b) => a.id.localeCompare(b.id));
 
+  // Pre-merge scraped baseline. Captures only what the wiki produces — no
+  // owner-curated io_ports / power_aoe / hand-authored bridges. Stored
+  // alongside devices.json so the device editor can offer per-device
+  // "restore to scraped" with a field-level diff (P3-B16).
+  const scrapedBaseline = [...xref.devices].sort((a, b) => a.id.localeCompare(b.id));
+
   const meta = {
     version,
     generated_at: new Date().toISOString(),
@@ -238,6 +244,10 @@ async function main(): Promise<void> {
   await writeAtomic(
     resolve(versionDir, 'devices.json'),
     JSON.stringify(finalDevices, null, 2) + '\n',
+  );
+  await writeAtomic(
+    resolve(versionDir, 'devices.scraped.json'),
+    JSON.stringify(scrapedBaseline, null, 2) + '\n',
   );
   await writeAtomic(
     resolve(versionDir, 'recipes.json'),

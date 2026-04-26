@@ -12,6 +12,7 @@ export const versionsDir = resolve(repoRoot, 'data', 'versions');
 // Maps each data file basename to its schema file basename.
 export const FILE_TO_SCHEMA: Readonly<Record<string, string>> = {
   'devices.json': 'devices.schema.json',
+  'devices.scraped.json': 'devices.schema.json',
   'recipes.json': 'recipes.schema.json',
   'items.json': 'items.schema.json',
   'regions.json': 'regions.schema.json',
@@ -37,7 +38,10 @@ async function readJson<T = unknown>(file: string): Promise<T> {
 async function buildAjv(): Promise<Ajv2020> {
   const ajv = new Ajv2020({ allErrors: true, strict: true });
   addFormats(ajv);
-  for (const schemaFile of Object.values(FILE_TO_SCHEMA)) {
+  // Dedupe schema names — multiple data files can share one schema (e.g.
+  // devices.json + devices.scraped.json both validate against devices.schema.json).
+  const uniqueSchemas = new Set(Object.values(FILE_TO_SCHEMA));
+  for (const schemaFile of uniqueSchemas) {
     const schema = await readJson<AnySchema>(resolve(schemaDir, schemaFile));
     ajv.addSchema(schema, schemaFile);
   }

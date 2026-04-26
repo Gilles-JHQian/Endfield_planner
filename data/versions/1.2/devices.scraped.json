@@ -1,0 +1,1237 @@
+[
+  {
+    "id": "battle-cannon-1",
+    "display_name_zh_hans": "榴弹塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 10,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-cannon-2",
+    "display_name_zh_hans": "高爆榴弹塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-debuff-1",
+    "display_name_zh_hans": "“酸洗”MK-Ⅰ",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-fog-1",
+    "display_name_zh_hans": "“毒沼”MK-Ⅰ",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-frost-1",
+    "display_name_zh_hans": "液氮塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 10,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-jet-1",
+    "display_name_zh_hans": "激流塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-laser-1",
+    "display_name_zh_hans": "射线塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 10,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-laser-2",
+    "display_name_zh_hans": "高能射线塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-lightning-1",
+    "display_name_zh_hans": "电涌塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-medic-1",
+    "display_name_zh_hans": "医疗塔",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 5,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-rocket-1",
+    "display_name_zh_hans": "重锤迫击炮",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-shockwave-1",
+    "display_name_zh_hans": "全向声波塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-sniper-1",
+    "display_name_zh_hans": "哨戒塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-trap-1",
+    "display_name_zh_hans": "AF1“熔甲者”",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-turret-1",
+    "display_name_zh_hans": "铳械塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 5,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "battle-turret-2",
+    "display_name_zh_hans": "扩装铳械塔",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "combat",
+    "recipes": []
+  },
+  {
+    "id": "carrier-1",
+    "display_name_zh_hans": "便捷存取站",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 5,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "utility",
+    "recipes": []
+  },
+  {
+    "id": "component-mc-1",
+    "display_name_zh_hans": "配件机",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "basic_production",
+    "recipes": [
+      "recipe-activity-xiranite-cmpt",
+      "recipe-activity-xiranite-enr-cmpt",
+      "recipe-copper-cmpt",
+      "recipe-copper-enr-cmpt",
+      "recipe-glass-cmpt",
+      "recipe-glass-enr-cmpt",
+      "recipe-iron-cmpt",
+      "recipe-iron-enr-cmpt"
+    ]
+  },
+  {
+    "id": "dismantler-1",
+    "display_name_zh_hans": "拆解机",
+    "footprint": {
+      "width": 6,
+      "height": 4
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "synthesis",
+    "recipes": [
+      "recipe-glass-bottle",
+      "recipe-glass-bottle-10",
+      "recipe-glass-bottle-2",
+      "recipe-glass-bottle-3",
+      "recipe-glass-bottle-4",
+      "recipe-glass-bottle-5",
+      "recipe-glass-bottle-6",
+      "recipe-glass-bottle-7",
+      "recipe-glass-bottle-8",
+      "recipe-glass-bottle-9"
+    ]
+  },
+  {
+    "id": "dumper-1",
+    "display_name_zh_hans": "给水器",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 10,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "utility",
+    "recipes": []
+  },
+  {
+    "id": "filling-powder-mc-1",
+    "display_name_zh_hans": "灌装机",
+    "footprint": {
+      "width": 6,
+      "height": 4
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "synthesis",
+    "recipes": [
+      "recipe-fbottle-glass-acid",
+      "recipe-fbottle-glass-copper",
+      "recipe-fbottle-glass-grass-1",
+      "recipe-fbottle-glass-grass-2",
+      "recipe-fbottle-glass-sewage",
+      "recipe-fbottle-glass-water",
+      "recipe-fbottle-glass-xiranite",
+      "recipe-fbottle-glass-xiranite-enr",
+      "recipe-fbottle-glass-xiranite-lowpoly",
+      "recipe-fbottle-glass-xiranite-poly"
+    ]
+  },
+  {
+    "id": "furnance-1",
+    "display_name_zh_hans": "精炼炉",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 5,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "basic_production",
+    "recipes": [
+      "recipe-copper-nugget",
+      "recipe-crystal-enr",
+      "recipe-crystal-shell",
+      "recipe-crystal-shell-2",
+      "recipe-iron-enr",
+      "recipe-iron-nugget",
+      "recipe-iron-nugget-2",
+      "recipe-quartz-enr",
+      "recipe-quartz-glass",
+      "recipe-quartz-glass-2"
+    ]
+  },
+  {
+    "id": "grinder-1",
+    "display_name_zh_hans": "粉碎机",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 5,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "basic_production",
+    "recipes": [
+      "recipe-carbon-powder-6",
+      "recipe-copper-powder",
+      "recipe-crystal-powder-2",
+      "recipe-iron-powder",
+      "recipe-originium-powder",
+      "recipe-plant-bbflower-powder-1",
+      "recipe-plant-moss-powder-1",
+      "recipe-plant-moss-powder-2",
+      "recipe-plant-moss-powder-3",
+      "recipe-quartz-powder"
+    ]
+  },
+  {
+    "id": "liquid-cleaner-1",
+    "display_name_zh_hans": "废水处理机",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 50,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "basic_production",
+    "recipes": []
+  },
+  {
+    "id": "liquid-purifier-1",
+    "display_name_zh_hans": "提纯机",
+    "footprint": {
+      "width": 5,
+      "height": 5
+    },
+    "bandwidth": 2,
+    "power_draw": 50,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "synthesis",
+    "recipes": [
+      "recipe-liquid-copper-enr",
+      "recipe-liquid-xiranite-poly-2"
+    ]
+  },
+  {
+    "id": "liquid-storager-1",
+    "display_name_zh_hans": "储液罐",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "storage",
+    "recipes": []
+  },
+  {
+    "id": "loader-1",
+    "display_name_zh_hans": "仓库存货口",
+    "footprint": {
+      "width": 3,
+      "height": 1
+    },
+    "bandwidth": 1,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "storage",
+    "recipes": []
+  },
+  {
+    "id": "log-hongs-bus",
+    "display_name_zh_hans": "仓库存取线基段",
+    "footprint": {
+      "width": 4,
+      "height": 8
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "storage",
+    "recipes": []
+  },
+  {
+    "id": "log-hongs-bus-source",
+    "display_name_zh_hans": "仓库存取线源桩",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "storage",
+    "recipes": []
+  },
+  {
+    "id": "marker-1",
+    "display_name_zh_hans": "留言信标",
+    "footprint": {
+      "width": 1,
+      "height": 1
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "utility",
+    "recipes": []
+  },
+  {
+    "id": "miner-1",
+    "display_name_zh_hans": "便携源石矿机",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "miner",
+    "recipes": []
+  },
+  {
+    "id": "miner-2",
+    "display_name_zh_hans": "电驱矿机",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 5,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "miner",
+    "recipes": []
+  },
+  {
+    "id": "miner-3",
+    "display_name_zh_hans": "二型电驱矿机",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 10,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "miner",
+    "recipes": []
+  },
+  {
+    "id": "miner-4",
+    "display_name_zh_hans": "水驱矿机",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "miner",
+    "recipes": []
+  },
+  {
+    "id": "mix-pool-1",
+    "display_name_zh_hans": "反应池",
+    "footprint": {
+      "width": 5,
+      "height": 5
+    },
+    "bandwidth": 2,
+    "power_draw": 50,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "synthesis",
+    "recipes": [
+      "recipe-copper-enr",
+      "recipe-liquid-copper",
+      "recipe-liquid-plant-grass-1",
+      "recipe-liquid-plant-grass-2",
+      "recipe-liquid-xiranite",
+      "recipe-liquid-xiranite-enr",
+      "recipe-liquid-xiranite-poly",
+      "recipe-xiranite-poly"
+    ]
+  },
+  {
+    "id": "mix-pool-2",
+    "display_name_zh_hans": "扩容反应池",
+    "footprint": {
+      "width": 6,
+      "height": 5
+    },
+    "bandwidth": 2,
+    "power_draw": 100,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "synthesis",
+    "recipes": [
+      "recipe-copper-enr",
+      "recipe-liquid-copper",
+      "recipe-liquid-plant-grass-1",
+      "recipe-liquid-plant-grass-2",
+      "recipe-liquid-xiranite",
+      "recipe-liquid-xiranite-enr",
+      "recipe-liquid-xiranite-poly",
+      "recipe-xiranite-poly"
+    ]
+  },
+  {
+    "id": "planter-1",
+    "display_name_zh_hans": "种植机",
+    "footprint": {
+      "width": 5,
+      "height": 5
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "basic_production",
+    "recipes": [
+      "recipe-plant-bbflower-1",
+      "recipe-plant-grass-1",
+      "recipe-plant-grass-2",
+      "recipe-plant-moss-1",
+      "recipe-plant-moss-2",
+      "recipe-plant-moss-3"
+    ]
+  },
+  {
+    "id": "power-diffuser-1",
+    "display_name_zh_hans": "供电桩",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 1,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "power",
+    "recipes": []
+  },
+  {
+    "id": "power-diffuser-2",
+    "display_name_zh_hans": "息壤供电桩",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 1,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "power",
+    "recipes": []
+  },
+  {
+    "id": "power-pole-2",
+    "display_name_zh_hans": "中继器",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 1,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "power",
+    "recipes": []
+  },
+  {
+    "id": "power-pole-3",
+    "display_name_zh_hans": "息壤中继器",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 1,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "power",
+    "recipes": []
+  },
+  {
+    "id": "power-station-1",
+    "display_name_zh_hans": "热能池",
+    "footprint": {
+      "width": 2,
+      "height": 2
+    },
+    "bandwidth": 2,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "power",
+    "recipes": []
+  },
+  {
+    "id": "pump-1",
+    "display_name_zh_hans": "水泵",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 10,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "miner",
+    "recipes": []
+  },
+  {
+    "id": "pump-2",
+    "display_name_zh_hans": "二型耐酸水泵",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "miner",
+    "recipes": []
+  },
+  {
+    "id": "seedcollector-1",
+    "display_name_zh_hans": "采种机",
+    "footprint": {
+      "width": 5,
+      "height": 5
+    },
+    "bandwidth": 2,
+    "power_draw": 10,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "basic_production",
+    "recipes": [
+      "recipe-plant-bbflower-seed-1",
+      "recipe-plant-grass-seed-1",
+      "recipe-plant-grass-seed-2",
+      "recipe-plant-moss-seed-1",
+      "recipe-plant-moss-seed-2",
+      "recipe-plant-moss-seed-3",
+      "recipe-plant-sp-seed-1",
+      "recipe-plant-sp-seed-2",
+      "recipe-plant-sp-seed-3",
+      "recipe-plant-sp-seed-4"
+    ]
+  },
+  {
+    "id": "shaper-1",
+    "display_name_zh_hans": "塑形机",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 10,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "basic_production",
+    "recipes": [
+      "recipe-activity-xiranite-bottle",
+      "recipe-activity-xiranite-enr-bottle-2",
+      "recipe-copper-bottle-12",
+      "recipe-copper-enr-bottle-12",
+      "recipe-glass-bottle-12",
+      "recipe-glass-enr-bottle-12",
+      "recipe-iron-bottle-12",
+      "recipe-iron-enr-bottle-12"
+    ]
+  },
+  {
+    "id": "soil-bbflower-1",
+    "display_name_zh_hans": "酮化灌木田块",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "planting",
+    "recipes": []
+  },
+  {
+    "id": "soil-grass-1",
+    "display_name_zh_hans": "锦草田块",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "planting",
+    "recipes": []
+  },
+  {
+    "id": "soil-grass-2",
+    "display_name_zh_hans": "芽针田块",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "planting",
+    "recipes": []
+  },
+  {
+    "id": "soil-moss-1",
+    "display_name_zh_hans": "荞花田块",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "planting",
+    "recipes": []
+  },
+  {
+    "id": "soil-moss-2",
+    "display_name_zh_hans": "柑实田块",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "planting",
+    "recipes": []
+  },
+  {
+    "id": "soil-moss-3",
+    "display_name_zh_hans": "砂叶田块",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "planting",
+    "recipes": []
+  },
+  {
+    "id": "soil-sp-1",
+    "display_name_zh_hans": "灰芦麦田块",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "planting",
+    "recipes": []
+  },
+  {
+    "id": "soil-sp-2",
+    "display_name_zh_hans": "苦叶椒田块",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "planting",
+    "recipes": []
+  },
+  {
+    "id": "soil-sp-3",
+    "display_name_zh_hans": "琼叶参田块",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "planting",
+    "recipes": []
+  },
+  {
+    "id": "soil-sp-4",
+    "display_name_zh_hans": "金石稻田块",
+    "footprint": {
+      "width": 4,
+      "height": 4
+    },
+    "bandwidth": 0,
+    "power_draw": 0,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "planting",
+    "recipes": []
+  },
+  {
+    "id": "squirter-1",
+    "display_name_zh_hans": "洒水机",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 10,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "utility",
+    "recipes": []
+  },
+  {
+    "id": "storager-1",
+    "display_name_zh_hans": "协议储存箱",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 2,
+    "power_draw": 5,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "storage",
+    "recipes": []
+  },
+  {
+    "id": "thickener-1",
+    "display_name_zh_hans": "研磨机",
+    "footprint": {
+      "width": 6,
+      "height": 4
+    },
+    "bandwidth": 2,
+    "power_draw": 50,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "synthesis",
+    "recipes": [
+      "recipe-carbon-enr-powder-3",
+      "recipe-crystal-enr-powder-2",
+      "recipe-iron-enr-powder",
+      "recipe-originium-enr-powder",
+      "recipe-plant-moss-enr-powder-1",
+      "recipe-plant-moss-enr-powder-2",
+      "recipe-quartz-enr-powder"
+    ]
+  },
+  {
+    "id": "tools-assebling-mc-1",
+    "display_name_zh_hans": "封装机",
+    "footprint": {
+      "width": 6,
+      "height": 4
+    },
+    "bandwidth": 2,
+    "power_draw": 20,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "synthesis",
+    "recipes": [
+      "recipe-bottled-food-4",
+      "recipe-bottled-food-5",
+      "recipe-bottled-rec-hp-4",
+      "recipe-bottled-rec-hp-5",
+      "recipe-proc-battery-1",
+      "recipe-proc-battery-2",
+      "recipe-proc-battery-3",
+      "recipe-proc-battery-4",
+      "recipe-proc-battery-5",
+      "recipe-proc-bomb-1"
+    ]
+  },
+  {
+    "id": "travel-pole-1",
+    "display_name_zh_hans": "滑索架",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 3,
+    "power_draw": 5,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "utility",
+    "recipes": []
+  },
+  {
+    "id": "travel-pole-2",
+    "display_name_zh_hans": "长距滑索架",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 3,
+    "power_draw": 5,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "utility",
+    "recipes": []
+  },
+  {
+    "id": "udpipe-loader-1",
+    "display_name_zh_hans": "暗管入口",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 1,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "storage",
+    "recipes": []
+  },
+  {
+    "id": "udpipe-loader-2",
+    "display_name_zh_hans": "多口暗管入口",
+    "footprint": {
+      "width": 3,
+      "height": 5
+    },
+    "bandwidth": 1,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "storage",
+    "recipes": []
+  },
+  {
+    "id": "udpipe-unloader-1",
+    "display_name_zh_hans": "暗管出口",
+    "footprint": {
+      "width": 3,
+      "height": 3
+    },
+    "bandwidth": 1,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "storage",
+    "recipes": []
+  },
+  {
+    "id": "udpipe-unloader-2",
+    "display_name_zh_hans": "多口暗管出口",
+    "footprint": {
+      "width": 3,
+      "height": 5
+    },
+    "bandwidth": 1,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "storage",
+    "recipes": []
+  },
+  {
+    "id": "unloader-1",
+    "display_name_zh_hans": "仓库取货口",
+    "footprint": {
+      "width": 3,
+      "height": 1
+    },
+    "bandwidth": 1,
+    "power_draw": 0,
+    "requires_power": false,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "storage",
+    "recipes": []
+  },
+  {
+    "id": "winder-1",
+    "display_name_zh_hans": "装备原件机",
+    "footprint": {
+      "width": 6,
+      "height": 4
+    },
+    "bandwidth": 2,
+    "power_draw": 10,
+    "requires_power": true,
+    "has_fluid_interface": false,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "synthesis",
+    "recipes": [
+      "recipe-equip-script-1",
+      "recipe-equip-script-2",
+      "recipe-equip-script-3",
+      "recipe-equip-script-4",
+      "recipe-equip-script-4-1",
+      "recipe-equip-script-4-2"
+    ]
+  },
+  {
+    "id": "xiranite-oven-1",
+    "display_name_zh_hans": "天有洪炉",
+    "footprint": {
+      "width": 5,
+      "height": 5
+    },
+    "bandwidth": 2,
+    "power_draw": 50,
+    "requires_power": true,
+    "has_fluid_interface": true,
+    "io_ports": [],
+    "tech_prereq": [],
+    "category": "synthesis",
+    "recipes": [
+      "recipe-muck-xiranite-1",
+      "recipe-xiranite-enr-powder",
+      "recipe-xiranite-powder"
+    ]
+  }
+]
