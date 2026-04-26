@@ -67,20 +67,24 @@ async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-async function loadCuratedDevices(
-  versionDir: string,
-): Promise<Map<string, Pick<ScrapedDevice, 'io_ports' | 'tech_prereq'>>> {
+type CuratedFields = Pick<ScrapedDevice, 'io_ports' | 'tech_prereq'> & {
+  power_aoe?: ScrapedDevice['power_aoe'];
+};
+
+async function loadCuratedDevices(versionDir: string): Promise<Map<string, CuratedFields>> {
   const devicesFile = resolve(versionDir, 'devices.json');
   if (!(await fileExists(devicesFile))) return new Map();
   const raw = await readFile(devicesFile, 'utf8');
   const parsed = JSON.parse(raw) as Partial<ScrapedDevice>[];
-  const map = new Map<string, Pick<ScrapedDevice, 'io_ports' | 'tech_prereq'>>();
+  const map = new Map<string, CuratedFields>();
   for (const d of parsed) {
     if (typeof d.id !== 'string') continue;
-    map.set(d.id, {
+    const entry: CuratedFields = {
       io_ports: d.io_ports ?? [],
       tech_prereq: d.tech_prereq ?? [],
-    });
+    };
+    if (d.power_aoe) entry.power_aoe = d.power_aoe;
+    map.set(d.id, entry);
   }
   return map;
 }
@@ -134,18 +138,21 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    '[scrape] preserving curated io_ports / tech_prereq from existing devices.json (if any) ...',
+    '[scrape] preserving curated io_ports / tech_prereq / power_aoe from existing devices.json (if any) ...',
   );
   const curated = await loadCuratedDevices(versionDir);
   const finalDevices: ScrapedDevice[] = xref.devices.map((d) => {
     const c = curated.get(d.id);
     if (!c) return d;
-    // Preserve io_ports if curated; preserve tech_prereq only if scraper produced an empty list.
-    return {
+    // Preserve io_ports if curated; preserve tech_prereq only if scraper produced an empty list;
+    // always preserve curated power_aoe (scraper has no way to derive it from end.wiki text).
+    const merged: ScrapedDevice = {
       ...d,
       io_ports: c.io_ports.length > 0 ? c.io_ports : d.io_ports,
       tech_prereq: d.tech_prereq.length > 0 ? d.tech_prereq : c.tech_prereq,
     };
+    if (c.power_aoe) merged.power_aoe = c.power_aoe;
+    return merged;
   });
 
   // Drop recipes nobody can produce — they show up when the global recipes
