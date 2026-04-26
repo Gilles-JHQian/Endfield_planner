@@ -23,16 +23,31 @@ const ARROW_LEN = CELL_PX * 0.28;
 interface Props {
   project: Project;
   viewMode: ViewMode;
+  /** P4 v5: when set, that link's render gets a brighter overlay tint to
+   *  show the right-click selection. */
+  selectedLinkId?: string | null;
 }
 
-export function LinkLayer({ project, viewMode }: Props) {
+export function LinkLayer({ project, viewMode, selectedLinkId }: Props) {
   return (
     <>
       {project.solid_links.map((link) => (
-        <LinkRender key={link.id} link={link} color={SOLID_COLOR} dimmed={viewMode === 'fluid'} />
+        <LinkRender
+          key={link.id}
+          link={link}
+          color={SOLID_COLOR}
+          dimmed={viewMode === 'fluid'}
+          selected={link.id === selectedLinkId}
+        />
       ))}
       {project.fluid_links.map((link) => (
-        <LinkRender key={link.id} link={link} color={FLUID_COLOR} dimmed={viewMode === 'solid'} />
+        <LinkRender
+          key={link.id}
+          link={link}
+          color={FLUID_COLOR}
+          dimmed={viewMode === 'solid'}
+          selected={link.id === selectedLinkId}
+        />
       ))}
     </>
   );
@@ -42,9 +57,10 @@ interface LinkRenderProps {
   link: Link;
   color: string;
   dimmed: boolean;
+  selected: boolean;
 }
 
-function LinkRender({ link, color, dimmed }: LinkRenderProps) {
+function LinkRender({ link, color, dimmed, selected }: LinkRenderProps) {
   const path = link.path;
   if (path.length === 0) return null;
   // Direction-aware reversal: render path so the chevrons point src→dst.
@@ -75,6 +91,17 @@ function LinkRender({ link, color, dimmed }: LinkRenderProps) {
 
   return (
     <Group listening={false} opacity={opacity}>
+      {/* Selection halo (P4 v5): wide blue glow underlying the body fill. */}
+      {selected && (
+        <Line
+          points={centerline}
+          stroke="#4ec9d3"
+          strokeWidth={CELL_PX * 0.85}
+          opacity={0.4}
+          lineCap="butt"
+          lineJoin="miter"
+        />
+      )}
       <Line
         points={centerline}
         stroke={color}

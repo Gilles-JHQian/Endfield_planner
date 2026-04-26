@@ -45,13 +45,6 @@ const BUTTONS: Btn[] = [
     label: 'P · Pipe',
     variant: 'teal',
   },
-  { match: () => false, onClick: () => undefined, glyph: '|', label: '|' },
-  {
-    match: (t) => t.kind === 'box-select',
-    onClick: (a) => a.setBoxSelect(),
-    glyph: '⛶',
-    label: 'X · Box select',
-  },
 ];
 
 export function Toolbar({ api }: Props) {

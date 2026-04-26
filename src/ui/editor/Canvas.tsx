@@ -11,12 +11,19 @@
  */
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { Layer, Stage } from 'react-konva';
+import { Layer, Rect, Stage } from 'react-konva';
 import type Konva from 'konva';
 import type { Cell } from '@core/domain/types.ts';
 import { CELL_PX, useCamera } from './use-camera.ts';
 import { Grid } from './Grid.tsx';
 import { PlotRect } from './PlotRect.tsx';
+
+export interface BoxRect {
+  /** Inclusive top-left and bottom-right cell coords. The producer
+   *  (Canvas's right-mouse drag) normalizes start/end so from ≤ to. */
+  readonly from: Cell;
+  readonly to: Cell;
+}
 
 interface Props {
   plot: { width: number; height: number };
@@ -24,8 +31,12 @@ interface Props {
   content?: ReactNode;
   /** Render-content for the overlay layer (ghost preview, hover highlights). */
   overlay?: ReactNode;
-  /** Click on a world cell — forwarded to active tool by parent. */
+  /** Left-click on a world cell — forwarded to active tool by parent. */
   onCellClick?: (cell: Cell, evt: MouseEvent) => void;
+  /** Right-click on a world cell with no drag (P4 v5: single-select). */
+  onCellRightClick?: (cell: Cell, evt: MouseEvent) => void;
+  /** Right-mouse drag completed (P4 v5: box-select). Normalized rectangle. */
+  onBoxSelect?: (rect: BoxRect, evt: MouseEvent) => void;
   onCursorChange?: (cell: Cell | null) => void;
   onCameraChange?: (state: { zoom: number }) => void;
   /** When this changes (and is non-null), pan camera so the cell lands at center.
@@ -38,6 +49,8 @@ export function Canvas({
   content,
   overlay,
   onCellClick,
+  onCellRightClick,
+  onBoxSelect,
   onCursorChange,
   onCameraChange,
   panTarget,
@@ -47,6 +60,11 @@ export function Canvas({
   const camera = useCamera();
   const isPanning = useRef(false);
   const lastPan = useRef<{ x: number; y: number } | null>(null);
+  // Right-mouse drag state (P4 v5). Tracks the start cell and whether the
+  // pointer has moved enough to count as a drag (vs a click).
+  const rightDragStart = useRef<Cell | null>(null);
+  const rightDragMoved = useRef(false);
+  const [boxRect, setBoxRect] = useState<BoxRect | null>(null);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -94,6 +112,14 @@ export function Canvas({
       isPanning.current = true;
       lastPan.current = { x: e.evt.clientX, y: e.evt.clientY };
       e.evt.preventDefault();
+    } else if (e.evt.button === 2) {
+      const cell = pointerCell(e);
+      if (cell) {
+        rightDragStart.current = cell;
+        rightDragMoved.current = false;
+        setBoxRect({ from: cell, to: cell });
+      }
+      e.evt.preventDefault();
     }
   }
 
@@ -110,18 +136,49 @@ export function Canvas({
       camera.pan(dx, dy);
       lastPan.current = { x: e.evt.clientX, y: e.evt.clientY };
     }
+    if (rightDragStart.current) {
+      const cur = pointerCell(e);
+      if (cur) {
+        const start = rightDragStart.current;
+        if (cur.x !== start.x || cur.y !== start.y) {
+          rightDragMoved.current = true;
+        }
+        setBoxRect(normalizeBox(start, cur));
+      }
+    }
     onCursorChange?.(pointerCell(e));
   }
 
-  function handleMouseUp(): void {
-    isPanning.current = false;
-    lastPan.current = null;
+  function handleMouseUp(e: Konva.KonvaEventObject<MouseEvent>): void {
+    if (isPanning.current && e.evt.button === 1) {
+      isPanning.current = false;
+      lastPan.current = null;
+    }
+    if (rightDragStart.current && e.evt.button === 2) {
+      const start = rightDragStart.current;
+      const end = pointerCell(e) ?? start;
+      if (rightDragMoved.current) {
+        onBoxSelect?.(normalizeBox(start, end), e.evt);
+      } else {
+        onCellRightClick?.(start, e.evt);
+      }
+      rightDragStart.current = null;
+      rightDragMoved.current = false;
+      setBoxRect(null);
+    }
   }
 
   function handleMouseLeave(): void {
     isPanning.current = false;
     lastPan.current = null;
+    rightDragStart.current = null;
+    rightDragMoved.current = false;
+    setBoxRect(null);
     onCursorChange?.(null);
+  }
+
+  function handleContextMenu(e: Konva.KonvaEventObject<PointerEvent>): void {
+    e.evt.preventDefault();
   }
 
   const visible = camera.visibleBounds(size.width, size.height);
@@ -142,6 +199,7 @@ export function Canvas({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
+          onContextMenu={handleContextMenu}
         >
           <Layer listening={false}>
             <Grid
@@ -153,9 +211,39 @@ export function Canvas({
             <PlotRect plot={plot} cellPx={CELL_PX} />
           </Layer>
           <Layer listening>{content}</Layer>
-          <Layer listening={false}>{overlay}</Layer>
+          <Layer listening={false}>
+            {overlay}
+            {boxRect && <BoxSelectRect rect={boxRect} />}
+          </Layer>
         </Stage>
       )}
     </div>
   );
+}
+
+function BoxSelectRect({ rect }: { rect: BoxRect }) {
+  const x = rect.from.x * CELL_PX;
+  const y = rect.from.y * CELL_PX;
+  const w = (rect.to.x - rect.from.x + 1) * CELL_PX;
+  const h = (rect.to.y - rect.from.y + 1) * CELL_PX;
+  return (
+    <Rect
+      x={x}
+      y={y}
+      width={w}
+      height={h}
+      stroke="#4ec9d3"
+      strokeWidth={1.5}
+      dash={[6, 4]}
+      fill="rgba(78, 201, 211, 0.10)"
+      listening={false}
+    />
+  );
+}
+
+function normalizeBox(a: Cell, b: Cell): BoxRect {
+  return {
+    from: { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y) },
+    to: { x: Math.max(a.x, b.x), y: Math.max(a.y, b.y) },
+  };
 }
