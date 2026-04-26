@@ -93,6 +93,24 @@ describe('portsInWorldFrame', () => {
     const ports = portsInWorldFrame(DEV_2x3, { position: { x: 0, y: 0 }, rotation: 0 });
     expect(ports).toEqual([]);
   });
+
+  it('exposes face_direction matching the post-rotation side (P4 v5)', () => {
+    const ports = portsInWorldFrame(DEV_2x3_PORTS, { position: { x: 0, y: 0 }, rotation: 0 });
+    // N port → faces north → (0, -1)
+    expect(ports[0]?.face_direction).toEqual({ dx: 0, dy: -1 });
+    // E port → (1, 0)
+    expect(ports[1]?.face_direction).toEqual({ dx: 1, dy: 0 });
+    // S port → (0, 1)
+    expect(ports[2]?.face_direction).toEqual({ dx: 0, dy: 1 });
+    // W port → (-1, 0)
+    expect(ports[3]?.face_direction).toEqual({ dx: -1, dy: 0 });
+  });
+
+  it('rotates face_direction with the device (90° CW: north port → east face)', () => {
+    const ports = portsInWorldFrame(DEV_2x3_PORTS, { position: { x: 4, y: 4 }, rotation: 90 });
+    // The original N port now faces E after a 90° rotation.
+    expect(ports[0]?.face_direction).toEqual({ dx: 1, dy: 0 });
+  });
 });
 
 describe('fitsInPlot', () => {

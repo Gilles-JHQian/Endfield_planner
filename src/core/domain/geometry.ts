@@ -9,6 +9,22 @@ import type { Device, Port } from '@core/data-loader/types.ts';
 
 const SIDES_CW: readonly Direction[] = ['N', 'E', 'S', 'W'];
 
+/** World-frame unit vector pointing OUT of the device through the given face.
+ *  Used by the belt drafter to verify that a link leaving an output port
+ *  travels in the direction the port faces (P4 §5.1 F3). */
+export function faceUnitVector(side: Direction): { dx: number; dy: number } {
+  switch (side) {
+    case 'N':
+      return { dx: 0, dy: -1 };
+    case 'E':
+      return { dx: 1, dy: 0 };
+    case 'S':
+      return { dx: 0, dy: 1 };
+    case 'W':
+      return { dx: -1, dy: 0 };
+  }
+}
+
 /** The bounding box of `device` after rotation, in cells. Rotations of 90/270
  *  swap width/height; 0/180 keep them. */
 export function rotatedBoundingBox(
@@ -79,6 +95,10 @@ export interface WorldPort {
   readonly cell: Cell;
   /** Direction the port faces in world coords (post-rotation). */
   readonly side: Direction;
+  /** Unit vector pointing OUT of the device through this port's face. The
+   *  cell adjacent to `cell` in this direction is the first legal step for
+   *  any link attached to the port. (P4 v5) */
+  readonly face_direction: { dx: number; dy: number };
   readonly kind: Port['kind'];
   readonly direction_constraint: Port['direction_constraint'];
 }
@@ -93,10 +113,12 @@ export function portsInWorldFrame(
   return device.io_ports.map((port, port_index) => {
     const local = portLocalCell(port, w, h);
     const rotated = rotateLocal(local.x, local.y, w, h, placed.rotation);
+    const worldSide = rotateSide(port.side, placed.rotation);
     return {
       port_index,
       cell: { x: placed.position.x + rotated.x, y: placed.position.y + rotated.y },
-      side: rotateSide(port.side, placed.rotation),
+      side: worldSide,
+      face_direction: faceUnitVector(worldSide),
       kind: port.kind,
       direction_constraint: port.direction_constraint,
     };
