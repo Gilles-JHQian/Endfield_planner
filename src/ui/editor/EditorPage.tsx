@@ -394,7 +394,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           }
           overlay={
             <>
-              {ghost && <GhostPreview {...ghost} />}
+              {ghost && (
+                <GhostPreview {...ghost} existingDevices={store.project.devices} lookup={lookup} />
+              )}
               {draftPath && (
                 <DraftPath
                   path={draftPath.path}
