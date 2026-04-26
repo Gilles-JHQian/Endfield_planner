@@ -41,6 +41,14 @@ export function PortGrid({ draft, addPort, updatePort, removePort }: Props) {
     return null;
   }
 
+  function portOnSide(side: PortSide): { index: number; port: Port } | null {
+    for (let i = 0; i < draft.io_ports.length; i++) {
+      const p = draft.io_ports[i]!;
+      if (p.side === side) return { index: i, port: p };
+    }
+    return null;
+  }
+
   function handleCellClick(lx: number, ly: number): void {
     const side = sideOf(lx, ly, width, height);
     if (!side) return; // interior cell
@@ -54,46 +62,65 @@ export function PortGrid({ draft, addPort, updatePort, removePort }: Props) {
     setSelectedIdx(draft.io_ports.length); // index it'll have after the add
   }
 
+  function handleSideClick(side: PortSide): void {
+    // Used by the 1×1 special layout: side maps unambiguously to one slot.
+    const existing = portOnSide(side);
+    if (existing) {
+      setSelectedIdx(existing.index);
+      return;
+    }
+    addPort({ side, offset: 0, kind: 'solid', direction_constraint: 'input' });
+    setSelectedIdx(draft.io_ports.length);
+  }
+
   return (
     <div>
       <div className="mb-2 font-display text-[9px] uppercase tracking-[1.5px] text-fg-faint">
         Footprint · {width.toString()}×{height.toString()}
       </div>
-      <div
-        className="grid gap-px bg-line p-px"
-        style={{
-          width: width * CELL_PX + (width + 1),
-          gridTemplateColumns: `repeat(${width.toString()}, ${CELL_PX.toString()}px)`,
-        }}
-      >
-        {Array.from({ length: height }, (_, ly) =>
-          Array.from({ length: width }, (_, lx) => {
-            const side = sideOf(lx, ly, width, height);
-            const port = portAtCell(lx, ly);
-            const cls = !side
-              ? 'bg-surface-2'
-              : port
-                ? `bg-amber/30 border-amber ${selectedIdx === port.index ? 'ring-2 ring-amber' : ''}`
-                : 'bg-surface-1 hover:bg-surface-3 cursor-pointer';
-            return (
-              <button
-                key={`${lx.toString()}-${ly.toString()}`}
-                type="button"
-                onClick={() => handleCellClick(lx, ly)}
-                className={`grid h-[24px] w-[24px] place-items-center font-tech-mono text-[8px] ${cls}`}
-                disabled={!side}
-                aria-label={
-                  side
-                    ? `cell ${lx.toString()},${ly.toString()} (${side})`
-                    : `interior ${lx.toString()},${ly.toString()}`
-                }
-              >
-                {port ? port.port.kind[0]?.toUpperCase() : ''}
-              </button>
-            );
-          }),
-        )}
-      </div>
+      {width === 1 && height === 1 ? (
+        <OneByOneGrid
+          portOnSide={portOnSide}
+          selectedIdx={selectedIdx}
+          onSideClick={handleSideClick}
+        />
+      ) : (
+        <div
+          className="grid gap-px bg-line p-px"
+          style={{
+            width: width * CELL_PX + (width + 1),
+            gridTemplateColumns: `repeat(${width.toString()}, ${CELL_PX.toString()}px)`,
+          }}
+        >
+          {Array.from({ length: height }, (_, ly) =>
+            Array.from({ length: width }, (_, lx) => {
+              const side = sideOf(lx, ly, width, height);
+              const port = portAtCell(lx, ly);
+              const cls = !side
+                ? 'bg-surface-2'
+                : port
+                  ? `bg-amber/30 border-amber ${selectedIdx === port.index ? 'ring-2 ring-amber' : ''}`
+                  : 'bg-surface-1 hover:bg-surface-3 cursor-pointer';
+              return (
+                <button
+                  key={`${lx.toString()}-${ly.toString()}`}
+                  type="button"
+                  onClick={() => handleCellClick(lx, ly)}
+                  className={`grid h-[24px] w-[24px] place-items-center font-tech-mono text-[8px] ${cls}`}
+                  disabled={!side}
+                  aria-label={
+                    side
+                      ? `cell ${lx.toString()},${ly.toString()} (${side})`
+                      : `interior ${lx.toString()},${ly.toString()}`
+                  }
+                >
+                  {port ? port.port.kind[0]?.toUpperCase() : ''}
+                </button>
+              );
+            }),
+          )}
+        </div>
+      )}
 
       <div className="mt-3 space-y-1.5">
         {draft.io_ports.length === 0 && (
@@ -189,6 +216,59 @@ function PortRow({
       >
         ✕
       </button>
+    </div>
+  );
+}
+
+/** Special layout for 1×1 devices (logistics bridges): the single cell can't
+ *  resolve to four sides on its own, so we render the cell + four perimeter
+ *  buttons positioned N / E / S / W around it. Each side maps unambiguously
+ *  to a port slot (offset 0). */
+function OneByOneGrid({
+  portOnSide,
+  selectedIdx,
+  onSideClick,
+}: {
+  portOnSide: (s: PortSide) => { index: number; port: Port } | null;
+  selectedIdx: number | null;
+  onSideClick: (s: PortSide) => void;
+}) {
+  const SIDES: { side: PortSide; row: number; col: number; label: string }[] = [
+    { side: 'N', row: 1, col: 2, label: 'N' },
+    { side: 'W', row: 2, col: 1, label: 'W' },
+    { side: 'E', row: 2, col: 3, label: 'E' },
+    { side: 'S', row: 3, col: 2, label: 'S' },
+  ];
+  return (
+    <div
+      className="grid w-fit gap-px bg-line p-px"
+      style={{ gridTemplateColumns: 'repeat(3, 28px)', gridTemplateRows: 'repeat(3, 28px)' }}
+    >
+      {/* Center body cell, non-clickable */}
+      <div
+        className="grid bg-surface-2 font-tech-mono text-[8px] text-fg-faint"
+        style={{ gridRow: 2, gridColumn: 2, placeItems: 'center' }}
+      >
+        1×1
+      </div>
+      {SIDES.map(({ side, row, col, label }) => {
+        const port = portOnSide(side);
+        const cls = port
+          ? `bg-amber/30 border-amber ${selectedIdx === port.index ? 'ring-2 ring-amber' : ''}`
+          : 'bg-surface-1 hover:bg-surface-3 cursor-pointer';
+        return (
+          <button
+            key={side}
+            type="button"
+            onClick={() => onSideClick(side)}
+            className={`grid place-items-center font-tech-mono text-[9px] ${cls}`}
+            style={{ gridRow: row, gridColumn: col }}
+            aria-label={`side ${label}`}
+          >
+            {port ? port.port.kind[0]?.toUpperCase() : label}
+          </button>
+        );
+      })}
     </div>
   );
 }
