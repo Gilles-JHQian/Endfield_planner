@@ -231,6 +231,66 @@ describe('routeForBelt', () => {
     expect(r.path[1]).toEqual({ x: 1, y: 5 });
     expect(r.collisions).toEqual([]);
   });
+
+  // P4 v6 — first-segment quadrant routing. With no prevHeading and no
+  // firstStepDirection, the L-bend's leading axis follows the larger of
+  // |dx| and |dy| (matches the diagonal-quadrant mental model).
+  describe('first-segment quadrant routing (P4 v6)', () => {
+    it('mostly-east cursor → step east first', () => {
+      const r = routeForBelt({ x: 5, y: 5 }, { x: 10, y: 6 }, emptyOpts());
+      expect(r.path[1]).toEqual({ x: 6, y: 5 }); // horizontal first
+    });
+    it('mostly-north cursor → step north first', () => {
+      const r = routeForBelt({ x: 5, y: 5 }, { x: 6, y: 0 }, emptyOpts());
+      expect(r.path[1]).toEqual({ x: 5, y: 4 }); // vertical first
+    });
+    it('mostly-south cursor → step south first', () => {
+      const r = routeForBelt({ x: 5, y: 5 }, { x: 6, y: 10 }, emptyOpts());
+      expect(r.path[1]).toEqual({ x: 5, y: 6 });
+    });
+    it('mostly-west cursor → step west first', () => {
+      const r = routeForBelt({ x: 5, y: 5 }, { x: 0, y: 6 }, emptyOpts());
+      expect(r.path[1]).toEqual({ x: 4, y: 5 });
+    });
+    it('equal |dx|=|dy| → horizontal first (>= tiebreak)', () => {
+      const r = routeForBelt({ x: 5, y: 5 }, { x: 10, y: 10 }, emptyOpts());
+      expect(r.path[1]).toEqual({ x: 6, y: 5 });
+    });
+  });
+
+  // P4 v6 — input port arrival validation. The last step into `to` must
+  // match `lastStepDirection` (the direction the input port faces from).
+  describe('lastStepDirection arrival check (P4 v6)', () => {
+    it('rejects when arrival axis differs', () => {
+      // Belt going from (5,5) to (5,2): last step is (5,3)→(5,2), direction (0,-1).
+      // Required arrival is east (1,0). Mismatch → collision at to.
+      const r = routeForBelt(
+        { x: 5, y: 5 },
+        { x: 5, y: 2 },
+        { ...emptyOpts(), lastStepDirection: { dx: 1, dy: 0 } },
+      );
+      expect(r.collisions).toContainEqual({ x: 5, y: 2 });
+    });
+    it('accepts when arrival axis matches', () => {
+      // Belt going from (0,5) to (4,5): last step is (3,5)→(4,5), direction (1,0).
+      const r = routeForBelt(
+        { x: 0, y: 5 },
+        { x: 4, y: 5 },
+        { ...emptyOpts(), lastStepDirection: { dx: 1, dy: 0 } },
+      );
+      expect(r.collisions).toEqual([]);
+    });
+    it('port lock at start still wins over quadrant', () => {
+      // firstStepDirection south + cursor mostly east → quadrant would pick
+      // east first, but the lock forces south, which then mismatches → fail.
+      const r = routeForBelt(
+        { x: 5, y: 5 },
+        { x: 10, y: 6 },
+        { ...emptyOpts(), firstStepDirection: { dx: 0, dy: 1 } },
+      );
+      expect(r.collisions).toContainEqual({ x: 5, y: 5 });
+    });
+  });
 });
 
 describe('buildLinkOrientations', () => {
