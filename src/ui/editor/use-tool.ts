@@ -1,8 +1,11 @@
 /** Active editor tool. Each tool changes how mouse events on the canvas are
  *  interpreted (click to select / click to place / drag to draw a belt /
- *  etc.). Keyboard shortcuts: V=select, R=rotate-current-selection / cycle
- *  rotation of the picked-place device, B=belt, P=pipe, X / Delete=delete,
- *  Esc=back to select.
+ *  etc.). Keyboard shortcuts:
+ *  - V = select; Esc = also back to select
+ *  - B / E = belt tool; P / Q = pipe tool (B/P preserved for muscle memory,
+ *    Q/E added in P3 because they're easier to reach with one hand)
+ *  - X / Delete = delete (P3 will replace X with box-select)
+ *  - R = rotate current placement ghost (90° CW)
  */
 import { useEffect, useState } from 'react';
 import type { Device, DeviceCategory } from '@core/data-loader/types.ts';
@@ -37,8 +40,10 @@ export function useTool(): ToolApi {
 
       if (e.key === 'Escape') setTool({ kind: 'select' });
       else if (e.key === 'v' || e.key === 'V') setTool({ kind: 'select' });
-      else if (e.key === 'b' || e.key === 'B') setTool({ kind: 'belt' });
-      else if (e.key === 'p' || e.key === 'P') setTool({ kind: 'pipe' });
+      else if (e.key === 'b' || e.key === 'B' || e.key === 'e' || e.key === 'E')
+        setTool({ kind: 'belt' });
+      else if (e.key === 'p' || e.key === 'P' || e.key === 'q' || e.key === 'Q')
+        setTool({ kind: 'pipe' });
       else if (e.key === 'x' || e.key === 'X' || e.key === 'Delete') setTool({ kind: 'delete' });
       else if ((e.key === 'r' || e.key === 'R') && !e.metaKey && !e.ctrlKey) {
         // R only rotates the currently picked-place device's ghost preview.

@@ -4,7 +4,7 @@ A design automation tool for the integrated industry system in *Arknights: Endfi
 
 This document is the single source of truth for scope, priorities, and technical decisions. Read it end-to-end before starting work.
 
-**Document version:** v3 — incorporates owner clarifications on plot sizing, 物流桥 semantics, pipe crossing rules, power model, and the addition of an auxiliary device editor tool. See `RESEARCH_FINDINGS.md` for community-sourced domain research. Changelog at the end of this document.
+**Document version:** v4 — Phase 3 polish round. Incorporates owner testing feedback on the P2 editor MVP: multi-segment belt drawing, BFS ghost auto-routing, direction-aware belt rendering, 6 logistics bridge devices (merger / splitter / cross-bridge × solid + fluid), 3 new belt DRC rules, asymmetric cross-layer constraint, power-coverage UX, box-select with group operations + clipboard, and dev-mode device save with scraped baseline restore. See `RESEARCH_FINDINGS.md` for community-sourced domain research and `DRC_REPORT.md` for data-source mapping. Changelog at the end of this document.
 
 ---
 
@@ -136,32 +136,37 @@ Every grid `Cell` has two independent occupancy slots: `solid_occupant` and `flu
 
 #### 4.5.1 Same-layer collision is illegal without a dedicated crossing component
 
-Both layers use the same crossing framework with parallel components:
+Both layers use the same crossing framework. Each layer ships **three** infrastructure devices (added in P3, see §10.9):
 
-- **Solid:** 物流桥 (logistics bridge, `logistics-bridge-1`).
-- **Fluid:** pipe bridge (`pipe-bridge-1`).
+| Solid (kind=solid)   | Fluid (kind=fluid)   | Footprint | Ports |
+|---|---|---|---|
+| `belt-merger` 物流汇流桥 | `pipe-merger` 流体汇流桥 | 1×1 | 3 inputs (N/E/S) + 1 output (W) |
+| `belt-splitter` 物流分流桥 | `pipe-splitter` 流体分流桥 | 1×1 | 1 input (W) + 3 outputs (N/E/S) |
+| `belt-cross-bridge` 物流交叉桥 | `pipe-cross-bridge` 流体交叉桥 | 1×1 | 4 ports, two `paired_opposite` axes (N↔S, E↔W) |
 
-The crossing component is a 1×1 cell with two independent orthogonal through-paths: one N↔S and one E↔W. The two paths do not mix.
+Common geometry: every bridge is **1×1**; ports occupy all four sides; rotation rotates the port-side mapping (so a single device id covers all 4 orientations). All three are in `category: 'logistics'`.
 
-**Port direction is a user decision, but constrained:**
+**Dynamic active port set:** mergers and splitters interpret an unconnected port as **blocked**. So a 3-input merger with only 2 inputs attached behaves as a 2-input merger; the in-game throughput allocation is "counter-clockwise round-robin over the connected ports". DRC does not enforce a minimum connected-port count.
+
+**Cross-bridge port constraint (`paired_opposite`):**
 
 - The user decides which side is the input for each of the two paths when placing the component.
 - Once one side of a path is marked as input, the **opposite side of that path is automatically locked as output**. Inputs and outputs are always on opposing sides of the same axis.
 - Example legal configurations: `N→S, W→E`; `S→N, E→W`; `N→S, E→W`.
 - Example illegal configurations: `N→E` (cross-axis), `N→S, E→N` (second path not opposite-paired).
 
-This constraint is encoded as the `paired_opposite` port direction constraint in the device definition: the bridge has 4 ports (one per side), grouped into two pairs (N/S and E/W). Within each pair, exactly one is input and one is output, and the user's choice of input side determines both.
+`paired_opposite` is encoded as the `direction_constraint` on each cross-bridge port; PORT_004 enforces it. Mergers/splitters do not use `paired_opposite` — their port directions are fixed by the device record.
 
-**物流桥 latency penalty (solid only):** community testing shows that a line passing through ≥ 2 bridges suffers ~1-cell delay per 4 items (~25% throughput loss). ≥ 3 bridges saturate at the 2-bridge level — no additional penalty. The simulator must model this; the DRC should warn when a critical path crosses > 1 bridge. The fluid bridge does not have a documented equivalent penalty (pending in-game verification).
+**物流桥 latency penalty (solid only):** community testing shows that a line passing through ≥ 2 cross-bridges suffers ~1-cell delay per 4 items (~25% throughput loss). ≥ 3 cross-bridges saturate at the 2-bridge level — no additional penalty. The simulator must model this; DRC's BELT_CROSS_DELAY_001 warns when a critical path crosses > 1 cross-bridge. The fluid cross-bridge does not have a documented equivalent penalty (pending in-game verification).
 
-#### 4.5.2 Cross-layer coexistence is generally legal, with exceptions
+#### 4.5.2 Cross-layer coexistence — asymmetric (P3 update)
 
 - **Main runs:** a straight belt and a straight pipe can share a cell (belt on solid layer, pipe on fluid layer).
-- **Exception A — pipe infrastructure on a belt:** illegal. All pipe splitters, confluences, bridges, and supports occupy the solid layer and block belts.
-- **Exception B — belt infrastructure on a pipe:** belt splitters, confluences, and 物流桥 similarly **occupy both layers at the infrastructure cell**. A 物流桥 cannot sit on a pipe; a belt splitter cannot sit on a pipe.
-- **Exception C — device cells:** no transport link may enter a device footprint cell except at a declared port.
+- **Exception A — pipe infrastructure on a belt:** illegal. All pipe-side bridges (merger / splitter / cross-bridge) and pipe supports occupy *both* layers and block belts. (LAYER_CROSS_001.)
+- **Exception B — belt infrastructure on a pipe:** **legal** for the three solid bridges (`belt-merger`, `belt-splitter`, `belt-cross-bridge`) — they only operate on the solid layer and let fluid pipes pass underneath. The asymmetry mirrors the in-game physical layout: fluid runs on the upper layer and solid bridges sit physically below. (LAYER_CROSS_002 was symmetric in v3; v4 narrows it.)
+- **Exception C — device cells:** no transport link may enter a non-bridge device footprint cell except at a declared port.
 
-These rules are encoded declaratively in `data/versions/<version>/crossing_rules.json`; the DRC engine is a rule interpreter. Schema shown in §6.3.
+These rules are encoded declaratively in `data/versions/<version>/crossing_rules.json` plus a `SOLID_BRIDGE_IDS` constant in the DRC layer; the rule engine consults both. Schema shown in §6.3.
 
 ### 4.6 Power model
 
@@ -227,17 +232,23 @@ A 2D grid-based canvas where the user can:
 
 - Pan, zoom, and scroll.
 - Place devices from a palette, with rotation (R key) and mirroring.
-- Drag-select, move, copy, paste, delete.
-- Undo / redo with unlimited history within a session.
-- Drag to draw a solid belt or fluid pipe path between two ports.
-- Toggle between "solid layer" and "fluid layer" view modes. In each mode the other layer's paths are rendered dimmed.
+- Box-select multiple devices (X key), then move (M), rotate as a group around the selection bounding-box centroid (R), delete (F), or copy/paste (Ctrl+C / Ctrl+V).
+- Undo / redo with unlimited history within a session. Group operations from box-select share a single history snapshot.
+- Draw a solid belt or fluid pipe path **as a multi-segment polyline**: first click sets the start; each subsequent click commits a waypoint and starts a new segment from there. Drawing only ends when the cursor lands on (a) another device's input port of the matching `kind`, (b) the start cell (closes a loop), or (c) Esc cancels the entire draft. Backspace pops the last waypoint.
+- Toggle between "solid layer", "fluid layer", and "power" view modes. In each non-power mode the other transport layer's paths are rendered dimmed.
 - Edit placed devices' recipe selection inline.
 
-**Live ghost preview (mandatory):** while the user is drawing a belt or pipe, or has a device selected from the palette, the tool renders a **real-time ghost** of the placement at the current mouse position. The ghost updates every mouse-move event, shows the candidate path/footprint, and color-codes validity (green = valid, red = DRC violation, yellow = valid but sub-optimal). This mirrors the in-game placement UX and is essential for the tool to feel responsive rather than clunky. Performance budget: ghost render must complete within one frame (~16ms) at the performance targets in §6.5.
+**Keyboard shortcuts:** V = select; B / E = belt; P / Q = pipe (B/P preserved for muscle memory; Q/E added in P3 for one-hand reach); X = box-select; R = rotate ghost or selection; M = move group; F = delete group; Esc = cancel; Backspace = pop waypoint while drawing.
+
+**Live ghost preview (mandatory):** while the user is drawing a belt or pipe, or has a device selected from the palette, the tool renders a **real-time ghost** of the placement at the current mouse position. The ghost updates every mouse-move event, shows the candidate path/footprint, and color-codes validity (green = valid, red = DRC violation, yellow = valid but sub-optimal). The drafting ghost **automatically routes around placed devices** via 4-neighbour BFS — a candidate path that would cross a device cell detours instead. When no detour exists, the ghost falls back to direct Manhattan + colors red. Performance budget: ghost render must complete within one frame (~16ms) at the performance targets in §6.5.
+
+**Belt/pipe rendering:** committed links are drawn with two parallel edge lines + semi-transparent fill between, with periodic V-shaped arrows indicating flow direction (src→dst, or path[0]→path[N-1] when src/dst are unset). Solid uses amber; fluid uses teal.
+
+**Power-coverage visualization:** any `requires_power=true` device that isn't covered by some 供电桩 AoE displays a small red "unplugged" badge in its top-right corner. While ghosting a power pole, the candidate AoE square is shown as a dashed outline and any existing devices that would fall inside are highlighted with a white shadow. The "power" view mode dims devices+links and overlays every placed pole's AoE (供电桩 = solid amber, 中继器 = dashed teal).
 
 Visuals: top-down orthographic, same grid resolution as the game. Distinct visual treatment for solid vs fluid links (color + style). Device sprites can be simple colored rectangles with icons in v1.
 
-*Acceptance:* User can recreate a published community blueprint (e.g. a small 高谷电池 production line) by hand in under 5 minutes. Ghost preview remains smooth (no perceptible lag) during rapid mouse movement on the reference scene from §6.5.
+*Acceptance:* User can recreate a published community blueprint (e.g. a small 高谷电池 production line) by hand in under 5 minutes. Ghost preview remains smooth (no perceptible lag) during rapid mouse movement on the reference scene from §6.5. Multi-segment drafting closes correctly when the second click hits a downstream input port. Box-select + group operations land as a single undoable transaction.
 
 #### F4. Manual layout with snap / align
 
@@ -273,16 +284,19 @@ Runs continuously in the background; results shown as a lint panel with clickabl
 
 **Solid-layer transport**
 - `BELT_001` (error): belt throughput exceeds tier limit.
-- `BELT_CROSS_001` (error): two solid links occupy the same cell without a 物流桥 component.
-- `BELT_CROSS_DELAY_001` (warning): critical path crosses > 1 物流桥 — expected throughput reduced by ~25% per community measurement.
+- `BELT_CROSS_001` (error): two solid links occupy the same cell with directions that are **perpendicular** but no `belt-cross-bridge` is placed at that cell. (P3: scope narrowed; the parallel case is covered by BELT_PARALLEL_001.)
+- `BELT_PARALLEL_001` (error, **new in P3**): two solid links share a cell and both directions through that cell are parallel (same axis). This case has no bridge that can resolve it.
+- `BELT_CORNER_001` (error, **new in P3**): a cell where one solid link turns (the cell sits between two non-collinear segments) is also visited by a second solid link. Cross-bridges only support straight-through perpendicular crossings, so corner overlaps have no resolution.
+- `BELT_TAP_001` (error, **new in P3**): a solid link's endpoint sits on a non-endpoint cell of another solid link, unless the cell coincides with a `belt-merger` / `belt-splitter` / `belt-cross-bridge` port. Mid-belt taps without these bridges are illegal.
+- `BELT_CROSS_DELAY_001` (warning): critical path crosses > 1 `belt-cross-bridge` — expected throughput reduced by ~25% per community measurement.
 
 **Fluid-layer transport**
 - `PIPE_001` (error): fluid throughput exceeds pipe tier cap.
-- `PIPE_CROSS_001` (error): two fluid links occupy the same cell without a pipe bridge component.
+- `PIPE_CROSS_001` (error): two fluid links occupy the same cell with perpendicular directions but no `pipe-cross-bridge` is placed at that cell. (Parallel/corner/tap variants apply symmetrically; the implementation may share the belt-* rule code via a layer parameter — tracked in §10.10.)
 
 **Cross-layer**
-- `LAYER_CROSS_001` (error): pipe infrastructure (splitter / confluence / bridge / support) overlaps a belt.
-- `LAYER_CROSS_002` (error): belt infrastructure (splitter / confluence / 物流桥) overlaps a pipe.
+- `LAYER_CROSS_001` (error): pipe infrastructure (`pipe-merger` / `pipe-splitter` / `pipe-cross-bridge` / pipe supports) overlaps a solid belt.
+- `LAYER_CROSS_002` (error, **asymmetric in P3**): belt infrastructure overlaps a fluid pipe — but `belt-merger` / `belt-splitter` / `belt-cross-bridge` are exempt because they only operate on the solid layer. Other future solid-side infrastructure (e.g. lifters, belt supports) still triggers this rule.
 - `LAYER_CROSS_003` (error): transport link enters a device footprint cell other than at a declared port.
 
 **Region / tech**
@@ -377,11 +391,15 @@ A separate single-page tool, bundled in the same repo but served from a distinct
 
 **Features:**
 
-- Load the current version's `devices.json`.
-- Grid-based visual editor for a single device: set footprint (W × H), click cells on the perimeter to define ports, set each port's `side`, `kind` (solid/fluid/power), and `direction_constraint`.
+- Load the current version's `devices.json` plus a sibling `devices.scraped.json` baseline (mechanical scraper output, no owner edits).
+- Horizontal category-tab strip + search filter on the device list (P3).
+- Grid-based visual editor for a single device: set footprint (W × H), click cells on the perimeter to define ports, set each port's `side`, `kind` (solid/fluid/power), and `direction_constraint`. **1×1 devices** use a special edge-button layout so all four sides are addressable (otherwise the single cell would only resolve to one side).
 - Edit scalar fields: `power_draw`, `bandwidth`, `requires_power`, `has_fluid_interface`, `tech_prereq`, `category`, display names.
 - Add/remove recipes on the device (select from the recipe catalog).
-- Save back to `devices.json`. Schema-validate on save; reject invalid output.
+- Save back to `devices.json`. Schema-validate on save; reject invalid output. **Two save paths** (P3):
+  1. **Dev-mode middleware** (preferred during `pnpm dev`): POST to `/api/dev/devices` registered by a Vite plugin → atomic write to disk → no browser dialog.
+  2. **File System Access API** fallback (production builds, non-Chromium browsers): `showSaveFilePicker` with handle persistence; if denied, blob download.
+- **Per-device "Reset to scraped baseline"** (P3): if the loaded device exists in `devices.scraped.json`, show a diff and let the owner restore the scraped values for selected fields, while preserving owner-only fields (`io_ports`, `power_aoe`, additional locale display names).
 
 **Non-features (v1 scope):**
 
@@ -389,6 +407,7 @@ A separate single-page tool, bundled in the same repo but served from a distinct
 - No image-based recognition of device sprites.
 - No recipe editor — recipes are scraped, not hand-edited. Only the device↔recipe association is editable here.
 - No history / undo beyond browser-native form behavior.
+- No per-device export / per-device import as standalone artifacts (deferred to a later round; see §11). The whole `devices.json` is the unit of save.
 
 **Implementation notes:**
 
@@ -689,6 +708,28 @@ Items the coder agent should **implement TODO hooks for, but not block on**. Eac
 
 **Default:** not included in v1 shipped regions. Add when owner has personal experience with it.
 
+### 10.9 Multi-mode devices (P3)
+
+**Status:** Some game devices have two operating modes (e.g. one mode produces item A, the other produces item B with a different cycle / power profile). The scraper currently flattens these to a single device record and concatenates whichever mode's recipes the wiki happens to list under that page; there is no mode discriminator in the data model.
+
+**Default workaround:** owner uses the device editor to **clone** the device into two records with distinct ids (e.g. `<base>-mode-a`, `<base>-mode-b`), each carrying its own subset of `recipes` / `power_draw` / `cycle_seconds`. The scraper's `loadCuratedDevices` preservation logic keeps the clones across re-scrapes.
+
+**Resolution path:** the next round may add an explicit `mode_id` field on Device + a UI toggle on placed instances; for now the clone-by-id workaround keeps the data layer and DRC simple.
+
+### 10.10 Scraper baseline + per-device restore (P3)
+
+**Status:** Owners regularly hand-edit `devices.json` (port geometry, AoE, display names, etc.). When a hand-edit goes wrong, there is no canonical "as-scraped" version to roll back to.
+
+**Default:** the scraper writes a sibling `data/versions/<v>/devices.scraped.json` containing the mechanical pre-merge output of its parse pass. This file is checked into git and updated on every `pnpm scrape`. The device editor (§5.4) reads it via a separate code path and offers per-device restore with field-level diff. Owner-only fields (`io_ports`, `power_aoe`) are preserved across restore.
+
+**Open:** parallel scraped baselines for `recipes.json` / `items.json` are deferred — owners do not currently hand-edit those files.
+
+### 10.11 Belt parallel/corner/tap rule symmetry on the fluid layer (P3)
+
+**Status:** The three new P3 belt rules (BELT_PARALLEL_001, BELT_CORNER_001, BELT_TAP_001) describe topology constraints that hold equally for fluid pipes. The implementation may either ship dedicated `pipe-*` analogues now or share rule code via a `Layer` parameter. The `requires_data` predicate would still need both belt and pipe bridge ids to resolve.
+
+**Default:** ship the belt versions in P3-B13 first; promote to layer-parameterized rules in a follow-up if pipe-side false negatives become noticeable in practice.
+
 ---
 
 ## 11. Blueprint code interop — permanently deferred
@@ -701,6 +742,17 @@ Reading/writing the in-game `EF01...` blueprint code is out of scope for all pha
 - **Alternative exists.** Screenshot + vision extraction is a future possibility if user demand emerges, and it avoids the ToS boundary by treating game output as a visual image.
 
 The tool's output is a human-executable build guide: screenshot + numbered build-order list + BOM.
+
+### 11.x Device editor — community-facing extensions (deferred to post-P3)
+
+The P3 device editor is owner-only, with `devices.json` as the single save unit. The next round, when the tool is opened up to community use, should add:
+
+- **Per-device export** as a standalone `*.device.json` artifact owners can share without bundling the whole catalog.
+- **Per-device import** with conflict resolution against the loaded `devices.json`.
+- **Custom device creation UI** — a "New device" affordance distinct from "edit existing", with id-collision check and a from-scratch port editor.
+- **Plugin marketplace / device-pack manifests** — structured metadata so a community-maintained pack can be loaded as an overlay on the scraped baseline. Keep `data/versions/<v>/devices.json` as the canonical "shipped with this build" snapshot; packs layer on top.
+
+These do not affect P3 scope and are documented here so the data layer choices in P3 don't accidentally close the door on them.
 
 ---
 
@@ -734,7 +786,19 @@ A feature is "done" when:
 
 ## Changelog
 
-### v3 (this document)
+### v4 (this document)
+
+Phase 3 polish round, driven by owner testing feedback on the P2 editor MVP:
+
+- **§4.5.1 Logistics bridges:** formalized the **6-device family** (`belt-merger` / `belt-splitter` / `belt-cross-bridge` plus pipe analogues). All 1×1 with all four sides addressable as ports; rotation rotates the port-side mapping. Mergers/splitters treat unconnected ports as blocked (dynamic active-port count).
+- **§4.5.2 Cross-layer asymmetry:** LAYER_CROSS_002 narrowed — solid bridges (`belt-merger` / `belt-splitter` / `belt-cross-bridge`) are now allowed to sit over fluid pipes. The reverse (fluid bridges over solid belts) remains forbidden via LAYER_CROSS_001.
+- **§5.1 F3 editor UX:** multi-segment belt/pipe drafting (each click adds a waypoint, drafting ends only on input-port hit / start-cell close / Esc); Q/E shortcuts as aliases for B/P; box-select tool (X) with M/R/F/Ctrl+C/Ctrl+V group operations; ghost auto-routes around device cells via BFS; belts/pipes render with parallel edges + flow-direction arrows; power-coverage badge on uncovered devices; ghost AoE preview on power poles; POWER view-mode overlay.
+- **§5.1 F5 DRC:** added BELT_PARALLEL_001 / BELT_CORNER_001 / BELT_TAP_001. BELT_CROSS_001 narrowed to perpendicular-only. POWER_002 demand restricted to AoE-covered devices.
+- **§5.4 Device editor:** category tabs + scroll fix; dev-mode save via Vite middleware (no dialog); per-device "Reset to scraped baseline" with diff preview.
+- **§10 Unresolved questions:** added 10.9 (multi-mode devices, clone workaround), 10.10 (scraped baseline + per-device restore), 10.11 (pipe-side parallel/corner/tap rule symmetry — deferred).
+- **§11 Future work:** explicit list of community-facing device-editor extensions deferred from P3.
+
+### v3
 
 Owner clarifications incorporated:
 
