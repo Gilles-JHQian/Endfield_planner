@@ -26,7 +26,8 @@ import { Inspector } from './Inspector.tsx';
 import { IssueHighlight } from './IssueHighlight.tsx';
 import { LinkLayer } from './LinkLayer.tsx';
 import { ProjectMenu } from './ProjectMenu.tsx';
-import { manhattanPath } from './path.ts';
+import { routeAroundDevices } from './path.ts';
+import { portsInWorldFrame } from '@core/domain/geometry.ts';
 import type { Layer } from '@core/domain/types.ts';
 import type { Issue } from '@core/drc/index.ts';
 import {
@@ -91,7 +92,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [category, setCategory] = useState<DeviceCategory>('basic_production');
   const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  const [linkAnchor, setLinkAnchor] = useState<Cell | null>(null);
+  // Multi-segment belt/pipe draft. Each click adds a waypoint; the segment
+  // between consecutive waypoints is BFS-routed around devices. Drafting
+  // commits when the user clicks an input port of the matching layer or
+  // closes back on the start cell. Esc cancels; Backspace pops the last
+  // waypoint.
+  const [linkDraft, setLinkDraft] = useState<{
+    waypoints: Cell[];
+    layer: Layer;
+  } | null>(null);
   const [highlight, setHighlight] = useState<{
     cells: readonly Cell[];
     severity: 'error' | 'warning' | 'info';
@@ -156,7 +165,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   if (prevTool !== toolApi.tool.kind) {
     setPrevTool(toolApi.tool.kind);
     if (toolApi.tool.kind !== 'belt' && toolApi.tool.kind !== 'pipe') {
-      setLinkAnchor(null);
+      setLinkDraft(null);
     }
   }
 
@@ -202,6 +211,28 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedInstanceId, store, toolApi.tool]);
 
+  // Belt/pipe draft keybindings. Esc cancels the whole draft; Backspace pops
+  // the last waypoint (so owners can correct a mis-click without restarting).
+  useEffect(() => {
+    if (!linkDraft) return;
+    const onKey = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'Escape') {
+        setLinkDraft(null);
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        setLinkDraft((d) => {
+          if (!d) return d;
+          if (d.waypoints.length <= 1) return null;
+          return { ...d, waypoints: d.waypoints.slice(0, -1) };
+        });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [linkDraft]);
+
   // Clear the issue highlight a couple seconds after it's set so it doesn't
   // stick around forever after a click-to-pan.
   useEffect(() => {
@@ -230,7 +261,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // render but each call is O(footprint cells), well under the 16ms budget.
   // The React 19 compiler memoizes Konva re-renders to the overlay layer.
   const ghost = computeGhost(toolApi.tool, cursor, store.project, lookup);
-  const draftPath = computeDraftPath(toolApi.tool, linkAnchor, cursor, store.project, lookup);
+  const draftPath = computeDraftPath(linkDraft, cursor, store.project, lookup);
 
   function handleCellClick(cell: Cell): void {
     if (toolApi.tool.kind === 'place') {
@@ -260,25 +291,59 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   }
 
   function handleLinkClick(cell: Cell, layer: Layer): void {
-    if (!linkAnchor) {
-      setLinkAnchor(cell);
+    // No draft yet (or layer changed mid-flight) → first click sets the start cell.
+    if (linkDraft?.layer !== layer) {
+      setLinkDraft({ waypoints: [cell], layer });
       return;
     }
-    if (linkAnchor.x === cell.x && linkAnchor.y === cell.y) {
-      // Click on same cell cancels the draft.
-      setLinkAnchor(null);
+    const start = linkDraft.waypoints[0]!;
+    const last = linkDraft.waypoints[linkDraft.waypoints.length - 1]!;
+
+    // Same cell as last waypoint → no-op (avoid degenerate zero-length segment).
+    if (last.x === cell.x && last.y === cell.y) return;
+
+    // Detect commit conditions.
+    const closesLoop = cell.x === start.x && cell.y === start.y && linkDraft.waypoints.length >= 2;
+    const portHit = findInputPortAtCell(cell, layer, store.project, lookup);
+
+    if (closesLoop || portHit) {
+      const finalWaypoints = closesLoop ? linkDraft.waypoints : [...linkDraft.waypoints, cell];
+      commitLink(finalWaypoints, layer, portHit);
+      setLinkDraft(null);
       return;
     }
-    const path = manhattanPath(linkAnchor, cell);
+
+    // Otherwise extend the draft with this cell as a new waypoint.
+    setLinkDraft({ ...linkDraft, waypoints: [...linkDraft.waypoints, cell] });
+  }
+
+  function commitLink(
+    waypoints: readonly Cell[],
+    layer: Layer,
+    portHit: { device_instance_id: string; port_index: number } | null,
+  ): void {
+    const occ = buildOccupancy(store.project, lookup);
+    const walls = wallSetFor(layer, occ);
+    const path: Cell[] = [];
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const seg = routeAroundDevices(waypoints[i]!, waypoints[i + 1]!, {
+        walls,
+        bounds: store.project.plot,
+      });
+      // Drop the leading cell on every segment after the first to avoid duplicating the joint.
+      path.push(...(i === 0 ? seg : seg.slice(1)));
+    }
     const tier_id =
       layer === 'solid'
         ? (bundle.transport_tiers.solid_belts[0]?.id ?? 'belt-1')
         : (bundle.transport_tiers.fluid_pipes[0]?.id ?? 'pipe-wuling');
-    const result = store.apply({ type: 'add_link', layer, tier_id, path });
-    setLinkAnchor(null);
-    if (!result.ok) {
-      // out_of_bounds path — silently ignored. B8 will surface DRC issues.
-    }
+    store.apply({
+      type: 'add_link',
+      layer,
+      tier_id,
+      path,
+      ...(portHit ? { dst: portHit } : {}),
+    });
   }
 
   return (
@@ -327,8 +392,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
               {draftPath && (
                 <DraftPath
                   path={draftPath.path}
-                  layer={draftPath.layer}
                   status={draftPath.status}
+                  {...(linkDraft ? { waypoints: linkDraft.waypoints } : {})}
                 />
               )}
               {highlight && (
@@ -410,29 +475,76 @@ interface DraftPathState {
 }
 
 function computeDraftPath(
-  tool: ReturnType<typeof useTool>['tool'],
-  anchor: Cell | null,
+  draft: { waypoints: Cell[]; layer: Layer } | null,
   cursor: Cell | null,
   project: ReturnType<typeof useProject>['project'],
   lookup: (id: string) => Device | undefined,
 ): DraftPathState | null {
-  if (!anchor || !cursor) return null;
-  if (tool.kind !== 'belt' && tool.kind !== 'pipe') return null;
-  const layer: Layer = tool.kind === 'belt' ? 'solid' : 'fluid';
-  const path = manhattanPath(anchor, cursor);
+  if (!draft || draft.waypoints.length === 0) return null;
+  const occ = buildOccupancy(project, lookup);
+  const walls = wallSetFor(draft.layer, occ);
+  const route = (a: Cell, b: Cell): Cell[] =>
+    routeAroundDevices(a, b, { walls, bounds: project.plot });
 
-  // Out-of-plot endpoints / interiors → collision.
+  // Build path by joining BFS segments between consecutive waypoints, then
+  // tacking on the live cursor segment (if cursor differs from the last waypoint).
+  const pts: Cell[] = [...draft.waypoints];
+  if (cursor) {
+    const last = pts[pts.length - 1]!;
+    if (cursor.x !== last.x || cursor.y !== last.y) pts.push(cursor);
+  }
+  const path: Cell[] = [];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const seg = route(pts[i]!, pts[i + 1]!);
+    path.push(...(i === 0 ? seg : seg.slice(1)));
+  }
+  if (path.length === 0) path.push(pts[0]!);
+
+  // Status: collision if any path interior cell crosses a device or the
+  // path leaves the plot. Endpoints (start cell + cursor) are exempt because
+  // the start may sit on a port and the cursor may hover anywhere.
+  const cellKey = (c: Cell): string => `${c.x.toString()},${c.y.toString()}`;
+  const startKey = cellKey(draft.waypoints[0]!);
   for (const c of path) {
     if (c.x < 0 || c.y < 0 || c.x >= project.plot.width || c.y >= project.plot.height) {
-      return { path, layer, status: 'collision' };
+      return { path, layer: draft.layer, status: 'collision' };
+    }
+    if (cellKey(c) === startKey) continue;
+    if (cellBlockedFor(c, draft.layer, occ) === 'device') {
+      return { path, layer: draft.layer, status: 'collision' };
     }
   }
-  // Path through a device cell → collision (devices block both layers).
-  const occ = buildOccupancy(project, lookup);
-  for (const c of path) {
-    if (cellBlockedFor(c, layer, occ) === 'device') {
-      return { path, layer, status: 'collision' };
+  return { path, layer: draft.layer, status: 'valid' };
+}
+
+/** Walls for BFS routing on a given layer: device cells (block both layers) +
+ *  same-layer existing link cells (can't share without a bridge). */
+function wallSetFor(layer: Layer, occ: ReturnType<typeof buildOccupancy>): Set<string> {
+  const walls = new Set<string>(occ.device);
+  if (layer === 'solid') for (const k of occ.solid) walls.add(k);
+  else for (const k of occ.fluid) walls.add(k);
+  return walls;
+}
+
+/** Find an input port (matching layer) at world cell `cell`, if any. Returns
+ *  the {device_instance_id, port_index} ref the link's `dst` should point to. */
+function findInputPortAtCell(
+  cell: Cell,
+  layer: Layer,
+  project: ReturnType<typeof useProject>['project'],
+  lookup: (id: string) => Device | undefined,
+): { device_instance_id: string; port_index: number } | null {
+  for (const placed of project.devices) {
+    const dev = lookup(placed.device_id);
+    if (!dev) continue;
+    const ports = portsInWorldFrame(dev, placed);
+    for (const p of ports) {
+      if (p.cell.x !== cell.x || p.cell.y !== cell.y) continue;
+      if (p.direction_constraint !== 'input') continue;
+      const matches =
+        (layer === 'solid' && p.kind === 'solid') || (layer === 'fluid' && p.kind === 'fluid');
+      if (matches) return { device_instance_id: placed.instance_id, port_index: p.port_index };
     }
   }
-  return { path, layer, status: 'valid' };
+  return null;
 }
