@@ -14,8 +14,10 @@ import { LayerToggle } from './LayerToggle.tsx';
 import { StatusBar } from './StatusBar.tsx';
 import { Rail } from './Rail.tsx';
 import { Library } from './Library.tsx';
+import { Toolbar } from './Toolbar.tsx';
 import { useViewMode } from './use-view-mode.ts';
 import { useProject } from './use-project.ts';
+import { useTool } from './use-tool.ts';
 
 const DATA_VERSION = '1.2';
 
@@ -60,6 +62,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [viewMode, setViewMode] = useViewMode();
   const [category, setCategory] = useState<DeviceCategory>('basic_production');
   const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
+  const toolApi = useTool();
+
+  // Picking a library card auto-switches to place tool. Clearing the pick
+  // (re-click on the same card) reverts to select.
+  function handlePick(d: Device | null): void {
+    setPickedDevice(d);
+    if (d) toolApi.setPlace(d);
+    else toolApi.setSelect();
+  }
 
   return (
     <div
@@ -85,7 +96,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           devices={bundle.devices}
           category={category}
           selectedDeviceId={pickedDevice?.id ?? null}
-          onPick={setPickedDevice}
+          onPick={handlePick}
         />
       </aside>
       <main aria-label="workspace" className="relative bg-canvas">
@@ -94,6 +105,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
         />
+        <Toolbar api={toolApi} />
         <LayerToggle active={viewMode} onChange={setViewMode} />
         <StatusBar
           cursor={cursor}
