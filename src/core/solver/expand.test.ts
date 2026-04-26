@@ -25,6 +25,7 @@ const minimalBundle = (recipes: Recipe[]): DataBundle => ({
     bridge_port_constraint: 'paired_opposite',
     cross_layer_crossing: { default: 'allowed', exceptions: [] },
   },
+  transport_tiers: { solid_belts: [], fluid_pipes: [] },
 });
 
 const r = (overrides: Partial<Recipe> & { id: string }): Recipe => ({

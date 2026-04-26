@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://endfield-planner/schema/transport_tiers.json",
+  "title": "Transport tier rate table",
+  "description": "Per REQUIREMENT.md §4.4 / RESEARCH_FINDINGS.md §B. items_per_minute applies to belts (per output port at full provision); units_per_minute applies to fluid pipes (per-pipe saturation cap).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["solid_belts", "fluid_pipes"],
+  "properties": {
+    "solid_belts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SolidBeltTier" }
+    },
+    "fluid_pipes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/FluidPipeTier" }
+    }
+  },
+  "$defs": {
+    "SolidBeltTier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tier", "id", "items_per_minute"],
+      "properties": {
+        "tier": { "type": "integer", "minimum": 1 },
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "items_per_minute": { "type": "integer", "exclusiveMinimum": 0 },
+        "source": { "type": "string" }
+      }
+    },
+    "FluidPipeTier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tier", "id", "units_per_minute"],
+      "properties": {
+        "tier": { "type": "integer", "minimum": 1 },
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "units_per_minute": { "type": "integer", "exclusiveMinimum": 0 },
+        "source": { "type": "string" }
+      }
+    }
+  }
+}
