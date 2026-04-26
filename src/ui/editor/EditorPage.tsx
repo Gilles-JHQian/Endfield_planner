@@ -4,17 +4,17 @@
  *  library / inspector are placeholders this commit (filled in B7).
  */
 import { useState } from 'react';
-import type { Layer } from '@core/domain/types.ts';
 import { Canvas } from './Canvas.tsx';
 import { LayerToggle } from './LayerToggle.tsx';
 import { StatusBar } from './StatusBar.tsx';
+import { useViewMode } from './use-view-mode.ts';
 
 const DEFAULT_PLOT = { width: 50, height: 50 };
 
 export function EditorPage() {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [activeLayer, setActiveLayer] = useState<Layer>('solid');
+  const [viewMode, setViewMode] = useViewMode();
 
   return (
     <div
@@ -36,13 +36,13 @@ export function EditorPage() {
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
         />
-        <LayerToggle active={activeLayer} onChange={setActiveLayer} />
+        <LayerToggle active={viewMode} onChange={setViewMode} />
         <StatusBar
           cursor={cursor}
           zoom={zoom}
           plot={DEFAULT_PLOT}
           deviceCount={0}
-          activeLayer={activeLayer}
+          viewMode={viewMode}
         />
       </main>
       <aside aria-label="inspector" className="flex flex-col border-l border-line bg-surface-1">
