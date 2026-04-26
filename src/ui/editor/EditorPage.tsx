@@ -186,6 +186,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           project={store.project}
           selectedInstanceId={selectedInstanceId}
           lookup={lookup}
+          recipes={bundle.recipes}
+          onRecipeChange={(instance_id, recipe_id) =>
+            store.apply({ type: 'set_recipe', instance_id, recipe_id })
+          }
         />
       </aside>
     </div>

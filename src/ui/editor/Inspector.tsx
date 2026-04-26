@@ -11,15 +11,18 @@ import { useI18n } from '@i18n/index.tsx';
 import { KvRow, SectionHead, WarningStripe } from '@ui/components/index.ts';
 import { rotatedBoundingBox } from '@core/domain/geometry.ts';
 import type { PlacedDevice, Project } from '@core/domain/types.ts';
-import type { Device } from '@core/data-loader/types.ts';
+import type { Device, Recipe } from '@core/data-loader/types.ts';
+import { RecipeSelector } from './RecipeSelector.tsx';
 
 interface Props {
   project: Project;
   selectedInstanceId: string | null;
   lookup: (id: string) => Device | undefined;
+  recipes: readonly Recipe[];
+  onRecipeChange: (instance_id: string, recipe_id: string | null) => void;
 }
 
-export function Inspector({ project, selectedInstanceId, lookup }: Props) {
+export function Inspector({ project, selectedInstanceId, lookup, recipes, onRecipeChange }: Props) {
   const placed = useMemo(
     () => project.devices.find((d) => d.instance_id === selectedInstanceId) ?? null,
     [project.devices, selectedInstanceId],
@@ -29,7 +32,14 @@ export function Inspector({ project, selectedInstanceId, lookup }: Props) {
   if (!placed || !device) {
     return <ProjectSummary project={project} />;
   }
-  return <DeviceInspector placed={placed} device={device} />;
+  return (
+    <DeviceInspector
+      placed={placed}
+      device={device}
+      recipes={recipes}
+      onRecipeChange={(rid) => onRecipeChange(placed.instance_id, rid)}
+    />
+  );
 }
 
 function ProjectSummary({ project }: { project: Project }) {
@@ -64,7 +74,17 @@ function ProjectSummary({ project }: { project: Project }) {
   );
 }
 
-function DeviceInspector({ placed, device }: { placed: PlacedDevice; device: Device }) {
+function DeviceInspector({
+  placed,
+  device,
+  recipes,
+  onRecipeChange,
+}: {
+  placed: PlacedDevice;
+  device: Device;
+  recipes: readonly Recipe[];
+  onRecipeChange: (recipe_id: string | null) => void;
+}) {
   const { t } = useI18n();
   const bbox = rotatedBoundingBox(device, placed.rotation);
   const isFluid = device.has_fluid_interface;
@@ -126,16 +146,12 @@ function DeviceInspector({ placed, device }: { placed: PlacedDevice; device: Dev
         </Section>
 
         <Section titleEn="RECIPE" titleCn={t('inspector.section.recipe')}>
-          {placed.recipe_id !== null ? (
-            <div className="py-2 font-tech-mono text-[12px] text-amber">{placed.recipe_id}</div>
-          ) : (
-            <div className="py-2 font-cn text-[11px] text-fg-faint">
-              {t('inspector.recipe.none')}
-            </div>
-          )}
-          <div className="py-2 font-tech-mono text-[10px] text-fg-faint">
-            {t('inspector.recipe.placeholder')}
-          </div>
+          <RecipeSelector
+            device={device}
+            recipes={recipes}
+            currentRecipeId={placed.recipe_id}
+            onChange={onRecipeChange}
+          />
         </Section>
       </div>
     </div>
