@@ -1,6 +1,7 @@
 export * from './types.ts';
 export * from './project.ts';
 export * from './geometry.ts';
+export * from './occupancy.ts';
 // Re-export Region/Device/etc so consumers don't need to mix data-loader and
 // domain imports in the same file.
 export type {

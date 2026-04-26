@@ -23,7 +23,7 @@ import type { DeviceLookup } from './utils.ts';
 
 interface AddLinkArgs {
   project: Project;
-  layer: Exclude<Layer, 'power'>;
+  layer: Layer;
   tier_id: string;
   path: readonly Cell[];
   src?: PortRef;

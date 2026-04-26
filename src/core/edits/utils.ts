@@ -1,13 +1,14 @@
 /** Internal helpers shared by the edit functions in src/core/edits/.
- *  - DeviceLookup: indirection so edit functions can resolve catalog devices
- *    by id without taking the entire DataBundle as an argument.
- *  - Cell-occupancy and collision predicates over a Project's footprints.
+ *  Cell-occupancy and collision predicates over a Project's footprints.
+ *  DeviceLookup type lives in @core/domain/occupancy as the canonical home
+ *  (it's needed by both the edits layer and the upcoming DRC engine).
  */
 import { footprintCells } from '@core/domain/geometry.ts';
 import type { Cell, PlacedDevice, Project } from '@core/domain/types.ts';
+import type { DeviceLookup } from '@core/domain/occupancy.ts';
 import type { Device } from '@core/data-loader/types.ts';
 
-export type DeviceLookup = (device_id: string) => Device | undefined;
+export type { DeviceLookup };
 
 function key(c: Cell): string {
   return `${c.x.toString()},${c.y.toString()}`;

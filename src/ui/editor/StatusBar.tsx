@@ -2,7 +2,7 @@
  *  Cursor cell coords / zoom% / device count / total power / etc.
  *  Sits absolutely positioned at the bottom of the workspace.
  */
-import type { Layer } from '@core/domain/types.ts';
+import type { ViewMode } from './use-view-mode.ts';
 
 interface Props {
   cursor: { x: number; y: number } | null;
@@ -10,10 +10,16 @@ interface Props {
   plot: { width: number; height: number };
   deviceCount: number;
   totalPower?: number;
-  activeLayer: Layer;
+  viewMode: ViewMode;
 }
 
-export function StatusBar({ cursor, zoom, plot, deviceCount, totalPower, activeLayer }: Props) {
+const VIEW_TONE: Record<ViewMode, 'amber' | 'teal' | undefined> = {
+  solid: 'amber',
+  fluid: 'teal',
+  power: undefined,
+};
+
+export function StatusBar({ cursor, zoom, plot, deviceCount, totalPower, viewMode }: Props) {
   return (
     <div className="absolute bottom-0 left-0 right-0 z-10 flex h-[24px] items-center gap-4 border-t border-line bg-surface-1 px-3 font-tech-mono text-[10px] text-fg-soft">
       <Group label="CURSOR">
@@ -23,8 +29,8 @@ export function StatusBar({ cursor, zoom, plot, deviceCount, totalPower, activeL
       <Group label="PLOT">
         {plot.width.toString()}×{plot.height.toString()}
       </Group>
-      <Group label="LAYER" tone={activeLayer === 'fluid' ? 'teal' : 'amber'}>
-        {activeLayer.toUpperCase()}
+      <Group label="VIEW" {...(VIEW_TONE[viewMode] ? { tone: VIEW_TONE[viewMode] } : {})}>
+        {viewMode.toUpperCase()}
       </Group>
       <div className="ml-auto flex gap-4">
         <Group label="DEVICES">{deviceCount.toString()}</Group>

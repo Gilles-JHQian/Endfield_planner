@@ -14,7 +14,13 @@ export interface Cell {
   readonly y: number;
 }
 
-export type Layer = 'solid' | 'fluid' | 'power';
+/** A transport layer is either solid (belts) or fluid (pipes). Power is NOT
+ *  a transport layer — Endfield supplies power wirelessly via 供电桩 AoE
+ *  (REQUIREMENT.md §4.6), so devices need to sit inside a 供电桩 square but
+ *  no power links are drawn on the grid. The canvas's "POWER" view (see
+ *  ViewMode in src/ui/editor/use-view-mode.ts) is a visual overlay, not a
+ *  routing layer. */
+export type Layer = 'solid' | 'fluid';
 
 export type Direction = 'N' | 'E' | 'S' | 'W';
 
