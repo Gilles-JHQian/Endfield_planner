@@ -19,6 +19,9 @@ interface Props {
    *  Each gets a small endpoint marker so the route is editable visually. */
   waypoints?: readonly Cell[];
   status: 'valid' | 'collision' | 'warn';
+  /** Cells where commit will auto-place a cross-bridge (P4 v5). Drawn as a
+   *  small ⊕ badge so the owner sees what's about to land. */
+  autoBridges?: readonly Cell[];
 }
 
 const STATUS_STROKE: Record<Props['status'], string> = {
@@ -29,7 +32,7 @@ const STATUS_STROKE: Record<Props['status'], string> = {
 const ARROW_SPACING = 3;
 const ARROW_LEN = CELL_PX * 0.25;
 
-export function DraftPath({ path, waypoints, status }: Props) {
+export function DraftPath({ path, waypoints, status, autoBridges }: Props) {
   if (path.length === 0) return null;
   const stroke = STATUS_STROKE[status];
 
@@ -88,6 +91,33 @@ export function DraftPath({ path, waypoints, status }: Props) {
           strokeWidth={1.5}
         />
       ))}
+      {autoBridges?.map((cell, i) => (
+        <BridgeBadge key={`br-${i.toString()}`} cell={cell} />
+      ))}
+    </Group>
+  );
+}
+
+/** Visual hint at a cell where commit will auto-place a cross-bridge:
+ *  a small dashed amber square + ⊕ glyph. */
+function BridgeBadge({ cell }: { cell: Cell }) {
+  const cx = (cell.x + 0.5) * CELL_PX;
+  const cy = (cell.y + 0.5) * CELL_PX;
+  const size = CELL_PX * 0.55;
+  return (
+    <Group listening={false}>
+      <Rect
+        x={cx - size / 2}
+        y={cy - size / 2}
+        width={size}
+        height={size}
+        stroke="#ff9a3d"
+        strokeWidth={1.2}
+        dash={[3, 2]}
+        opacity={0.95}
+      />
+      <Line points={[cx - size / 4, cy, cx + size / 4, cy]} stroke="#ff9a3d" strokeWidth={1.2} />
+      <Line points={[cx, cy - size / 4, cx, cy + size / 4]} stroke="#ff9a3d" strokeWidth={1.2} />
     </Group>
   );
 }

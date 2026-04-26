@@ -1,15 +1,18 @@
 /** Path planners for belt/pipe drafts.
  *
+ *  Two planners coexist:
  *  - `manhattanPath`: walks horizontal then vertical, ignores everything.
- *    Used as a fallback when no detour exists, or when the caller doesn't
- *    care about device avoidance.
- *  - `routeAroundDevices`: 4-neighbour BFS that detours around a wall set
- *    (typically device cells + same-layer link cells + plot exterior). When
- *    no path exists, falls back to `manhattanPath` so the caller still has
- *    something to render — the EditorPage marks the ghost red in that case.
+ *    Used as a fallback when no detour exists and by tests.
+ *  - `routeForBelt` (P4 v5): the production planner used by the editor.
+ *    Plain Manhattan with an L-shape choice biased by the previous segment's
+ *    heading + cursor angle. Does NOT detour around obstacles — instead it
+ *    walks the candidate path straight and reports collisions / auto-bridge
+ *    requirements per cell. The caller (EditorPage) reads these to color the
+ *    ghost and to decide whether to allow the next click.
  *
- *  Status checks (path leaves the plot, hits a device) live in EditorPage
- *  so the ghost color reflects the same occupancy map placement uses.
+ *  `routeAroundDevices` (the P3 BFS-detour planner) remains for callers and
+ *  tests that don't need crossing detection — slated for removal once the
+ *  editor fully migrates.
  */
 import type { Cell } from '@core/domain/types.ts';
 
@@ -114,4 +117,233 @@ export function routeAroundDevices(from: Cell, to: Cell, opts: RouteOptions): Ce
   }
   reverse.push({ x: from.x, y: from.y });
   return reverse.reverse();
+}
+
+// ----------------------------------------------------------------------------
+// routeForBelt — P4 v5 production planner
+// ----------------------------------------------------------------------------
+
+export type LinkOrient = 'h' | 'v' | 'corner';
+
+export interface BeltRouteOpts {
+  /** Cells occupied by placed devices that block belts. The endpoints `from`
+   *  / `to` are exempted — they're typically port cells on devices. */
+  readonly deviceWalls: ReadonlySet<string>;
+  /** Cells covered by existing same-layer links + their orientation(s) at
+   *  that cell ('h' = horizontal segment, 'v' = vertical, 'corner' = both). */
+  readonly sameLayerLinks: ReadonlyMap<string, ReadonlySet<LinkOrient>>;
+  /** Cells already occupied by an existing cross-bridge of the matching layer. */
+  readonly existingBridges: ReadonlySet<string>;
+  readonly bounds: RouteBounds;
+  /** Direction of motion (unit cardinal vector) that arrived at `from`. null
+   *  means this is the very first segment of the draft — no heading bias. */
+  readonly prevHeading: { dx: number; dy: number } | null;
+  /** When `from` sits on a placed device's port, the unit vector pointing
+   *  OUT of the device through that port's face. The first step must match
+   *  this direction or the planner reports a collision at `from`. */
+  readonly firstStepDirection?: { dx: number; dy: number };
+}
+
+export interface BeltRouteResult {
+  /** Inclusive cell list of the candidate path. Always includes `from` and
+   *  `to`; intermediate cells are filled by Manhattan walk in the chosen
+   *  L-shape order. */
+  readonly path: readonly Cell[];
+  /** Cells where a fresh cross-bridge needs to be inserted on commit
+   *  (perpendicular crossing of an existing link, no bridge yet). */
+  readonly bridgesToAutoPlace: readonly Cell[];
+  /** Cells where the candidate path is illegal (parallel overlap, corner
+   *  overlap, device wall, port-direction mismatch, out of bounds).
+   *  Non-empty → ghost should color red and reject the next click. */
+  readonly collisions: readonly Cell[];
+}
+
+export function routeForBelt(from: Cell, to: Cell, opts: BeltRouteOpts): BeltRouteResult {
+  // Single-cell case (from === to). Treated as "click was on the live cursor =
+  // last waypoint" — caller handles this as a force-commit signal, not a
+  // routing call. Defensive return.
+  if (from.x === to.x && from.y === to.y) {
+    return { path: [{ x: from.x, y: from.y }], bridgesToAutoPlace: [], collisions: [] };
+  }
+
+  // Reverse-direction check: cursor exactly behind us. The interior angle at
+  // `from` between the previous segment and the new segment is 0° → U-turn
+  // forbidden per REQUIREMENT.md §5.1 F3 (P4 v5).
+  //
+  // Math: vec D = to - from (direction to cursor). vec B = prevHeading
+  // (direction OF motion arriving at `from`). The interior angle at `from`
+  // between the two segments equals the angle between (-B) and D, so
+  // cos(interior) = -B · D / |D|. interior == 0° ⟺ cos == 1 ⟺ -B·D / |D|
+  // == 1 ⟺ D points opposite to B (cursor sits "behind" us along the
+  // heading axis).
+  if (opts.prevHeading) {
+    const candidateDx = to.x - from.x;
+    const candidateDy = to.y - from.y;
+    const dot = opts.prevHeading.dx * candidateDx + opts.prevHeading.dy * candidateDy;
+    const mag = Math.hypot(candidateDx, candidateDy);
+    if (mag > 0 && -dot / mag >= 0.999) {
+      return {
+        path: [{ x: from.x, y: from.y }],
+        bridgesToAutoPlace: [],
+        collisions: [{ x: from.x, y: from.y }],
+      };
+    }
+  }
+
+  // Decide L-shape order: forward-first vs perpendicular-first.
+  // - Forward-first: step in the heading axis until aligned, then perpendicular.
+  // - Perpendicular-first: step in the perpendicular axis first, then forward.
+  const headingAxis = opts.prevHeading ? (opts.prevHeading.dx !== 0 ? 'h' : 'v') : null;
+  // Forward bucket = interior angle in [135°, 180°] = cos(angle between A,B)
+  // ≤ -√2/2 ≈ -0.707, where A = from→cursor and B = prevHeading.
+  let preferForward = false;
+  if (opts.prevHeading) {
+    const ax = to.x - from.x;
+    const ay = to.y - from.y;
+    const aMag = Math.hypot(ax, ay) || 1;
+    // A ⋅ -B (interior angle): the interior angle's cosine equals A ⋅ -B / (|A||B|).
+    // -B has magnitude 1, so cos = (ax * -B.dx + ay * -B.dy) / aMag.
+    const cosInterior = (ax * -opts.prevHeading.dx + ay * -opts.prevHeading.dy) / aMag;
+    preferForward = cosInterior <= -0.707; // angle ≥ 135° (closer to 180°)
+  }
+
+  const startWithH =
+    headingAxis === null
+      ? true // No heading: default horizontal-first (matches manhattanPath).
+      : headingAxis === 'h' && preferForward
+        ? true
+        : headingAxis === 'v' && preferForward
+          ? false
+          : headingAxis === 'h'
+            ? false // perpendicular to horizontal heading = vertical-first
+            : true; // perpendicular to vertical heading = horizontal-first
+
+  // Walk the L-shape.
+  const path = startWithH ? walkHV(from, to) : walkVH(from, to);
+
+  // Port-direction enforcement: first step from `from` must match
+  // firstStepDirection if provided.
+  if (opts.firstStepDirection && path.length >= 2) {
+    const stepDx = path[1]!.x - from.x;
+    const stepDy = path[1]!.y - from.y;
+    if (stepDx !== opts.firstStepDirection.dx || stepDy !== opts.firstStepDirection.dy) {
+      return {
+        path,
+        bridgesToAutoPlace: [],
+        collisions: [{ x: from.x, y: from.y }],
+      };
+    }
+  }
+
+  // Classify each cell: collision / auto-bridge / clean.
+  const collisions: Cell[] = [];
+  const bridgesToAutoPlace: Cell[] = [];
+  const fromKey = cellKey(from.x, from.y);
+  const toKey = cellKey(to.x, to.y);
+  for (let i = 0; i < path.length; i++) {
+    const c = path[i]!;
+    const k = cellKey(c.x, c.y);
+    // Out of bounds → collision.
+    if (c.x < 0 || c.y < 0 || c.x >= opts.bounds.width || c.y >= opts.bounds.height) {
+      collisions.push(c);
+      continue;
+    }
+    // Device wall (excluding endpoints, which may be port cells) → collision.
+    if (k !== fromKey && k !== toKey && opts.deviceWalls.has(k)) {
+      collisions.push(c);
+      continue;
+    }
+    // Same-layer link overlap analysis.
+    const existingOrients = opts.sameLayerLinks.get(k);
+    if (!existingOrients || existingOrients.size === 0) continue;
+    // Compute candidate orientation at this cell.
+    const candidateOrient = orientAt(path, i);
+    // 'corner' candidate or any existing 'corner' → corner overlap, illegal.
+    if (
+      candidateOrient === 'corner' ||
+      existingOrients.has('corner') ||
+      // parallel overlap: existing has the same axis as candidate
+      (candidateOrient !== null && existingOrients.has(candidateOrient))
+    ) {
+      collisions.push(c);
+      continue;
+    }
+    // Otherwise it's a perpendicular crossing. Allowed iff there's already a
+    // cross-bridge here, or we'll auto-place one.
+    if (!opts.existingBridges.has(k)) {
+      bridgesToAutoPlace.push(c);
+    }
+  }
+
+  return { path, bridgesToAutoPlace, collisions };
+}
+
+function walkHV(from: Cell, to: Cell): Cell[] {
+  const out: Cell[] = [{ x: from.x, y: from.y }];
+  let x = from.x;
+  let y = from.y;
+  while (x !== to.x) {
+    x += x < to.x ? 1 : -1;
+    out.push({ x, y });
+  }
+  while (y !== to.y) {
+    y += y < to.y ? 1 : -1;
+    out.push({ x, y });
+  }
+  return out;
+}
+
+function walkVH(from: Cell, to: Cell): Cell[] {
+  const out: Cell[] = [{ x: from.x, y: from.y }];
+  let x = from.x;
+  let y = from.y;
+  while (y !== to.y) {
+    y += y < to.y ? 1 : -1;
+    out.push({ x, y });
+  }
+  while (x !== to.x) {
+    x += x < to.x ? 1 : -1;
+    out.push({ x, y });
+  }
+  return out;
+}
+
+/** The orientation a path occupies at cell index `i`: 'h' (horizontal),
+ *  'v' (vertical), 'corner' (incoming + outgoing on different axes), or
+ *  null for degenerate single-cell paths. */
+function orientAt(path: readonly Cell[], i: number): LinkOrient | null {
+  const cell = path[i]!;
+  if (path.length < 2) return null;
+  const prev = i > 0 ? path[i - 1]! : null;
+  const next = i < path.length - 1 ? path[i + 1]! : null;
+  const orients = new Set<'h' | 'v'>();
+  if (prev) orients.add(prev.x === cell.x ? 'v' : 'h');
+  if (next) orients.add(next.x === cell.x ? 'v' : 'h');
+  if (orients.size === 2) return 'corner';
+  return orients.values().next().value ?? null;
+}
+
+/** Build the sameLayerLinks map for routeForBelt from a project's existing
+ *  links of one layer. Each cell maps to the set of orientations links pass
+ *  through it with (multiple links overlapping a cell merge their orient sets).
+ */
+export function buildLinkOrientations(
+  links: readonly { path: readonly Cell[] }[],
+): Map<string, Set<LinkOrient>> {
+  const out = new Map<string, Set<LinkOrient>>();
+  for (const link of links) {
+    for (let i = 0; i < link.path.length; i++) {
+      const c = link.path[i]!;
+      const k = cellKey(c.x, c.y);
+      const orient = orientAt(link.path, i);
+      if (!orient) continue;
+      let set = out.get(k);
+      if (!set) {
+        set = new Set();
+        out.set(k, set);
+      }
+      set.add(orient);
+    }
+  }
+  return out;
 }
