@@ -1,0 +1,11 @@
+{
+  "solid_belts": [
+    {
+      "tier": 1,
+      "id": "belt-1",
+      "items_per_minute": 30,
+      "source": "research_findings_§B.1"
+    }
+  ],
+  "fluid_pipes": []
+}
