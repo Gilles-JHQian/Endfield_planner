@@ -39,5 +39,9 @@
 
   "warning.cycles": "检测到环路配方（已截断展开）：{cycles}",
 
-  "lang.toggle": "English"
+  "lang.toggle": "English",
+
+  "route.editor": "编辑器",
+  "route.deviceEditor": "设备编辑器",
+  "route.solver": "求解器"
 }
