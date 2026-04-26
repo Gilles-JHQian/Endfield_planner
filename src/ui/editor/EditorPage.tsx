@@ -392,8 +392,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
               {draftPath && (
                 <DraftPath
                   path={draftPath.path}
-                  layer={draftPath.layer}
                   status={draftPath.status}
+                  {...(linkDraft ? { waypoints: linkDraft.waypoints } : {})}
                 />
               )}
               {highlight && (

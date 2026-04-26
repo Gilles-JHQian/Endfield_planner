@@ -1,15 +1,23 @@
-/** In-progress belt/pipe path overlay — drawn after the user clicks the
- *  first anchor cell, follows the cursor until the second click commits the
- *  link. Color-coded the same as the placement ghost: green=valid, red=
- *  collision, yellow=warning.
+/** In-progress belt/pipe path overlay.
+ *
+ *  Renders the multi-segment draft as a dashed status-colored polyline +
+ *  small square endpoint markers at every committed waypoint (so owners can
+ *  see exactly where they've already clicked vs where the cursor is). Adds
+ *  periodic chevron arrows in the flow direction so direction is unambiguous
+ *  even mid-draft.
+ *
+ *  Status color comes from the same valid/collision/warn vocabulary the
+ *  GhostPreview uses.
  */
 import { Group, Line, Rect } from 'react-konva';
-import type { Cell, Layer } from '@core/domain/types.ts';
+import type { Cell } from '@core/domain/types.ts';
 import { CELL_PX } from './use-camera.ts';
 
 interface Props {
   path: readonly Cell[];
-  layer: Layer;
+  /** Cells the user has explicitly clicked (excluding the live cursor).
+   *  Each gets a small endpoint marker so the route is editable visually. */
+  waypoints?: readonly Cell[];
   status: 'valid' | 'collision' | 'warn';
 }
 
@@ -18,14 +26,36 @@ const STATUS_STROKE: Record<Props['status'], string> = {
   collision: '#e85d4a',
   warn: '#f0b73a',
 };
+const ARROW_SPACING = 3;
+const ARROW_LEN = CELL_PX * 0.25;
 
-export function DraftPath({ path, layer, status }: Props) {
+export function DraftPath({ path, waypoints, status }: Props) {
   if (path.length === 0) return null;
+  const stroke = STATUS_STROKE[status];
+
   const points: number[] = [];
   for (const c of path) {
     points.push((c.x + 0.5) * CELL_PX, (c.y + 0.5) * CELL_PX);
   }
-  const stroke = STATUS_STROKE[status];
+
+  const arrows: number[][] = [];
+  for (let i = 1; i < path.length; i++) {
+    if (i % ARROW_SPACING !== 0) continue;
+    const cell = path[i]!;
+    const prev = path[i - 1]!;
+    const dx = cell.x - prev.x;
+    const dy = cell.y - prev.y;
+    if (dx === 0 && dy === 0) continue;
+    const cx = (cell.x + 0.5) * CELL_PX;
+    const cy = (cell.y + 0.5) * CELL_PX;
+    const baseX = cx - dx * ARROW_LEN;
+    const baseY = cy - dy * ARROW_LEN;
+    const px = -dy * ARROW_LEN * 0.7;
+    const py = dx * ARROW_LEN * 0.7;
+    arrows.push([baseX + px, baseY + py, cx, cy, baseX - px, baseY - py]);
+  }
+
+  const markers = waypoints ?? [path[0]!, path[path.length - 1]!];
 
   return (
     <Group listening={false}>
@@ -33,21 +63,31 @@ export function DraftPath({ path, layer, status }: Props) {
         points={points}
         stroke={stroke}
         strokeWidth={3}
-        opacity={0.6}
+        opacity={0.65}
         dash={[6, 4]}
         lineCap="round"
         lineJoin="round"
       />
-      {/* Anchor markers at endpoints. */}
-      <Endpoint cell={path[0]!} stroke={stroke} layer={layer} />
-      {path.length > 1 && <Endpoint cell={path[path.length - 1]!} stroke={stroke} layer={layer} />}
+      {arrows.map((pts, i) => (
+        <Line
+          key={`arrow-${i.toString()}`}
+          points={pts}
+          stroke={stroke}
+          strokeWidth={1.5}
+          opacity={0.85}
+        />
+      ))}
+      {markers.map((cell, i) => (
+        <Rect
+          key={`wp-${i.toString()}`}
+          x={(cell.x + 0.5) * CELL_PX - 4}
+          y={(cell.y + 0.5) * CELL_PX - 4}
+          width={8}
+          height={8}
+          stroke={stroke}
+          strokeWidth={1.5}
+        />
+      ))}
     </Group>
   );
-}
-
-function Endpoint({ cell, stroke, layer }: { cell: Cell; stroke: string; layer: Layer }) {
-  const x = (cell.x + 0.5) * CELL_PX - 4;
-  const y = (cell.y + 0.5) * CELL_PX - 4;
-  void layer;
-  return <Rect x={x} y={y} width={8} height={8} stroke={stroke} strokeWidth={1.5} />;
 }
