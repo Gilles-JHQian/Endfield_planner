@@ -1,40 +1,57 @@
 /** Cell occupancy queries for the editor.
  *
  *  REQUIREMENT.md §4.5: "Every grid Cell has two independent occupancy slots:
- *  solid_occupant and fluid_occupant. A device footprint cell sets BOTH slots
- *  (devices occupy both layers at their location unless specifically marked
- *  otherwise)."
+ *  solid_occupant and fluid_occupant." Most devices set BOTH slots; the three
+ *  solid bridges (`belt-merger` / `belt-splitter` / `belt-cross-bridge`) set
+ *  only the solid slot so fluid pipes can pass underneath (P4 v7).
  *
  *  Practical consequence the editor cares about: a belt path cannot pass
- *  through a device's footprint cell, and neither can a pipe path —
- *  regardless of which layer is being drawn. Belt and pipe MAY share a cell
- *  with each other on different layers (per §4.5.2), but never with a
- *  device's body.
+ *  through a cell where a device blocks the solid layer, and likewise for
+ *  pipes on the fluid layer. A solid belt MAY share a cell with a solid
+ *  bridge above an existing fluid pipe (the bridge sits on solid only).
  */
 import { footprintCells } from './geometry.ts';
+import { layerOccupancyOf } from '@core/drc/bridges.ts';
 import type { Cell, Layer, Project } from './types.ts';
 import type { Device } from '@core/data-loader/types.ts';
 
 export type DeviceLookup = (device_id: string) => Device | undefined;
 
 interface OccupancyMap {
+  /** Same-layer link cells (existing belts). */
   solid: Set<string>;
+  /** Same-layer link cells (existing pipes). */
   fluid: Set<string>;
-  /** Cells covered by a device footprint — blocked on BOTH layers. */
-  device: Set<string>;
+  /** Cells covered by a device whose footprint blocks the SOLID layer. */
+  deviceSolid: Set<string>;
+  /** Cells covered by a device whose footprint blocks the FLUID layer. */
+  deviceFluid: Set<string>;
 }
 
 const cellKey = (c: Cell): string => `${c.x.toString()},${c.y.toString()}`;
 
 /** Build a single occupancy map of the project's current state. Cheap to
- *  rebuild on every edit (O(devices × footprint) + O(links × path length)). */
+ *  rebuild on every edit (O(devices × footprint) + O(links × path length)).
+ *  P4 v7: device footprints are partitioned per-layer via `layerOccupancyOf`
+ *  so the asymmetric belt-bridge / fluid-pipe rule lands in ghost validation
+ *  instead of only after-the-fact in DRC. */
 export function buildOccupancy(project: Project, lookup: DeviceLookup): OccupancyMap {
-  const occ: OccupancyMap = { solid: new Set(), fluid: new Set(), device: new Set() };
+  const occ: OccupancyMap = {
+    solid: new Set(),
+    fluid: new Set(),
+    deviceSolid: new Set(),
+    deviceFluid: new Set(),
+  };
 
   for (const placed of project.devices) {
     const dev = lookup(placed.device_id);
     if (!dev) continue;
-    for (const c of footprintCells(dev, placed)) occ.device.add(cellKey(c));
+    const layers = layerOccupancyOf(dev);
+    for (const c of footprintCells(dev, placed)) {
+      const k = cellKey(c);
+      if (layers === 'solid' || layers === 'both') occ.deviceSolid.add(k);
+      if (layers === 'fluid' || layers === 'both') occ.deviceFluid.add(k);
+    }
   }
   for (const link of project.solid_links) {
     for (const c of link.path) occ.solid.add(cellKey(c));
@@ -47,21 +64,36 @@ export function buildOccupancy(project: Project, lookup: DeviceLookup): Occupanc
 
 /** Is `cell` legal as an interior point of a fresh `layer` link path?
  *  Returns the reason it isn't (or null if it's free).
- *  - blocked by a device on either layer (devices occupy both slots)
+ *  - blocked by a device on the SAME layer (per-layer occupancy, P4 v7)
  *  - blocked by an existing same-layer link (DRC will flag a same-cell collision)
  *
- *  Cross-layer same-cell coexistence (belt + pipe) IS allowed here; the strict
- *  check that pipe INFRASTRUCTURE (splitters/bridges/supports) blocks belts on
- *  the other layer is DRC's job (LAYER_CROSS_001/002), not basic occupancy.
- */
+ *  Cross-layer same-cell coexistence (belt + pipe) is allowed when neither
+ *  side has a device blocker on this layer; the LAYER_CROSS DRC rules
+ *  remain the authority on infrastructure-vs-link asymmetry. */
 export function cellBlockedFor(
   cell: Cell,
   layer: Layer,
   occupancy: OccupancyMap,
 ): 'device' | 'same_layer' | null {
   const k = cellKey(cell);
-  if (occupancy.device.has(k)) return 'device';
-  if (layer === 'solid' && occupancy.solid.has(k)) return 'same_layer';
-  if (layer === 'fluid' && occupancy.fluid.has(k)) return 'same_layer';
+  if (layer === 'solid') {
+    if (occupancy.deviceSolid.has(k)) return 'device';
+    if (occupancy.solid.has(k)) return 'same_layer';
+  } else {
+    if (occupancy.deviceFluid.has(k)) return 'device';
+    if (occupancy.fluid.has(k)) return 'same_layer';
+  }
   return null;
+}
+
+/** Direct query for "does any device block this cell on this layer?". Used by
+ *  the device place-time ghost to decide whether a candidate footprint cell
+ *  collides with another device's per-layer occupancy. */
+export function cellBlockedByDevice(
+  cell: Cell,
+  layer: Layer,
+  occupancy: OccupancyMap,
+): boolean {
+  const k = cellKey(cell);
+  return layer === 'solid' ? occupancy.deviceSolid.has(k) : occupancy.deviceFluid.has(k);
 }

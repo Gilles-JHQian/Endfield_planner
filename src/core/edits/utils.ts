@@ -4,6 +4,7 @@
  *  (it's needed by both the edits layer and the upcoming DRC engine).
  */
 import { footprintCells } from '@core/domain/geometry.ts';
+import { layerOccupancyOf } from '@core/drc/bridges.ts';
 import type { Cell, PlacedDevice, Project } from '@core/domain/types.ts';
 import type { DeviceLookup } from '@core/domain/occupancy.ts';
 import type { Device } from '@core/data-loader/types.ts';
@@ -14,34 +15,54 @@ function key(c: Cell): string {
   return `${c.x.toString()},${c.y.toString()}`;
 }
 
-/** Build a Set<string> of every footprint-occupied cell in the project. The
- *  optional `excludeInstanceId` lets callers skip a specific device — useful
- *  for moveDevice/rotateDevice where the device's own current cells are
- *  legal targets. */
+export interface OccupiedCellSets {
+  /** Cells occupied by an existing device that blocks the SOLID layer. */
+  readonly solid: Set<string>;
+  /** Cells occupied by an existing device that blocks the FLUID layer. */
+  readonly fluid: Set<string>;
+}
+
+/** Build per-layer Set<string> of every footprint-occupied cell. P4 v7:
+ *  partitioned by `layerOccupancyOf(device)` so the editor's place-time
+ *  collision check matches the asymmetric bridge / pipe rule (solid bridges
+ *  only contribute to `solid`; fluid bridges + everything else contribute
+ *  to both). The optional `excludeInstanceId` lets callers skip a specific
+ *  device — useful for moveDevice/rotateDevice where the device's own
+ *  current cells are legal targets. */
 export function occupiedCellSet(
   project: Project,
   lookup: DeviceLookup,
   excludeInstanceId?: string,
-): Set<string> {
-  const set = new Set<string>();
+): OccupiedCellSets {
+  const out: OccupiedCellSets = { solid: new Set(), fluid: new Set() };
   for (const placed of project.devices) {
     if (excludeInstanceId && placed.instance_id === excludeInstanceId) continue;
     const dev = lookup(placed.device_id);
     if (!dev) continue;
-    for (const c of footprintCells(dev, placed)) set.add(key(c));
+    const layers = layerOccupancyOf(dev);
+    for (const c of footprintCells(dev, placed)) {
+      const k = key(c);
+      if (layers === 'solid' || layers === 'both') out.solid.add(k);
+      if (layers === 'fluid' || layers === 'both') out.fluid.add(k);
+    }
   }
-  return set;
+  return out;
 }
 
-/** Returns the first cell of `placed` that collides with the given occupied
- *  set, or null if there is no collision. */
+/** Returns the first cell of `placed` that collides with the existing
+ *  per-layer occupancy on a layer the new device also blocks. P4 v7. */
 export function findCollision(
   device: Device,
   placed: Pick<PlacedDevice, 'position' | 'rotation'>,
-  occupied: Set<string>,
+  occupied: OccupiedCellSets,
 ): Cell | null {
+  const layers = layerOccupancyOf(device);
+  const checkSolid = layers === 'solid' || layers === 'both';
+  const checkFluid = layers === 'fluid' || layers === 'both';
   for (const c of footprintCells(device, placed)) {
-    if (occupied.has(key(c))) return c;
+    const k = key(c);
+    if (checkSolid && occupied.solid.has(k)) return c;
+    if (checkFluid && occupied.fluid.has(k)) return c;
   }
   return null;
 }
