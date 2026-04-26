@@ -372,17 +372,14 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // cursor in plot. Enlarges and tints if the cursor sits on an output port.
   const beltCursorState =
     (toolApi.tool.kind === 'belt' || toolApi.tool.kind === 'pipe') && !linkDraft && cursor
-      ? {
-          cell: cursor,
-          layer: (toolApi.tool.kind === 'belt' ? 'solid' : 'fluid') as Layer,
-          onPort:
-            findOutputPortAtCell(
-              cursor,
-              toolApi.tool.kind === 'belt' ? 'solid' : 'fluid',
-              store.project,
-              lookup,
-            ) !== null,
-        }
+      ? (() => {
+          const cursorLayer: Layer = toolApi.tool.kind === 'belt' ? 'solid' : 'fluid';
+          return {
+            cell: cursor,
+            layer: cursorLayer,
+            onPort: findOutputPortAtCell(cursor, cursorLayer, store.project, lookup) !== null,
+          };
+        })()
       : null;
 
   /** P4 v6 right-click: device or belt under cell goes into the highlight set
