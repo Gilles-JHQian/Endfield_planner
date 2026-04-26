@@ -1,12 +1,15 @@
 /** Save the merged devices.json out of the device editor.
  *
- *  Strategy:
- *  1. File System Access API where available (Chrome / Edge / Opera) — opens
- *     a save dialog so the owner can overwrite data/versions/<v>/devices.json
- *     directly. Persists the FileSystemFileHandle in `lastHandle` so repeat
- *     saves don't re-prompt.
- *  2. Fallback download — Firefox / Safari get a regular `<a download>` blob
- *     so they can replace the file by hand.
+ *  Save strategy (in order of preference):
+ *  1. **Dev middleware** (P3): when `pnpm dev` is running, POST the JSON to
+ *     /api/dev/devices and let scripts/vite-dev-api.ts write the file
+ *     atomically. No browser dialog. Available only in dev builds.
+ *  2. **File System Access API** where available (Chrome / Edge / Opera) —
+ *     opens a save dialog so the owner can overwrite
+ *     data/versions/<v>/devices.json directly. Persists the
+ *     FileSystemFileHandle so repeat saves don't re-prompt.
+ *  3. **Download fallback** — Firefox / Safari / cancelled FS API → blob
+ *     download for manual replacement.
  *
  *  Output is merged: we take the bundle's existing devices.json and replace
  *  the edited device by id. Untouched devices pass through unchanged so the
@@ -25,7 +28,7 @@ let lastHandle: FileSystemFileHandle | null = null;
 
 export interface SaveResult {
   ok: boolean;
-  via: 'fs-api' | 'download';
+  via: 'dev-middleware' | 'fs-api' | 'download';
   message?: string;
 }
 
@@ -36,6 +39,31 @@ export async function saveDevicesJson(
   const merged = mergeEdited(allDevices, edited);
   const json = JSON.stringify(merged, null, 2) + '\n';
 
+  // Dev middleware (only when running `pnpm dev` — Vite injects DEV=true).
+  if (import.meta.env.DEV) {
+    try {
+      const r = await fetch('/api/dev/devices', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: json,
+      });
+      if (r.ok) return { ok: true, via: 'dev-middleware' };
+      const err = (await r.json().catch(() => ({ error: r.statusText }))) as { error?: string };
+      const msg = `dev middleware rejected: ${err.error ?? r.statusText}`;
+      // Fall through to FS API on dev-API failure (caller still gets a save).
+      const fsResult = await saveViaFsApi(json, msg);
+      return fsResult;
+    } catch (err) {
+      // Network/fetch error → fall through to FS API.
+      const msg = `dev middleware unreachable: ${(err as Error).message}`;
+      return saveViaFsApi(json, msg);
+    }
+  }
+
+  return saveViaFsApi(json);
+}
+
+async function saveViaFsApi(json: string, devMessage?: string): Promise<SaveResult> {
   const w = window as Window & FsApiWindow;
   if (w.showSaveFilePicker) {
     try {
@@ -49,13 +77,15 @@ export async function saveDevicesJson(
       await writable.write(json);
       await writable.close();
       lastHandle = handle;
-      return { ok: true, via: 'fs-api' };
+      return devMessage
+        ? { ok: true, via: 'fs-api', message: devMessage }
+        : { ok: true, via: 'fs-api' };
     } catch (err) {
       // User canceled or browser refused — fall back to download.
       return downloadFallback(json, (err as Error).message);
     }
   }
-  return downloadFallback(json);
+  return downloadFallback(json, devMessage);
 }
 
 export function mergeEdited(allDevices: readonly Device[], edited: Device): Device[] {
