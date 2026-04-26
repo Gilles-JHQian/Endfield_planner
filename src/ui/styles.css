@@ -1,11 +1,126 @@
+/* Endfield EDA UI styles. design/handoff/ is the source of truth for visual
+ * language; tokens here mirror design/handoff/tokens.css, base chrome mirrors
+ * design/handoff/base.css. We diverge only in syntax (Tailwind 4 @theme block,
+ * Vite-friendly font import) — values stay identical so the handoff reference
+ * stays an authoritative spec.
+ */
+
 @import 'tailwindcss';
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&family=Barlow+Condensed:wght@400;500;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap');
+
+@theme {
+  /* -- Surfaces (darkest → lightest) ---------------------------------------- */
+  --color-surface-0: #0a0d10; /* page, input fields */
+  --color-surface-1: #11151a; /* panels (rail, library, inspector, topbar) */
+  --color-surface-2: #181d23; /* raised: cards, header bands, brand block */
+  --color-surface-3: #20262d; /* hover */
+  --color-canvas: #0e1216; /* workspace canvas only */
+
+  /* -- Lines ---------------------------------------------------------------- */
+  --color-line: #2a323b;
+  --color-line-strong: #3d4651;
+  --color-line-faint: #1d242c;
+
+  /* -- Text ----------------------------------------------------------------- */
+  --color-text: #e6e8eb;
+  --color-text-soft: #9aa1a9;
+  --color-text-faint: #5a626c;
+  --color-text-dim: #3d4651;
+
+  /* -- Accents -------------------------------------------------------------- */
+  --color-amber: #ff9a3d;
+  --color-amber-deep: #e87827;
+  --color-teal: #4ec9d3;
+  --color-teal-deep: #2a8a93;
+
+  /* -- Status --------------------------------------------------------------- */
+  --color-good: #6dc26d;
+  --color-warn: #f0b73a;
+  --color-err: #e85d4a;
+
+  /* -- Type stacks (utility names match handoff vars 1:1) ------------------ */
+  --font-cn: 'Noto Sans SC', sans-serif;
+  --font-display: 'Rajdhani', 'Barlow Condensed', sans-serif;
+  --font-hud-mono: 'Barlow Condensed', 'JetBrains Mono', sans-serif;
+  --font-tech-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* The handoff defines a few token-style values that Tailwind doesn't natively
+ * key off of (text sizes < 12px, fixed region widths, glow shadows). Keep them
+ * in :root so component CSS / arbitrary-value utilities can reach them. */
+:root {
+  --fs-xs: 9px;
+  --fs-sm: 10px;
+  --fs-md: 11px;
+  --fs-base: 12px;
+  --fs-lg: 13px;
+  --fs-xl: 14px;
+  --fs-2xl: 16px;
+
+  --amber-glow: rgba(255, 154, 61, 0.16);
+  --teal-glow: rgba(78, 201, 211, 0.12);
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --shadow-amber: 0 0 12px var(--amber-glow);
+  --shadow-teal: 0 0 12px var(--teal-glow);
+
+  --topbar-h: 44px;
+  --rail-w: 56px;
+  --library-w: 280px;
+  --inspector-w: 320px;
+  --statusbar-h: 24px;
+}
+
+* {
+  box-sizing: border-box;
+}
 
 html,
 body,
 #root {
-  height: 100%;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  background: var(--color-surface-0);
+  color: var(--color-text);
+  font-family: var(--font-cn);
+  font-size: var(--fs-lg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-body {
-  margin: 0;
+/* The signature half-tone dot pattern. Single layer behind everything. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.018) 0.7px, transparent 0.7px);
+  background-size: 4px 4px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+input {
+  font: inherit;
+  color: inherit;
+}
+
+/* Thin dark scrollbars. Apply via `scroll-y` class to scrollable containers. */
+.scroll-y {
+  overflow-y: auto;
+}
+.scroll-y::-webkit-scrollbar {
+  width: 4px;
+}
+.scroll-y::-webkit-scrollbar-track {
+  background: var(--color-surface-0);
+}
+.scroll-y::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 2px;
 }
