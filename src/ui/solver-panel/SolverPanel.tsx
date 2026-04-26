@@ -3,7 +3,7 @@ import { solveThroughput, type SolveResult, type SolveTarget } from '@core/solve
 import type { DataBundle } from '@core/data-loader/types.ts';
 import { LOCALES, useI18n } from '@i18n/index.tsx';
 import { Badge, Button, Pill, WarningStripe } from '@ui/components/index.ts';
-import { useDataBundle } from './use-data-bundle.ts';
+import { useDataBundle } from '@ui/use-data-bundle.ts';
 import { RecipeNodes } from './RecipeNodes.tsx';
 import { RawInputsTable } from './RawInputsTable.tsx';
 import { SummaryCard } from './SummaryCard.tsx';
