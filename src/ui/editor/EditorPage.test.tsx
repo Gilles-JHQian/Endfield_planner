@@ -1,9 +1,9 @@
 /** Smoke test — EditorPage mounts in jsdom without crashing.
  *
- *  Konva needs a real canvas; in jsdom the canvas API is stubbed but Konva's
- *  warnings get noisy. We just verify the shell renders and the layer toggle
- *  is wired. The Konva Stage itself is rendered as a div in jsdom (no GL),
- *  which is fine for this assertion level.
+ *  EditorPage now loads the v1.2 DataBundle on mount before showing the
+ *  4-column shell. Tests use findBy* to wait for the bundle and then exercise
+ *  the layer toggle. Konva's Stage renders as a div in jsdom (no GL), which
+ *  is fine at this assertion level.
  */
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
@@ -12,18 +12,20 @@ import { I18nProvider } from '@i18n/index.tsx';
 import { EditorPage } from './EditorPage.tsx';
 
 describe('EditorPage', () => {
-  it('renders the 4 columns and the workspace status bar', () => {
+  it('renders the 4 columns and the workspace status bar after data loads', async () => {
     render(
       <I18nProvider>
         <EditorPage />
       </I18nProvider>,
     );
-    expect(screen.getByLabelText(/category rail/i)).toBeInTheDocument();
+    // Wait for data load to complete and the shell to mount.
+    expect(
+      await screen.findByLabelText(/category rail/i, {}, { timeout: 5000 }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText(/device library/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/workspace/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/inspector/i)).toBeInTheDocument();
 
-    // Status bar shows static labels.
     expect(screen.getByText('CURSOR')).toBeInTheDocument();
     expect(screen.getByText('PLOT')).toBeInTheDocument();
   });
@@ -34,9 +36,9 @@ describe('EditorPage', () => {
         <EditorPage />
       </I18nProvider>,
     );
-    // Default active layer = solid → status bar shows SOLID.
-    const status = screen.getAllByText('SOLID');
-    expect(status.length).toBeGreaterThan(0);
+    await screen.findByLabelText(/workspace/i, {}, { timeout: 5000 });
+
+    expect(screen.getAllByText('SOLID').length).toBeGreaterThan(0);
 
     const fluidBtn = screen.getByRole('button', { name: 'FLUID' });
     await userEvent.click(fluidBtn);
