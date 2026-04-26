@@ -17,6 +17,7 @@ export const FILE_TO_SCHEMA: Readonly<Record<string, string>> = {
   'regions.json': 'regions.schema.json',
   'crossing_rules.json': 'crossing_rules.schema.json',
   'tech_tree.json': 'tech_tree.schema.json',
+  'transport_tiers.json': 'transport_tiers.schema.json',
 };
 
 // generated.meta.json is a free-form scraper output marker, not validated.
