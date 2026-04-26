@@ -1,0 +1,24 @@
+{
+  "_doc": "Sample io_ports for 5 common Phase-2 devices, used to exercise port-dependent DRC rules (PORT_001/003/004, LAYER_CROSS_003) until the §5.4 device editor (B9) lets owners populate real port geometry. NOT loaded into production data/versions/1.2/devices.json — only DRC unit tests and a future dev-mode debug toggle injectSampleIoPorts() consume it.",
+  "ports": {
+    "furnance-1": [
+      { "side": "W", "offset": 1, "kind": "solid", "direction_constraint": "input" },
+      { "side": "E", "offset": 1, "kind": "solid", "direction_constraint": "output" }
+    ],
+    "miner-1": [{ "side": "E", "offset": 1, "kind": "solid", "direction_constraint": "output" }],
+    "component-mc-1": [
+      { "side": "W", "offset": 1, "kind": "solid", "direction_constraint": "input" },
+      { "side": "S", "offset": 1, "kind": "solid", "direction_constraint": "input" },
+      { "side": "E", "offset": 1, "kind": "solid", "direction_constraint": "output" }
+    ],
+    "tools-assebling-mc-1": [
+      { "side": "W", "offset": 1, "kind": "solid", "direction_constraint": "input" },
+      { "side": "N", "offset": 1, "kind": "solid", "direction_constraint": "input" },
+      { "side": "E", "offset": 1, "kind": "solid", "direction_constraint": "output" }
+    ],
+    "pump-1": [
+      { "side": "W", "offset": 1, "kind": "fluid", "direction_constraint": "input" },
+      { "side": "E", "offset": 1, "kind": "fluid", "direction_constraint": "output" }
+    ]
+  }
+}
