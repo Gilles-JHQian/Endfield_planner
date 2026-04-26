@@ -85,6 +85,18 @@
   "inspector.summary.devices": "设备",
   "inspector.summary.solidLinks": "传送带",
   "inspector.summary.fluidLinks": "管道",
+
+  "drc.title": "DRC 检查",
+  "drc.expand": "展开",
+  "drc.collapse": "收起",
+  "drc.clean": "无违规",
+  "drc.severity.error": "错误",
+  "drc.severity.warning": "警告",
+  "drc.severity.info": "信息",
+  "drc.skipped.title": "因数据缺失被禁用的规则",
+  "drc.skipped.empty": "无规则被禁用",
+  "drc.summary": "{errors} 错误 · {warnings} 警告 · {info} 信息",
+
   "yes": "是",
   "no": "否"
 }

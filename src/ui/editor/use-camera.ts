@@ -27,6 +27,12 @@ export interface CameraApi extends CameraState {
   pan: (dx: number, dy: number) => void;
   zoomAt: (stageX: number, stageY: number, dir: 1 | -1) => void;
   reset: () => void;
+  /** Pan so that `cell` (world coords) lands at the visual center of the viewport. */
+  centerOn: (
+    cell: { x: number; y: number },
+    containerWidth: number,
+    containerHeight: number,
+  ) => void;
   /** Convert a Stage-local pixel coord to world cell coords (fractional). */
   toWorld: (stageX: number, stageY: number) => { x: number; y: number };
   /** The visible world-cell bounds of the viewport given the container size. */
@@ -73,6 +79,15 @@ export function useCamera(initial: CameraState = DEFAULT): CameraApi {
 
   const reset = useCallback((): void => setState(DEFAULT), []);
 
+  const centerOn = useCallback((cell: { x: number; y: number }, w: number, h: number): void => {
+    setState((s) => {
+      // Keep current zoom; recompute pos so (cell.x+0.5, cell.y+0.5) lands at (w/2, h/2).
+      const px = (cell.x + 0.5) * CELL_PX * s.zoom;
+      const py = (cell.y + 0.5) * CELL_PX * s.zoom;
+      return { zoom: s.zoom, pos: { x: w / 2 - px, y: h / 2 - py } };
+    });
+  }, []);
+
   const toWorld = useCallback(
     (stageX: number, stageY: number) => ({
       x: (stageX - state.pos.x) / (CELL_PX * state.zoom),
@@ -94,5 +109,5 @@ export function useCamera(initial: CameraState = DEFAULT): CameraApi {
     [state.pos.x, state.pos.y, state.zoom],
   );
 
-  return { ...state, pan, zoomAt, reset, toWorld, visibleBounds };
+  return { ...state, pan, zoomAt, reset, centerOn, toWorld, visibleBounds };
 }

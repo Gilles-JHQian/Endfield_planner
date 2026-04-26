@@ -28,6 +28,9 @@ interface Props {
   onCellClick?: (cell: Cell, evt: MouseEvent) => void;
   onCursorChange?: (cell: Cell | null) => void;
   onCameraChange?: (state: { zoom: number }) => void;
+  /** When this changes (and is non-null), pan camera so the cell lands at center.
+   *  Use a fresh Date.now() bump in `nonce` to re-pan to the same cell. */
+  panTarget?: { cell: Cell; nonce: number } | null;
 }
 
 export function Canvas({
@@ -37,6 +40,7 @@ export function Canvas({
   onCellClick,
   onCursorChange,
   onCameraChange,
+  panTarget,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -60,6 +64,13 @@ export function Canvas({
   useEffect(() => {
     onCameraChange?.({ zoom: camera.zoom });
   }, [camera.zoom, onCameraChange]);
+
+  useEffect(() => {
+    if (!panTarget || size.width === 0) return;
+    camera.centerOn(panTarget.cell, size.width, size.height);
+    // We intentionally don't list `camera` / `size` — re-pan only when target nonce changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panTarget?.cell.x, panTarget?.cell.y, panTarget?.nonce]);
 
   function pointerCell(e: Konva.KonvaEventObject<MouseEvent | WheelEvent>): Cell | null {
     const stage = e.target.getStage();

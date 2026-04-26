@@ -85,6 +85,18 @@
   "inspector.summary.devices": "devices",
   "inspector.summary.solidLinks": "belts",
   "inspector.summary.fluidLinks": "pipes",
+
+  "drc.title": "DRC",
+  "drc.expand": "Expand",
+  "drc.collapse": "Collapse",
+  "drc.clean": "No violations",
+  "drc.severity.error": "Error",
+  "drc.severity.warning": "Warning",
+  "drc.severity.info": "Info",
+  "drc.skipped.title": "Rules disabled (missing data)",
+  "drc.skipped.empty": "No rules disabled",
+  "drc.summary": "{errors} errors · {warnings} warnings · {info} info",
+
   "yes": "yes",
   "no": "no"
 }
