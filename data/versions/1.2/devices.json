@@ -683,7 +683,8 @@
     "io_ports": [],
     "tech_prereq": [],
     "category": "power",
-    "recipes": []
+    "recipes": [],
+    "power_aoe": { "kind": "square_centered", "edge": 12, "purpose": "device_supply" }
   },
   {
     "id": "power-diffuser-2",
@@ -699,7 +700,8 @@
     "io_ports": [],
     "tech_prereq": [],
     "category": "power",
-    "recipes": []
+    "recipes": [],
+    "power_aoe": { "kind": "square_centered", "edge": 12, "purpose": "device_supply" }
   },
   {
     "id": "power-pole-2",
@@ -715,7 +717,8 @@
     "io_ports": [],
     "tech_prereq": [],
     "category": "power",
-    "recipes": []
+    "recipes": [],
+    "power_aoe": { "kind": "square_centered", "edge": 7, "purpose": "pole_link" }
   },
   {
     "id": "power-pole-3",
@@ -731,7 +734,8 @@
     "io_ports": [],
     "tech_prereq": [],
     "category": "power",
-    "recipes": []
+    "recipes": [],
+    "power_aoe": { "kind": "square_centered", "edge": 7, "purpose": "pole_link" }
   },
   {
     "id": "power-station-1",
