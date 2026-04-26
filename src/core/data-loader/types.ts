@@ -32,6 +32,17 @@ export interface Footprint {
   readonly height: number;
 }
 
+/** Power-related AoE for 供电桩 / 中继器.
+ *  - `device_supply`: pole that powers devices inside its `edge`-cell square (POWER_001 consults).
+ *  - `pole_link`: repeater that extends pole-to-pole connectivity inside its square but does NOT power devices.
+ *  Centered on the device's footprint center.
+ */
+export interface PowerAoe {
+  readonly kind: 'square_centered';
+  readonly edge: number;
+  readonly purpose: 'device_supply' | 'pole_link';
+}
+
 export interface Device {
   readonly id: string;
   readonly display_name_zh_hans: string;
@@ -45,6 +56,7 @@ export interface Device {
   readonly tech_prereq: readonly string[];
   readonly category: DeviceCategory;
   readonly recipes: readonly string[];
+  readonly power_aoe?: PowerAoe;
 }
 
 export interface RecipePort {

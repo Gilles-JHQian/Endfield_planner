@@ -61,7 +61,18 @@
         "recipes": {
           "type": "array",
           "items": { "type": "string" }
-        }
+        },
+        "power_aoe": { "$ref": "#/$defs/PowerAoe" }
+      }
+    },
+    "PowerAoe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "edge", "purpose"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["square_centered"] },
+        "edge": { "type": "integer", "minimum": 1 },
+        "purpose": { "type": "string", "enum": ["device_supply", "pole_link"] }
       }
     },
     "Footprint": {
