@@ -38,7 +38,7 @@ describe('useTool', () => {
     expect(result.current.tool.kind).toBe('pipe');
 
     act(() => dispatchKey('X'));
-    expect(result.current.tool.kind).toBe('delete');
+    expect(result.current.tool.kind).toBe('box-select');
 
     act(() => dispatchKey('Escape'));
     expect(result.current.tool.kind).toBe('select');

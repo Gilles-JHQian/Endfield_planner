@@ -94,6 +94,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [category, setCategory] = useState<DeviceCategory>('basic_production');
   const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
+  // Box-select multi-selection. Distinct from selectedInstanceId (which the
+  // Inspector single-select uses); both can be live at once. Box-select adds
+  // and removes by click/Shift-click, and is cleared on tool change.
+  const [boxSelected, setBoxSelected] = useState<ReadonlySet<string>>(new Set());
   // Multi-segment belt/pipe draft. Each click adds a waypoint; the segment
   // between consecutive waypoints is BFS-routed around devices. Drafting
   // commits when the user clicks an input port of the matching layer or
@@ -173,6 +177,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     if (toolApi.tool.kind !== 'belt' && toolApi.tool.kind !== 'pipe') {
       setLinkDraft(null);
     }
+    if (toolApi.tool.kind !== 'box-select' && boxSelected.size > 0) {
+      setBoxSelected(new Set());
+    }
   }
 
   // Global undo/redo shortcuts. Ctrl+Z = undo, Ctrl+Shift+Z / Ctrl+Y = redo.
@@ -216,6 +223,31 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedInstanceId, store, toolApi.tool]);
+
+  // Box-select group operations. F = batch-delete; Ctrl+C = copy to clipboard;
+  // Ctrl+V = enter paste sub-mode (TODO once clipboard lands).
+  useEffect(() => {
+    if (toolApi.tool.kind !== 'box-select') return;
+    const onKey = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'f' || e.key === 'F') {
+        if (boxSelected.size === 0) return;
+        e.preventDefault();
+        const actions = Array.from(boxSelected).map((instance_id) => ({
+          type: 'delete_device' as const,
+          instance_id,
+        }));
+        store.applyMany(actions);
+        setBoxSelected(new Set());
+        if (selectedInstanceId && boxSelected.has(selectedInstanceId)) {
+          setSelectedInstanceId(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [boxSelected, store, toolApi.tool, selectedInstanceId]);
 
   // Belt/pipe draft keybindings. Esc cancels the whole draft; Backspace pops
   // the last waypoint (so owners can correct a mis-click without restarting).
@@ -269,7 +301,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const ghost = computeGhost(toolApi.tool, cursor, store.project, lookup);
   const draftPath = computeDraftPath(linkDraft, cursor, store.project, lookup);
 
-  function handleCellClick(cell: Cell): void {
+  function handleCellClick(cell: Cell, evt: MouseEvent): void {
     if (toolApi.tool.kind === 'place') {
       const result = store.apply({
         type: 'place_device',
@@ -282,15 +314,32 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         // TODO B8: surface as DRC issue / toast.
         return;
       }
-    } else if (toolApi.tool.kind === 'delete') {
-      const hit = findDeviceAtCell(store.project.devices, lookup, cell);
-      if (hit) {
-        store.apply({ type: 'delete_device', instance_id: hit.instance_id });
-        if (selectedInstanceId === hit.instance_id) setSelectedInstanceId(null);
-      }
     } else if (toolApi.tool.kind === 'select') {
       const hit = findDeviceAtCell(store.project.devices, lookup, cell);
       setSelectedInstanceId(hit?.instance_id ?? null);
+    } else if (toolApi.tool.kind === 'box-select') {
+      const hit = findDeviceAtCell(store.project.devices, lookup, cell);
+      if (!hit) {
+        // Click on empty cell clears the box selection.
+        if (boxSelected.size > 0) setBoxSelected(new Set());
+        return;
+      }
+      setBoxSelected((prev) => {
+        const next = new Set(prev);
+        if (evt.shiftKey) {
+          // Shift-click: toggle membership.
+          if (next.has(hit.instance_id)) next.delete(hit.instance_id);
+          else next.add(hit.instance_id);
+        } else if (next.has(hit.instance_id) && next.size === 1) {
+          // Click on the lone selected device clears the selection.
+          next.clear();
+        } else {
+          // Click on an unselected device: replace the selection (single click semantics).
+          next.clear();
+          next.add(hit.instance_id);
+        }
+        return next;
+      });
     } else if (toolApi.tool.kind === 'belt' || toolApi.tool.kind === 'pipe') {
       handleLinkClick(cell, toolApi.tool.kind === 'belt' ? 'solid' : 'fluid');
     }
@@ -389,6 +438,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                 devices={store.project.devices}
                 lookup={lookup}
                 selectedInstanceId={selectedInstanceId}
+                boxSelectedIds={boxSelected}
                 coveredInstanceIds={powerCoverage.coveredInstanceIds}
               />
               {viewMode === 'power' && (

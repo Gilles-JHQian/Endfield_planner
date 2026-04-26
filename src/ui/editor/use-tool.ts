@@ -4,7 +4,9 @@
  *  - V = select; Esc = also back to select
  *  - B / E = belt tool; P / Q = pipe tool (B/P preserved for muscle memory,
  *    Q/E added in P3 because they're easier to reach with one hand)
- *  - X / Delete = delete (P3 will replace X with box-select)
+ *  - X = box-select tool (P3 — replaces the legacy X = delete binding;
+ *    delete a single device with the Delete key while selected, or use
+ *    F while box-select has a non-empty selection)
  *  - R = rotate current placement ghost (90° CW)
  */
 import { useEffect, useState } from 'react';
@@ -15,7 +17,7 @@ export type Tool =
   | { kind: 'place'; device: Device; rotation: 0 | 90 | 180 | 270 }
   | { kind: 'belt' }
   | { kind: 'pipe' }
-  | { kind: 'delete' };
+  | { kind: 'box-select' };
 
 export const DEFAULT_TOOL: Tool = { kind: 'select' };
 
@@ -25,7 +27,7 @@ export interface ToolApi {
   setPlace: (device: Device) => void;
   setBelt: () => void;
   setPipe: () => void;
-  setDelete: () => void;
+  setBoxSelect: () => void;
   rotatePlace: () => void;
 }
 
@@ -44,7 +46,7 @@ export function useTool(): ToolApi {
         setTool({ kind: 'belt' });
       else if (e.key === 'p' || e.key === 'P' || e.key === 'q' || e.key === 'Q')
         setTool({ kind: 'pipe' });
-      else if (e.key === 'x' || e.key === 'X' || e.key === 'Delete') setTool({ kind: 'delete' });
+      else if (e.key === 'x' || e.key === 'X') setTool({ kind: 'box-select' });
       else if ((e.key === 'r' || e.key === 'R') && !e.metaKey && !e.ctrlKey) {
         // R only rotates the currently picked-place device's ghost preview.
         // Selected-placed-device rotation goes through the inspector / a
@@ -62,7 +64,7 @@ export function useTool(): ToolApi {
     setPlace: (device) => setTool({ kind: 'place', device, rotation: 0 }),
     setBelt: () => setTool({ kind: 'belt' }),
     setPipe: () => setTool({ kind: 'pipe' }),
-    setDelete: () => setTool({ kind: 'delete' }),
+    setBoxSelect: () => setTool({ kind: 'box-select' }),
     rotatePlace: () =>
       setTool((t) => (t.kind === 'place' ? { ...t, rotation: nextRot(t.rotation) } : t)),
   };

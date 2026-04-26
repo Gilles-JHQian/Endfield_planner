@@ -47,10 +47,10 @@ const BUTTONS: Btn[] = [
   },
   { match: () => false, onClick: () => undefined, glyph: '|', label: '|' },
   {
-    match: (t) => t.kind === 'delete',
-    onClick: (a) => a.setDelete(),
-    glyph: '✕',
-    label: 'X · Delete',
+    match: (t) => t.kind === 'box-select',
+    onClick: (a) => a.setBoxSelect(),
+    glyph: '⛶',
+    label: 'X · Box select',
   },
 ];
 

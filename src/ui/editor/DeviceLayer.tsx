@@ -16,12 +16,21 @@ interface Props {
   devices: readonly PlacedDevice[];
   lookup: (device_id: string) => Device | undefined;
   selectedInstanceId?: string | null;
+  /** Instance ids in the box-select multi-selection. Rendered with a blue
+   *  bracket variant so they don't conflict with the amber single-select. */
+  boxSelectedIds?: ReadonlySet<string>;
   /** Instance ids of devices currently inside some 供电桩 AoE. Devices that
    *  require power but aren't in this set get a red "unplugged" badge. */
   coveredInstanceIds?: ReadonlySet<string>;
 }
 
-export function DeviceLayer({ devices, lookup, selectedInstanceId, coveredInstanceIds }: Props) {
+export function DeviceLayer({
+  devices,
+  lookup,
+  selectedInstanceId,
+  boxSelectedIds,
+  coveredInstanceIds,
+}: Props) {
   return (
     <>
       {devices.map((placed) => {
@@ -38,6 +47,7 @@ export function DeviceLayer({ devices, lookup, selectedInstanceId, coveredInstan
             placed={placed}
             device={dev}
             selected={placed.instance_id === selectedInstanceId}
+            boxSelected={boxSelectedIds?.has(placed.instance_id) ?? false}
             unpowered={unpowered}
           />
         );
@@ -50,11 +60,13 @@ function DeviceShape({
   placed,
   device,
   selected,
+  boxSelected,
   unpowered,
 }: {
   placed: PlacedDevice;
   device: Device;
   selected: boolean;
+  boxSelected: boolean;
   unpowered: boolean;
 }) {
   const bbox = rotatedBoundingBox(device, placed.rotation);
@@ -89,8 +101,14 @@ function DeviceShape({
       )}
       {/* Unpowered badge — red ⚡̸ in the bottom-right corner. */}
       {unpowered && <UnpoweredBadge w={w} h={h} />}
-      {/* Selection brackets — 4 8px corner pieces. */}
-      {selected && <SelectionBrackets w={w} h={h} />}
+      {/* Selection brackets — 4 8px corner pieces.
+       *  Single-select (yellow) takes precedence over box-select (blue) so
+       *  the inspector's focused device stays distinguishable. */}
+      {selected ? (
+        <SelectionBrackets w={w} h={h} color="#ff9a3d" />
+      ) : (
+        boxSelected && <SelectionBrackets w={w} h={h} color="#4ec9d3" />
+      )}
     </Group>
   );
 }
@@ -126,9 +144,9 @@ function UnpoweredBadge({ w, h }: { w: number; h: number }) {
   );
 }
 
-function SelectionBrackets({ w, h }: { w: number; h: number }) {
+function SelectionBrackets({ w, h, color }: { w: number; h: number; color: string }) {
   const b = 8;
-  const stroke = '#ff9a3d';
+  const stroke = color;
   const sw = 2;
   return (
     <Group listening={false}>
