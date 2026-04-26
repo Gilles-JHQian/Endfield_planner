@@ -48,6 +48,22 @@ describe('useTool', () => {
     expect(result.current.tool.kind).toBe('select');
   });
 
+  it('Q is an alias for pipe and E is an alias for belt', () => {
+    const { result } = renderHook(() => useTool());
+
+    act(() => dispatchKey('Q'));
+    expect(result.current.tool.kind).toBe('pipe');
+
+    act(() => dispatchKey('E'));
+    expect(result.current.tool.kind).toBe('belt');
+
+    act(() => dispatchKey('q'));
+    expect(result.current.tool.kind).toBe('pipe');
+
+    act(() => dispatchKey('e'));
+    expect(result.current.tool.kind).toBe('belt');
+  });
+
   it('R rotates the place ghost 90° at a time, no-op for other tools', () => {
     const { result } = renderHook(() => useTool());
 
