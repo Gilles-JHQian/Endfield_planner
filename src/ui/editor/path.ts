@@ -142,6 +142,11 @@ export interface BeltRouteOpts {
    *  OUT of the device through that port's face. The first step must match
    *  this direction or the planner reports a collision at `from`. */
   readonly firstStepDirection?: { dx: number; dy: number };
+  /** When `to` sits on a placed device's INPUT port, the unit vector pointing
+   *  IN to the device through that port's face (i.e. the direction the link
+   *  must arrive in). The last step (path[N-1] - path[N-2]) must match this
+   *  vector or the planner reports a collision at `to`. (P4 v6 §5.1 F3.) */
+  readonly lastStepDirection?: { dx: number; dy: number };
 }
 
 export interface BeltRouteResult {
@@ -209,7 +214,10 @@ export function routeForBelt(from: Cell, to: Cell, opts: BeltRouteOpts): BeltRou
 
   const startWithH =
     headingAxis === null
-      ? true // No heading: default horizontal-first (matches manhattanPath).
+      ? // No heading (very first segment, no port lock): pick L-bend order by
+        // larger displacement axis. Larger axis goes first → matches the
+        // owner's diagonal-quadrant mental model (REQUIREMENT.md §5.1 F3 v6).
+        Math.abs(to.x - from.x) >= Math.abs(to.y - from.y)
       : headingAxis === 'h' && preferForward
         ? true
         : headingAxis === 'v' && preferForward
@@ -231,6 +239,20 @@ export function routeForBelt(from: Cell, to: Cell, opts: BeltRouteOpts): BeltRou
         path,
         bridgesToAutoPlace: [],
         collisions: [{ x: from.x, y: from.y }],
+      };
+    }
+  }
+
+  // Port-direction enforcement at destination (P4 v6): last step into `to`
+  // must match `lastStepDirection` (the direction the input port faces from).
+  if (opts.lastStepDirection && path.length >= 2) {
+    const lastStepDx = path[path.length - 1]!.x - path[path.length - 2]!.x;
+    const lastStepDy = path[path.length - 1]!.y - path[path.length - 2]!.y;
+    if (lastStepDx !== opts.lastStepDirection.dx || lastStepDy !== opts.lastStepDirection.dy) {
+      return {
+        path,
+        bridgesToAutoPlace: [],
+        collisions: [{ x: to.x, y: to.y }],
       };
     }
   }
