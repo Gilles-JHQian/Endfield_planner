@@ -22,11 +22,13 @@
   --color-line-strong: #3d4651;
   --color-line-faint: #1d242c;
 
-  /* -- Text ----------------------------------------------------------------- */
-  --color-text: #e6e8eb;
-  --color-text-soft: #9aa1a9;
-  --color-text-faint: #5a626c;
-  --color-text-dim: #3d4651;
+  /* -- Foreground (text) — handoff calls these --text*; renamed to fg* so
+   *    Tailwind utilities read text-fg / text-fg-soft / etc. instead of
+   *    text-text-soft. */
+  --color-fg: #e6e8eb;
+  --color-fg-soft: #9aa1a9;
+  --color-fg-faint: #5a626c;
+  --color-fg-dim: #3d4651;
 
   /* -- Accents -------------------------------------------------------------- */
   --color-amber: #ff9a3d;
@@ -82,7 +84,7 @@ body,
   padding: 0;
   height: 100vh;
   background: var(--color-surface-0);
-  color: var(--color-text);
+  color: var(--color-fg);
   font-family: var(--font-cn);
   font-size: var(--fs-lg);
   -webkit-font-smoothing: antialiased;
