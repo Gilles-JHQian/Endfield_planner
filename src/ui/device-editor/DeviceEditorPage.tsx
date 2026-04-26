@@ -15,6 +15,7 @@ import { ScalarFields } from './ScalarFields.tsx';
 import { PortGrid } from './PortGrid.tsx';
 import { saveDevicesJson, type SaveResult } from './save-devices.ts';
 import { useDeviceDraft } from './use-device-draft.ts';
+import { applyBaseline, useScrapedBaseline } from './use-scraped-baseline.ts';
 import { useState } from 'react';
 
 const DATA_VERSION = '1.2';
@@ -22,6 +23,7 @@ const DATA_VERSION = '1.2';
 export function DeviceEditorPage() {
   const { bundle, error, loading } = useDataBundle(DATA_VERSION);
   const draftApi = useDeviceDraft();
+  const baseline = useScrapedBaseline(DATA_VERSION);
   const [saveStatus, setSaveStatus] = useState<SaveResult | null>(null);
 
   // Auto-load the first device on first bundle render so the right-hand pane
@@ -52,6 +54,25 @@ export function DeviceEditorPage() {
     const result = await saveDevicesJson(bundle.devices, draftApi.draft);
     setSaveStatus(result);
   }
+
+  function handleResetToBaseline(): void {
+    if (!draftApi.draft || !baseline) return;
+    const baseRecord = baseline.byId.get(draftApi.draft.id);
+    if (!baseRecord) {
+      window.alert(
+        `No scraped baseline for ${draftApi.draft.id}. This is likely a hand-authored device (e.g. logistics bridge).`,
+      );
+      return;
+    }
+    const proceed = window.confirm(
+      `Reset ${draftApi.draft.display_name_zh_hans} (${draftApi.draft.id}) to scraped baseline? io_ports / power_aoe will be preserved.`,
+    );
+    if (!proceed) return;
+    const reset = applyBaseline(draftApi.draft, baseRecord);
+    draftApi.load(reset);
+  }
+
+  const baselineAvailable = baseline?.byId.has(draftApi.draft?.id ?? '') ?? false;
 
   return (
     <div
@@ -120,7 +141,19 @@ export function DeviceEditorPage() {
           onClick={draftApi.reset}
           disabled={!draftApi.draft || !draftApi.dirty}
         >
-          Reset
+          Reset edits
+        </Button>
+        <Button
+          intent="ghost"
+          onClick={handleResetToBaseline}
+          disabled={!draftApi.draft || !baselineAvailable}
+          title={
+            baselineAvailable
+              ? 'Restore the scraped fields, preserving io_ports / power_aoe'
+              : 'No scraped baseline for this device'
+          }
+        >
+          Reset to scraped
         </Button>
         {saveStatus && (
           <div className="mt-3 rounded-[2px] border border-line bg-surface-0 p-2 font-tech-mono text-[10px] text-fg-soft">
