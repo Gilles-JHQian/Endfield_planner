@@ -37,6 +37,7 @@ import {
   type ProjectRouteContext,
 } from './belt-router.ts';
 import { computePowerCoverage } from '@core/domain/power-coverage.ts';
+import { generateInstanceId } from '@core/domain/project.ts';
 import type { Layer } from '@core/domain/types.ts';
 import type { Issue } from '@core/drc/index.ts';
 import {
@@ -542,36 +543,106 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     );
     if (planned.collisions.length > 0) return; // shouldn't happen — ghost gates clicks
 
-    const actions: ProjectAction[] = [];
-    const seenBridge = new Set<string>();
-    const bridgeDev = lookup(crossBridgeId(layer));
-    if (bridgeDev) {
-      for (const c of planned.bridgesToAutoPlace) {
-        const k = `${c.x.toString()},${c.y.toString()}`;
-        if (seenBridge.has(k)) continue;
-        seenBridge.add(k);
-        actions.push({
-          type: 'place_device',
-          device: bridgeDev,
-          position: c,
-          rotation: 0,
-        });
-      }
-    }
+    const tier_id = defaultTierId(bundle, layer);
     const srcRef = startPort
       ? { device_instance_id: startPort.device_instance_id, port_index: startPort.port_index }
       : undefined;
     const dstRef = portHit
       ? { device_instance_id: portHit.device_instance_id, port_index: portHit.port_index }
       : undefined;
-    actions.push({
-      type: 'add_link',
-      layer,
-      tier_id: defaultTierId(bundle, layer),
-      path: planned.path,
-      ...(srcRef ? { src: srcRef } : {}),
-      ...(dstRef ? { dst: dstRef } : {}),
-    });
+
+    // P4 v6 auto-bridge truncation. For each cross-bridge the planner wants
+    // to auto-place:
+    //  1. Pre-generate the bridge's instance_id so split actions can forward-
+    //     reference it inside the same applyMany batch.
+    //  2. Emit place_device with the pinned id.
+    //  3. Split the existing same-layer link covering the bridge cell — the
+    //     two halves connect to the bridge's port on the side they enter /
+    //     exit. The bridge cell is dropped from both halves (the bridge
+    //     occupies it now).
+    //  4. The NEW link is broken into segments at every bridge cell; each
+    //     segment becomes a separate add_link with src/dst pointing at the
+    //     adjacent bridge's port (or the original endpoints at the outer
+    //     ends).
+    const bridgeDev = lookup(crossBridgeId(layer));
+    const bridgeIdByCell = new Map<string, string>();
+    if (bridgeDev) {
+      for (const c of planned.bridgesToAutoPlace) {
+        const k = `${c.x.toString()},${c.y.toString()}`;
+        if (bridgeIdByCell.has(k)) continue;
+        bridgeIdByCell.set(k, generateInstanceId('d'));
+      }
+    }
+
+    const actions: ProjectAction[] = [];
+    // Step 2: place each bridge.
+    if (bridgeDev) {
+      for (const [k, instance_id] of bridgeIdByCell) {
+        const [sx, sy] = k.split(',');
+        actions.push({
+          type: 'place_device',
+          device: bridgeDev,
+          position: { x: Number.parseInt(sx!, 10), y: Number.parseInt(sy!, 10) },
+          rotation: 0,
+          instance_id,
+        });
+      }
+    }
+
+    // Step 3: split existing links covered by each new bridge.
+    for (const [k, bridgeId] of bridgeIdByCell) {
+      const [sx, sy] = k.split(',');
+      const cell = { x: Number.parseInt(sx!, 10), y: Number.parseInt(sy!, 10) };
+      const existing = findLayerLinkAtCell(store.project, layer, cell);
+      if (!existing) continue;
+      const idx = existing.path.findIndex((c) => c.x === cell.x && c.y === cell.y);
+      if (idx <= 0 || idx >= existing.path.length - 1) continue; // can't split at endpoints
+      const inDir = signDir(existing.path[idx]!, existing.path[idx - 1]!);
+      const outDir = signDir(existing.path[idx + 1]!, existing.path[idx]!);
+      actions.push({
+        type: 'split_link',
+        link_id: existing.id,
+        at_cell: cell,
+        left_dst: { device_instance_id: bridgeId, port_index: portIndexForArrival(inDir) },
+        right_src: { device_instance_id: bridgeId, port_index: portIndexForExit(outDir) },
+      });
+    }
+
+    // Step 4: emit the new link as one or more segments split at bridge cells.
+    const segments = splitPathAtBridges(planned.path, bridgeIdByCell);
+    for (let i = 0; i < segments.length; i++) {
+      const seg = segments[i]!;
+      const isFirst = i === 0;
+      const isLast = i === segments.length - 1;
+      const segSrc = isFirst
+        ? srcRef
+        : (() => {
+            const prevBridgeKey = seg.entryFromBridgeKey!;
+            const id = bridgeIdByCell.get(prevBridgeKey)!;
+            const [bx, by] = prevBridgeKey.split(',');
+            const bridgeCell = { x: Number.parseInt(bx!, 10), y: Number.parseInt(by!, 10) };
+            const exitDir = signDir(seg.path[0]!, bridgeCell);
+            return { device_instance_id: id, port_index: portIndexForExit(exitDir) };
+          })();
+      const segDst = isLast
+        ? dstRef
+        : (() => {
+            const nextBridgeKey = seg.exitToBridgeKey!;
+            const id = bridgeIdByCell.get(nextBridgeKey)!;
+            const [bx, by] = nextBridgeKey.split(',');
+            const bridgeCell = { x: Number.parseInt(bx!, 10), y: Number.parseInt(by!, 10) };
+            const arriveDir = signDir(bridgeCell, seg.path[seg.path.length - 1]!);
+            return { device_instance_id: id, port_index: portIndexForArrival(arriveDir) };
+          })();
+      actions.push({
+        type: 'add_link',
+        layer,
+        tier_id,
+        path: seg.path,
+        ...(segSrc ? { src: segSrc } : {}),
+        ...(segDst ? { dst: segDst } : {}),
+      });
+    }
     store.applyMany(actions);
   }
 
@@ -805,4 +876,90 @@ function findLinkAtCell(
     }
   }
   return null;
+}
+
+/** Same as findLinkAtCell but restricted to one layer. Returns the full Link
+ *  so the caller can read its path (for the auto-bridge truncation flow). */
+function findLayerLinkAtCell(
+  project: ReturnType<typeof useProject>['project'],
+  layer: Layer,
+  cell: Cell,
+): { id: string; path: readonly Cell[] } | null {
+  const links = layer === 'solid' ? project.solid_links : project.fluid_links;
+  for (const link of links) {
+    for (const c of link.path) {
+      if (c.x === cell.x && c.y === cell.y) return { id: link.id, path: link.path };
+    }
+  }
+  return null;
+}
+
+/** Direction from `from` to `to` as a unit cardinal vector. Both cells are
+ *  assumed adjacent (differ by exactly 1 in one axis). */
+function signDir(to: Cell, from: Cell): { dx: number; dy: number } {
+  return { dx: Math.sign(to.x - from.x), dy: Math.sign(to.y - from.y) };
+}
+
+/** Belt port indices on cross-bridge devices (1×1, ports declared in N,E,S,W
+ *  order in the catalog devices file → indices 0,1,2,3). Bridge rotation is
+ *  always 0 in the auto-place flow, so unrotated == world side. */
+const PORT_INDEX_BY_SIDE: Record<'N' | 'E' | 'S' | 'W', number> = { N: 0, E: 1, S: 2, W: 3 };
+
+/** Belt moving in `dir` enters a cell through the side opposite to `dir`. */
+function portIndexForArrival(dir: { dx: number; dy: number }): number {
+  if (dir.dx > 0) return PORT_INDEX_BY_SIDE.W;
+  if (dir.dx < 0) return PORT_INDEX_BY_SIDE.E;
+  if (dir.dy > 0) return PORT_INDEX_BY_SIDE.N;
+  return PORT_INDEX_BY_SIDE.S;
+}
+
+/** Belt moving in `dir` exits a cell through the side aligned with `dir`. */
+function portIndexForExit(dir: { dx: number; dy: number }): number {
+  if (dir.dx > 0) return PORT_INDEX_BY_SIDE.E;
+  if (dir.dx < 0) return PORT_INDEX_BY_SIDE.W;
+  if (dir.dy > 0) return PORT_INDEX_BY_SIDE.S;
+  return PORT_INDEX_BY_SIDE.N;
+}
+
+/** Split `path` at every cell whose key is in `bridgeKeys`. The bridge cells
+ *  themselves are dropped from the segments (the bridge device occupies them
+ *  now). Each returned segment notes which bridge it borders on each side
+ *  (or undefined for the outer ends). */
+interface PathSegment {
+  readonly path: readonly Cell[];
+  readonly entryFromBridgeKey?: string;
+  readonly exitToBridgeKey?: string;
+}
+function splitPathAtBridges(
+  path: readonly Cell[],
+  bridgeKeys: ReadonlyMap<string, string>,
+): PathSegment[] {
+  const segments: PathSegment[] = [];
+  let current: Cell[] = [];
+  let entryFrom: string | undefined;
+  for (const c of path) {
+    const k = `${c.x.toString()},${c.y.toString()}`;
+    if (bridgeKeys.has(k)) {
+      if (current.length > 0) {
+        const seg: PathSegment = {
+          path: current,
+          ...(entryFrom !== undefined ? { entryFromBridgeKey: entryFrom } : {}),
+          exitToBridgeKey: k,
+        };
+        segments.push(seg);
+      }
+      current = [];
+      entryFrom = k;
+      continue;
+    }
+    current.push(c);
+  }
+  if (current.length > 0) {
+    const seg: PathSegment = {
+      path: current,
+      ...(entryFrom !== undefined ? { entryFromBridgeKey: entryFrom } : {}),
+    };
+    segments.push(seg);
+  }
+  return segments;
 }
