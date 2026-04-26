@@ -18,10 +18,10 @@ const PORT_KIND_COLOR: Record<PortKind, string> = {
   fluid: '#4ec9d3',
   power: '#f0b73a',
 };
-// P4 v6: triangle made flatter (length down, wings unchanged) so the base is
-// wider than the height — the original 0.4 length read as a long spike.
-const TRIANGLE_LEN = CELL_PX * 0.22;
-const TRIANGLE_WING = CELL_PX * 0.18;
+// P4 v7: even flatter — wings widened, length shortened further. Triangle
+// reads as a wide arrow / chevron rather than a tall spike.
+const TRIANGLE_LEN = CELL_PX * 0.18;
+const TRIANGLE_WING = CELL_PX * 0.26;
 const BIDIR_BOX = CELL_PX * 0.18;
 
 interface Props {
