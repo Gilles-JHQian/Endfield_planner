@@ -1,33 +1,49 @@
 /** Konva canvas — the pannable / zoomable workspace.
  *
  *  Three Konva layers, listening flags tuned for performance:
- *  1. grid layer (listening=false): grid lines, plot rect, never receives events
- *  2. content layer (listening=true): devices + links (later commits)
- *  3. overlay layer (listening=false): selection + ghost preview (later commits)
+ *  1. grid layer (listening=false): grid lines, plot rect
+ *  2. content layer (listening=true): devices (+ links B7.5)
+ *  3. overlay layer (listening=false): ghost preview, selection brackets
+ *
+ *  Click handler converts pointer pixels → world cell and forwards to
+ *  EditorPage so the active tool can act on it (place / select / delete /
+ *  belt-anchor).
  */
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Layer, Stage } from 'react-konva';
 import type Konva from 'konva';
+import type { Cell } from '@core/domain/types.ts';
 import { CELL_PX, useCamera } from './use-camera.ts';
 import { Grid } from './Grid.tsx';
 import { PlotRect } from './PlotRect.tsx';
 
 interface Props {
   plot: { width: number; height: number };
-  /** Optional: report cursor position to parent (for status bar). */
-  onCursorChange?: (cell: { x: number; y: number } | null) => void;
-  /** Optional: report camera state. */
+  /** Render-content for the device/links layer (devices, link paths). */
+  content?: ReactNode;
+  /** Render-content for the overlay layer (ghost preview, hover highlights). */
+  overlay?: ReactNode;
+  /** Click on a world cell — forwarded to active tool by parent. */
+  onCellClick?: (cell: Cell, evt: MouseEvent) => void;
+  onCursorChange?: (cell: Cell | null) => void;
   onCameraChange?: (state: { zoom: number }) => void;
 }
 
-export function Canvas({ plot, onCursorChange, onCameraChange }: Props) {
+export function Canvas({
+  plot,
+  content,
+  overlay,
+  onCellClick,
+  onCursorChange,
+  onCameraChange,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const camera = useCamera();
   const isPanning = useRef(false);
   const lastPan = useRef<{ x: number; y: number } | null>(null);
 
-  // Track container size via ResizeObserver.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -45,6 +61,14 @@ export function Canvas({ plot, onCursorChange, onCameraChange }: Props) {
     onCameraChange?.({ zoom: camera.zoom });
   }, [camera.zoom, onCameraChange]);
 
+  function pointerCell(e: Konva.KonvaEventObject<MouseEvent | WheelEvent>): Cell | null {
+    const stage = e.target.getStage();
+    const pointer = stage?.getPointerPosition();
+    if (!pointer) return null;
+    const w = camera.toWorld(pointer.x, pointer.y);
+    return { x: Math.floor(w.x), y: Math.floor(w.y) };
+  }
+
   function handleWheel(e: Konva.KonvaEventObject<WheelEvent>): void {
     e.evt.preventDefault();
     const stage = e.target.getStage();
@@ -55,12 +79,17 @@ export function Canvas({ plot, onCursorChange, onCameraChange }: Props) {
   }
 
   function handleMouseDown(e: Konva.KonvaEventObject<MouseEvent>): void {
-    // Middle-mouse pan, or left-button on empty area (later: tool-aware).
     if (e.evt.button === 1) {
       isPanning.current = true;
       lastPan.current = { x: e.evt.clientX, y: e.evt.clientY };
       e.evt.preventDefault();
     }
+  }
+
+  function handleClick(e: Konva.KonvaEventObject<MouseEvent>): void {
+    if (e.evt.button !== 0) return; // primary button only
+    const cell = pointerCell(e);
+    if (cell) onCellClick?.(cell, e.evt);
   }
 
   function handleMouseMove(e: Konva.KonvaEventObject<MouseEvent>): void {
@@ -70,12 +99,7 @@ export function Canvas({ plot, onCursorChange, onCameraChange }: Props) {
       camera.pan(dx, dy);
       lastPan.current = { x: e.evt.clientX, y: e.evt.clientY };
     }
-    const stage = e.target.getStage();
-    const pointer = stage?.getPointerPosition();
-    if (pointer && onCursorChange) {
-      const w = camera.toWorld(pointer.x, pointer.y);
-      onCursorChange({ x: Math.floor(w.x), y: Math.floor(w.y) });
-    }
+    onCursorChange?.(pointerCell(e));
   }
 
   function handleMouseUp(): void {
@@ -103,6 +127,7 @@ export function Canvas({ plot, onCursorChange, onCameraChange }: Props) {
           scaleY={camera.zoom}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
+          onClick={handleClick}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
@@ -116,8 +141,8 @@ export function Canvas({ plot, onCursorChange, onCameraChange }: Props) {
             />
             <PlotRect plot={plot} cellPx={CELL_PX} />
           </Layer>
-          <Layer listening>{/* devices + links land in B7 */}</Layer>
-          <Layer listening={false}>{/* selection + ghost preview land in B7 */}</Layer>
+          <Layer listening>{content}</Layer>
+          <Layer listening={false}>{overlay}</Layer>
         </Stage>
       )}
     </div>

@@ -8,6 +8,8 @@
 import { useMemo, useState } from 'react';
 import { useDataBundle } from '@ui/use-data-bundle.ts';
 import { createProject } from '@core/domain/project.ts';
+import type { Cell } from '@core/domain/types.ts';
+import { buildOccupancy, cellBlockedFor, fitsInPlot, footprintCells } from '@core/domain/index.ts';
 import type { DataBundle, Device, DeviceCategory } from '@core/data-loader/types.ts';
 import { Canvas } from './Canvas.tsx';
 import { LayerToggle } from './LayerToggle.tsx';
@@ -15,6 +17,8 @@ import { StatusBar } from './StatusBar.tsx';
 import { Rail } from './Rail.tsx';
 import { Library } from './Library.tsx';
 import { Toolbar } from './Toolbar.tsx';
+import { DeviceLayer, findDeviceAtCell } from './DeviceLayer.tsx';
+import { GhostPreview } from './GhostPreview.tsx';
 import { useViewMode } from './use-view-mode.ts';
 import { useProject } from './use-project.ts';
 import { useTool } from './use-tool.ts';
@@ -72,6 +76,31 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     else toolApi.setSelect();
   }
 
+  // Ghost preview for the place tool — derived inline. Recomputes on every
+  // render but each call is O(footprint cells), well under the 16ms budget.
+  // The React 19 compiler memoizes Konva re-renders to the overlay layer.
+  const ghost = computeGhost(toolApi.tool, cursor, store.project, lookup);
+
+  function handleCellClick(cell: Cell): void {
+    if (toolApi.tool.kind === 'place') {
+      const result = store.apply({
+        type: 'place_device',
+        device: toolApi.tool.device,
+        position: cell,
+        rotation: toolApi.tool.rotation,
+      });
+      if (!result.ok) {
+        // For now silent — visual ghost color already told the user it's invalid.
+        // TODO B8: surface as DRC issue / toast.
+        return;
+      }
+    } else if (toolApi.tool.kind === 'delete') {
+      const hit = findDeviceAtCell(store.project.devices, lookup, cell);
+      if (hit) store.apply({ type: 'delete_device', instance_id: hit.instance_id });
+    }
+    // belt / pipe / select land in B7 commit 5+.
+  }
+
   return (
     <div
       className="grid h-[calc(100vh-44px)] overflow-hidden"
@@ -102,6 +131,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       <main aria-label="workspace" className="relative bg-canvas">
         <Canvas
           plot={store.project.plot}
+          content={<DeviceLayer devices={store.project.devices} lookup={lookup} />}
+          overlay={ghost ? <GhostPreview {...ghost} /> : null}
+          onCellClick={handleCellClick}
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
         />
@@ -130,4 +162,33 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       </aside>
     </div>
   );
+}
+
+interface GhostState {
+  device: Device;
+  cell: Cell;
+  rotation: 0 | 90 | 180 | 270;
+  status: 'valid' | 'collision' | 'warn';
+}
+
+function computeGhost(
+  tool: ReturnType<typeof useTool>['tool'],
+  cursor: Cell | null,
+  project: ReturnType<typeof useProject>['project'],
+  lookup: (id: string) => Device | undefined,
+): GhostState | null {
+  if (tool.kind !== 'place' || !cursor) return null;
+  const { device, rotation } = tool;
+  const placed = { position: cursor, rotation };
+
+  if (!fitsInPlot(device, placed, project.plot)) {
+    return { device, cell: cursor, rotation, status: 'collision' };
+  }
+  const occ = buildOccupancy(project, lookup);
+  for (const c of footprintCells(device, placed)) {
+    if (cellBlockedFor(c, 'solid', occ) || cellBlockedFor(c, 'fluid', occ)) {
+      return { device, cell: cursor, rotation, status: 'collision' };
+    }
+  }
+  return { device, cell: cursor, rotation, status: 'valid' };
 }
