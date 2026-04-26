@@ -20,6 +20,7 @@ import { Toolbar } from './Toolbar.tsx';
 import { DeviceLayer, findDeviceAtCell } from './DeviceLayer.tsx';
 import { DraftPath } from './DraftPath.tsx';
 import { GhostPreview } from './GhostPreview.tsx';
+import { HistoryControls } from './HistoryControls.tsx';
 import { Inspector } from './Inspector.tsx';
 import { LinkLayer } from './LinkLayer.tsx';
 import { manhattanPath } from './path.ts';
@@ -85,6 +86,28 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       setLinkAnchor(null);
     }
   }
+
+  // Global undo/redo shortcuts. Ctrl+Z = undo, Ctrl+Shift+Z / Ctrl+Y = redo.
+  // Ignored when typing in inputs so the inspector's recipe selector etc.
+  // can use the OS-native undo for text fields.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      const meta = e.ctrlKey || e.metaKey;
+      if (!meta) return;
+      if (e.key === 'z' || e.key === 'Z') {
+        e.preventDefault();
+        if (e.shiftKey) store.redo();
+        else store.undo();
+      } else if (e.key === 'y' || e.key === 'Y') {
+        e.preventDefault();
+        store.redo();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [store]);
 
   // Selection-aware keyboard shortcuts (R rotates selected device, Delete
   // deletes it). useTool's R already handles ghost rotation; this only fires
@@ -227,6 +250,12 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         />
         <Toolbar api={toolApi} />
         <LayerToggle active={viewMode} onChange={setViewMode} />
+        <HistoryControls
+          canUndo={store.canUndo}
+          canRedo={store.canRedo}
+          onUndo={store.undo}
+          onRedo={store.redo}
+        />
         <StatusBar
           cursor={cursor}
           zoom={zoom}
