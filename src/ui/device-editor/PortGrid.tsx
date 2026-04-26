@@ -1,16 +1,18 @@
-/** Footprint + port grid editor.
+/** Footprint + per-face port editor (P4 v5).
  *
- *  Renders a W×H grid of cells. Perimeter cells (border of the footprint) are
- *  clickable: clicking an empty perimeter cell adds a new port at that
- *  (side, offset); clicking an existing port cell selects it for editing.
+ *  Renders a W×H grid of body cells plus thin face-buttons around the
+ *  perimeter — one per external face. The same cell can host up to two
+ *  ports if it sits at a corner (one port per exposed face), which is
+ *  required by the logistics bridges and any future multi-face device.
  *
- *  Below the grid, a port list with side/offset/kind/direction_constraint
- *  controls. Clicking the trash icon removes the port.
+ *  Click an empty face → adds a port at (side, offset) with default
+ *  kind=solid + direction_constraint=input.
+ *  Click an existing port's face → selects it; the row below the grid
+ *  exposes side / offset / kind / direction_constraint editors.
  */
 import { useState } from 'react';
 import { rotatedBoundingBox } from '@core/domain/geometry.ts';
-import type { Port, PortDirection, PortKind, PortSide } from '@core/data-loader/types.ts';
-import type { Device } from '@core/data-loader/types.ts';
+import type { Device, Port, PortDirection, PortKind, PortSide } from '@core/data-loader/types.ts';
 
 interface Props {
   draft: Device;
@@ -19,7 +21,8 @@ interface Props {
   removePort: (port_index: number) => void;
 }
 
-const CELL_PX = 24;
+const BODY_PX = 28;
+const FACE_PX = 12; // thickness of perimeter face buttons
 const KINDS: readonly PortKind[] = ['solid', 'fluid', 'power'];
 const DIRECTIONS: readonly PortDirection[] = [
   'input',
@@ -32,100 +35,99 @@ export function PortGrid({ draft, addPort, updatePort, removePort }: Props) {
   const { width, height } = rotatedBoundingBox(draft, 0);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
-  function portAtCell(lx: number, ly: number): { index: number; port: Port } | null {
+  function findPortOnFace(side: PortSide, offset: number): { index: number; port: Port } | null {
     for (let i = 0; i < draft.io_ports.length; i++) {
       const p = draft.io_ports[i]!;
-      const cell = portLocalCell(p, width, height);
-      if (cell.x === lx && cell.y === ly) return { index: i, port: p };
+      if (p.side === side && p.offset === offset) return { index: i, port: p };
     }
     return null;
   }
 
-  function portOnSide(side: PortSide): { index: number; port: Port } | null {
-    for (let i = 0; i < draft.io_ports.length; i++) {
-      const p = draft.io_ports[i]!;
-      if (p.side === side) return { index: i, port: p };
-    }
-    return null;
-  }
-
-  function handleCellClick(lx: number, ly: number): void {
-    const side = sideOf(lx, ly, width, height);
-    if (!side) return; // interior cell
-    const existing = portAtCell(lx, ly);
+  function handleFaceClick(side: PortSide, offset: number): void {
+    const existing = findPortOnFace(side, offset);
     if (existing) {
       setSelectedIdx(existing.index);
       return;
     }
-    const offset = side === 'N' || side === 'S' ? lx : ly;
     addPort({ side, offset, kind: 'solid', direction_constraint: 'input' });
-    setSelectedIdx(draft.io_ports.length); // index it'll have after the add
+    // The new port lands at the end of the array.
+    setSelectedIdx(draft.io_ports.length);
   }
 
-  function handleSideClick(side: PortSide): void {
-    // Used by the 1×1 special layout: side maps unambiguously to one slot.
-    const existing = portOnSide(side);
-    if (existing) {
-      setSelectedIdx(existing.index);
-      return;
-    }
-    addPort({ side, offset: 0, kind: 'solid', direction_constraint: 'input' });
-    setSelectedIdx(draft.io_ports.length);
+  // Grid coordinates: row 1 = top face strip, row 2..H+1 = body, row H+2 = bottom.
+  // Col 1 = left face strip, col 2..W+1 = body, col W+2 = right.
+  const totalCols = width + 2;
+  const totalRows = height + 2;
+
+  const faceButtons: { side: PortSide; offset: number; row: number; col: number }[] = [];
+  for (let i = 0; i < width; i++) {
+    faceButtons.push({ side: 'N', offset: i, row: 1, col: 2 + i });
+    faceButtons.push({ side: 'S', offset: i, row: totalRows, col: 2 + i });
+  }
+  for (let j = 0; j < height; j++) {
+    faceButtons.push({ side: 'W', offset: j, row: 2 + j, col: 1 });
+    faceButtons.push({ side: 'E', offset: j, row: 2 + j, col: totalCols });
   }
 
   return (
     <div>
       <div className="mb-2 font-display text-[9px] uppercase tracking-[1.5px] text-fg-faint">
-        Footprint · {width.toString()}×{height.toString()}
+        Footprint · {width.toString()}×{height.toString()} · click a face to toggle a port
       </div>
-      {width === 1 && height === 1 ? (
-        <OneByOneGrid
-          portOnSide={portOnSide}
-          selectedIdx={selectedIdx}
-          onSideClick={handleSideClick}
-        />
-      ) : (
-        <div
-          className="grid gap-px bg-line p-px"
-          style={{
-            width: width * CELL_PX + (width + 1),
-            gridTemplateColumns: `repeat(${width.toString()}, ${CELL_PX.toString()}px)`,
-          }}
-        >
-          {Array.from({ length: height }, (_, ly) =>
-            Array.from({ length: width }, (_, lx) => {
-              const side = sideOf(lx, ly, width, height);
-              const port = portAtCell(lx, ly);
-              const cls = !side
-                ? 'bg-surface-2'
-                : port
-                  ? `bg-amber/30 border-amber ${selectedIdx === port.index ? 'ring-2 ring-amber' : ''}`
-                  : 'bg-surface-1 hover:bg-surface-3 cursor-pointer';
-              return (
-                <button
-                  key={`${lx.toString()}-${ly.toString()}`}
-                  type="button"
-                  onClick={() => handleCellClick(lx, ly)}
-                  className={`grid h-[24px] w-[24px] place-items-center font-tech-mono text-[8px] ${cls}`}
-                  disabled={!side}
-                  aria-label={
-                    side
-                      ? `cell ${lx.toString()},${ly.toString()} (${side})`
-                      : `interior ${lx.toString()},${ly.toString()}`
-                  }
-                >
-                  {port ? port.port.kind[0]?.toUpperCase() : ''}
-                </button>
-              );
-            }),
-          )}
-        </div>
-      )}
+      <div
+        className="grid w-fit gap-px bg-line p-px"
+        style={{
+          gridTemplateColumns: `${FACE_PX.toString()}px repeat(${width.toString()}, ${BODY_PX.toString()}px) ${FACE_PX.toString()}px`,
+          gridTemplateRows: `${FACE_PX.toString()}px repeat(${height.toString()}, ${BODY_PX.toString()}px) ${FACE_PX.toString()}px`,
+        }}
+      >
+        {/* Body cells — non-clickable */}
+        {Array.from({ length: height }, (_, ly) =>
+          Array.from({ length: width }, (_, lx) => (
+            <div
+              key={`body-${lx.toString()}-${ly.toString()}`}
+              className="bg-surface-2"
+              style={{ gridRow: 2 + ly, gridColumn: 2 + lx }}
+            />
+          )),
+        )}
+        {/* Face buttons */}
+        {faceButtons.map(({ side, offset, row, col }) => {
+          const port = findPortOnFace(side, offset);
+          const isSelected = selectedIdx !== null && port?.index === selectedIdx;
+          const cls = port
+            ? `bg-amber/40 ${isSelected ? 'ring-2 ring-amber' : ''}`
+            : 'bg-surface-1 cursor-pointer hover:bg-surface-3';
+          return (
+            <button
+              key={`face-${side}-${offset.toString()}`}
+              type="button"
+              onClick={() => handleFaceClick(side, offset)}
+              className={`grid place-items-center font-tech-mono text-[8px] text-fg-soft ${cls}`}
+              style={{ gridRow: row, gridColumn: col }}
+              aria-label={`${side} face offset ${offset.toString()}`}
+              title={
+                port
+                  ? `${side} #${offset.toString()} (${port.port.kind}, ${port.port.direction_constraint})`
+                  : `Add port on ${side} face #${offset.toString()}`
+              }
+            >
+              {port
+                ? port.port.kind === 'solid'
+                  ? 'S'
+                  : port.port.kind === 'fluid'
+                    ? 'F'
+                    : 'P'
+                : ''}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="mt-3 space-y-1.5">
         {draft.io_ports.length === 0 && (
           <div className="font-tech-mono text-[10px] text-fg-faint">
-            No ports yet — click a perimeter cell above.
+            No ports yet — click a face above (the thin strips around the body grid).
           </div>
         )}
         {draft.io_ports.map((port, i) => (
@@ -218,78 +220,4 @@ function PortRow({
       </button>
     </div>
   );
-}
-
-/** Special layout for 1×1 devices (logistics bridges): the single cell can't
- *  resolve to four sides on its own, so we render the cell + four perimeter
- *  buttons positioned N / E / S / W around it. Each side maps unambiguously
- *  to a port slot (offset 0). */
-function OneByOneGrid({
-  portOnSide,
-  selectedIdx,
-  onSideClick,
-}: {
-  portOnSide: (s: PortSide) => { index: number; port: Port } | null;
-  selectedIdx: number | null;
-  onSideClick: (s: PortSide) => void;
-}) {
-  const SIDES: { side: PortSide; row: number; col: number; label: string }[] = [
-    { side: 'N', row: 1, col: 2, label: 'N' },
-    { side: 'W', row: 2, col: 1, label: 'W' },
-    { side: 'E', row: 2, col: 3, label: 'E' },
-    { side: 'S', row: 3, col: 2, label: 'S' },
-  ];
-  return (
-    <div
-      className="grid w-fit gap-px bg-line p-px"
-      style={{ gridTemplateColumns: 'repeat(3, 28px)', gridTemplateRows: 'repeat(3, 28px)' }}
-    >
-      {/* Center body cell, non-clickable */}
-      <div
-        className="grid bg-surface-2 font-tech-mono text-[8px] text-fg-faint"
-        style={{ gridRow: 2, gridColumn: 2, placeItems: 'center' }}
-      >
-        1×1
-      </div>
-      {SIDES.map(({ side, row, col, label }) => {
-        const port = portOnSide(side);
-        const cls = port
-          ? `bg-amber/30 border-amber ${selectedIdx === port.index ? 'ring-2 ring-amber' : ''}`
-          : 'bg-surface-1 hover:bg-surface-3 cursor-pointer';
-        return (
-          <button
-            key={side}
-            type="button"
-            onClick={() => onSideClick(side)}
-            className={`grid place-items-center font-tech-mono text-[9px] ${cls}`}
-            style={{ gridRow: row, gridColumn: col }}
-            aria-label={`side ${label}`}
-          >
-            {port ? port.port.kind[0]?.toUpperCase() : label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function sideOf(lx: number, ly: number, w: number, h: number): PortSide | null {
-  if (ly === 0) return 'N';
-  if (ly === h - 1) return 'S';
-  if (lx === 0) return 'W';
-  if (lx === w - 1) return 'E';
-  return null;
-}
-
-function portLocalCell(port: Pick<Port, 'side' | 'offset'>, w: number, h: number) {
-  switch (port.side) {
-    case 'N':
-      return { x: port.offset, y: 0 };
-    case 'S':
-      return { x: port.offset, y: h - 1 };
-    case 'W':
-      return { x: 0, y: port.offset };
-    case 'E':
-      return { x: w - 1, y: port.offset };
-  }
 }

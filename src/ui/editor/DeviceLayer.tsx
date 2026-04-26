@@ -6,11 +6,21 @@
  *  - has_fluid_interface → teal accent
  *  - otherwise → amber accent
  */
-import { Group, Rect, Text } from 'react-konva';
-import { footprintCells, rotatedBoundingBox } from '@core/domain/geometry.ts';
+import { Group, Line, Rect, Text } from 'react-konva';
+import { footprintCells, portsInWorldFrame, rotatedBoundingBox } from '@core/domain/geometry.ts';
 import type { PlacedDevice } from '@core/domain/types.ts';
-import type { Device } from '@core/data-loader/types.ts';
+import type { Device, PortKind } from '@core/data-loader/types.ts';
+import type { WorldPort } from '@core/domain/geometry.ts';
 import { CELL_PX } from './use-camera.ts';
+
+const PORT_KIND_COLOR: Record<PortKind, string> = {
+  solid: '#ff9a3d',
+  fluid: '#4ec9d3',
+  power: '#f0b73a',
+};
+const TRIANGLE_LEN = CELL_PX * 0.4;
+const TRIANGLE_WING = CELL_PX * 0.18;
+const BIDIR_BOX = CELL_PX * 0.22;
 
 interface Props {
   devices: readonly PlacedDevice[];
@@ -99,6 +109,9 @@ function DeviceShape({
       {placed.recipe_id !== null && (
         <Rect x={w - 6} y={2} width={4} height={4} fill="#ff9a3d" listening={false} />
       )}
+      {/* Per-port direction triangles — outward = output, inward = input,
+       *  small box = bidirectional / paired_opposite. */}
+      <PortMarkers placed={placed} device={device} />
       {/* Unpowered badge — red ⚡̸ in the bottom-right corner. */}
       {unpowered && <UnpoweredBadge w={w} h={h} />}
       {/* Selection brackets — 4 8px corner pieces.
@@ -110,6 +123,69 @@ function DeviceShape({
         boxSelected && <SelectionBrackets w={w} h={h} color="#4ec9d3" />
       )}
     </Group>
+  );
+}
+
+function PortMarkers({ placed, device }: { placed: PlacedDevice; device: Device }) {
+  const ports = portsInWorldFrame(device, placed);
+  if (ports.length === 0) return null;
+  return (
+    <Group listening={false}>
+      {ports.map((p, i) => (
+        <PortMarker key={i.toString()} placed={placed} port={p} />
+      ))}
+    </Group>
+  );
+}
+
+function PortMarker({ placed, port }: { placed: PlacedDevice; port: WorldPort }) {
+  // Group-relative position of the port cell's top-left corner.
+  const rx = (port.cell.x - placed.position.x) * CELL_PX;
+  const ry = (port.cell.y - placed.position.y) * CELL_PX;
+  // Face midpoint (where the cell's outer edge meets the face).
+  const faceMidX = rx + CELL_PX / 2 + (port.face_direction.dx * CELL_PX) / 2;
+  const faceMidY = ry + CELL_PX / 2 + (port.face_direction.dy * CELL_PX) / 2;
+  const color = PORT_KIND_COLOR[port.kind];
+
+  if (
+    port.direction_constraint === 'bidirectional' ||
+    port.direction_constraint === 'paired_opposite'
+  ) {
+    return (
+      <Rect
+        x={faceMidX - BIDIR_BOX / 2}
+        y={faceMidY - BIDIR_BOX / 2}
+        width={BIDIR_BOX}
+        height={BIDIR_BOX}
+        stroke={color}
+        strokeWidth={1.5}
+        fill="rgba(0,0,0,0.3)"
+        listening={false}
+      />
+    );
+  }
+
+  // Triangle direction: outward for output, inward for input.
+  const outward = port.direction_constraint === 'output';
+  const sign = outward ? 1 : -1;
+  const tipX = faceMidX + sign * port.face_direction.dx * TRIANGLE_LEN;
+  const tipY = faceMidY + sign * port.face_direction.dy * TRIANGLE_LEN;
+  // Perpendicular to face_direction (rotate 90° CCW: (dx,dy) → (-dy,dx)).
+  const perpX = -port.face_direction.dy;
+  const perpY = port.face_direction.dx;
+  const wingAX = faceMidX + perpX * TRIANGLE_WING;
+  const wingAY = faceMidY + perpY * TRIANGLE_WING;
+  const wingBX = faceMidX - perpX * TRIANGLE_WING;
+  const wingBY = faceMidY - perpY * TRIANGLE_WING;
+  return (
+    <Line
+      points={[tipX, tipY, wingAX, wingAY, wingBX, wingBY]}
+      closed
+      fill={color}
+      stroke={color}
+      strokeWidth={0.5}
+      listening={false}
+    />
   );
 }
 
