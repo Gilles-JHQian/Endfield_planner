@@ -21,6 +21,7 @@ import {
 import type { Cell, PlacedDevice, Rotation } from '@core/domain/types.ts';
 import type { Device } from '@core/data-loader/types.ts';
 import { CELL_PX } from './use-camera.ts';
+import { PortMarkers } from './DeviceLayer.tsx';
 
 interface Props {
   device: Device;
@@ -68,6 +69,21 @@ export function GhostPreview({ device, cell, rotation, status, existingDevices, 
           strokeWidth={2}
           dash={[6, 4]}
         />
+        {/* P4 v7: ghost shows the same I/O port triangles as a placed device
+         *  so owners see port directions before committing. PortMarkers needs
+         *  a `placed` stub at the cursor position. */}
+        <Group opacity={0.55}>
+          <PortMarkers
+            placed={{
+              instance_id: '__ghost__',
+              device_id: device.id,
+              position: cell,
+              rotation,
+              recipe_id: null,
+            }}
+            device={device}
+          />
+        </Group>
       </Group>
     </Group>
   );

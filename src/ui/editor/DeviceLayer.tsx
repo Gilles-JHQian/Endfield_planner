@@ -128,7 +128,9 @@ function DeviceShape({
   );
 }
 
-function PortMarkers({ placed, device }: { placed: PlacedDevice; device: Device }) {
+/** Per-port direction triangle / box overlay. Exported so GhostPreview can
+ *  reuse the same marker visuals for the device-placement ghost (P4 v7). */
+export function PortMarkers({ placed, device }: { placed: PlacedDevice; device: Device }) {
   const ports = portsInWorldFrame(device, placed);
   if (ports.length === 0) return null;
   return (

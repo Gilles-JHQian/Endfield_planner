@@ -9,7 +9,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDataBundle } from '@ui/use-data-bundle.ts';
 import { createProject } from '@core/domain/project.ts';
 import type { Cell } from '@core/domain/types.ts';
-import { buildOccupancy, cellBlockedFor, fitsInPlot, footprintCells } from '@core/domain/index.ts';
+import {
+  buildOccupancy,
+  cellBlockedFor,
+  fitsInPlot,
+  footprintCells,
+  rotatedBoundingBox,
+} from '@core/domain/index.ts';
+import { layerOccupancyOf } from '@core/drc/bridges.ts';
 import type { DataBundle, Device, DeviceCategory } from '@core/data-loader/types.ts';
 import { Canvas } from './Canvas.tsx';
 import { LayerToggle } from './LayerToggle.tsx';
@@ -460,10 +467,14 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
 
   function handleCellClick(cell: Cell, _evt: MouseEvent): void {
     if (toolApi.tool.kind === 'place') {
+      // P4 v7: cursor anchored to the device's CENTER (not top-left). For a
+      // 2×2 device, cursor at (5,5) → footprint (4,4)-(5,5). For 3×3:
+      // (4,4)-(6,6). 1×1 stays unchanged. Convert cursor → top-left here so
+      // the underlying place_device contract is unchanged.
       const result = store.apply({
         type: 'place_device',
         device: toolApi.tool.device,
-        position: cell,
+        position: cursorToTopLeft(cell, toolApi.tool.device, toolApi.tool.rotation),
         rotation: toolApi.tool.rotation,
       });
       if (!result.ok) {
@@ -813,6 +824,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
 
 interface GhostState {
   device: Device;
+  /** TOP-LEFT of the footprint in world cells. Owner cursor → top-left
+   *  conversion (P4 v7 center anchor) lives in `cursorToTopLeft`. */
   cell: Cell;
   rotation: 0 | 90 | 180 | 270;
   status: 'valid' | 'collision' | 'warn';
@@ -826,18 +839,43 @@ function computeGhost(
 ): GhostState | null {
   if (tool.kind !== 'place' || !cursor) return null;
   const { device, rotation } = tool;
-  const placed = { position: cursor, rotation };
+  // P4 v7: cursor is the device's CENTER; convert to top-left for the place
+  // edit + collision check.
+  const topLeft = cursorToTopLeft(cursor, device, rotation);
+  const placed = { position: topLeft, rotation };
 
   if (!fitsInPlot(device, placed, project.plot)) {
-    return { device, cell: cursor, rotation, status: 'collision' };
+    return { device, cell: topLeft, rotation, status: 'collision' };
   }
+  // P4 v7: only check layers the new device actually occupies. A solid
+  // bridge ghosted over an existing fluid pipe should NOT collide — the
+  // bridge only sits on the solid layer.
   const occ = buildOccupancy(project, lookup);
+  const layers = layerOccupancyOf(device);
+  const checkSolid = layers === 'solid' || layers === 'both';
+  const checkFluid = layers === 'fluid' || layers === 'both';
   for (const c of footprintCells(device, placed)) {
-    if (cellBlockedFor(c, 'solid', occ) || cellBlockedFor(c, 'fluid', occ)) {
-      return { device, cell: cursor, rotation, status: 'collision' };
+    if (checkSolid && cellBlockedFor(c, 'solid', occ)) {
+      return { device, cell: topLeft, rotation, status: 'collision' };
+    }
+    if (checkFluid && cellBlockedFor(c, 'fluid', occ)) {
+      return { device, cell: topLeft, rotation, status: 'collision' };
     }
   }
-  return { device, cell: cursor, rotation, status: 'valid' };
+  return { device, cell: topLeft, rotation, status: 'valid' };
+}
+
+/** Convert the cursor cell (visual center anchor in P4 v7) to the device's
+ *  top-left footprint cell. For 1×1: identity. For 2×2: subtract 1 from each
+ *  axis (cursor sits in the bottom-right cell). For 3×3: subtract 1 from
+ *  each axis (cursor at center cell). General rule: top-left = cursor -
+ *  floor(bbox/2). */
+function cursorToTopLeft(cursor: Cell, device: Device, rotation: 0 | 90 | 180 | 270): Cell {
+  const bbox = rotatedBoundingBox(device, rotation);
+  return {
+    x: cursor.x - Math.floor(bbox.width / 2),
+    y: cursor.y - Math.floor(bbox.height / 2),
+  };
 }
 
 interface DraftPathState {
