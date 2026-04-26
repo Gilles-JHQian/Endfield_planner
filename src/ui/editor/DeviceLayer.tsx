@@ -16,20 +16,29 @@ interface Props {
   devices: readonly PlacedDevice[];
   lookup: (device_id: string) => Device | undefined;
   selectedInstanceId?: string | null;
+  /** Instance ids of devices currently inside some 供电桩 AoE. Devices that
+   *  require power but aren't in this set get a red "unplugged" badge. */
+  coveredInstanceIds?: ReadonlySet<string>;
 }
 
-export function DeviceLayer({ devices, lookup, selectedInstanceId }: Props) {
+export function DeviceLayer({ devices, lookup, selectedInstanceId, coveredInstanceIds }: Props) {
   return (
     <>
       {devices.map((placed) => {
         const dev = lookup(placed.device_id);
         if (!dev) return null;
+        const unpowered =
+          dev.requires_power &&
+          dev.power_aoe?.purpose !== 'device_supply' &&
+          coveredInstanceIds !== undefined &&
+          !coveredInstanceIds.has(placed.instance_id);
         return (
           <DeviceShape
             key={placed.instance_id}
             placed={placed}
             device={dev}
             selected={placed.instance_id === selectedInstanceId}
+            unpowered={unpowered}
           />
         );
       })}
@@ -41,10 +50,12 @@ function DeviceShape({
   placed,
   device,
   selected,
+  unpowered,
 }: {
   placed: PlacedDevice;
   device: Device;
   selected: boolean;
+  unpowered: boolean;
 }) {
   const bbox = rotatedBoundingBox(device, placed.rotation);
   const x = placed.position.x * CELL_PX;
@@ -76,8 +87,41 @@ function DeviceShape({
       {placed.recipe_id !== null && (
         <Rect x={w - 6} y={2} width={4} height={4} fill="#ff9a3d" listening={false} />
       )}
+      {/* Unpowered badge — red ⚡̸ in the bottom-right corner. */}
+      {unpowered && <UnpoweredBadge w={w} h={h} />}
       {/* Selection brackets — 4 8px corner pieces. */}
       {selected && <SelectionBrackets w={w} h={h} />}
+    </Group>
+  );
+}
+
+function UnpoweredBadge({ w, h }: { w: number; h: number }) {
+  // 8×8 box at bottom-right with a diagonal slash through a lightning glyph.
+  const size = 10;
+  const bx = w - size - 2;
+  const by = h - size - 2;
+  return (
+    <Group listening={false}>
+      <Rect
+        x={bx}
+        y={by}
+        width={size}
+        height={size}
+        fill="#1a0a0a"
+        stroke="#e85d4a"
+        strokeWidth={1}
+      />
+      <Text
+        x={bx}
+        y={by - 1}
+        width={size}
+        align="center"
+        text="⚡"
+        fontFamily="Rajdhani, sans-serif"
+        fontSize={9}
+        fill="#e85d4a"
+        listening={false}
+      />
     </Group>
   );
 }

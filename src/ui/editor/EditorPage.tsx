@@ -25,9 +25,11 @@ import { HistoryControls } from './HistoryControls.tsx';
 import { Inspector } from './Inspector.tsx';
 import { IssueHighlight } from './IssueHighlight.tsx';
 import { LinkLayer } from './LinkLayer.tsx';
+import { PowerOverlay } from './PowerOverlay.tsx';
 import { ProjectMenu } from './ProjectMenu.tsx';
 import { routeAroundDevices } from './path.ts';
 import { portsInWorldFrame } from '@core/domain/geometry.ts';
+import { computePowerCoverage } from '@core/domain/power-coverage.ts';
 import type { Layer } from '@core/domain/types.ts';
 import type { Issue } from '@core/drc/index.ts';
 import {
@@ -108,6 +110,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [panTarget, setPanTarget] = useState<{ cell: Cell; nonce: number } | null>(null);
   const toolApi = useTool();
   const drcReport = useDrc(store.project, bundle, lookup);
+  const powerCoverage = useMemo(
+    () => computePowerCoverage(store.project, lookup),
+    [store.project, lookup],
+  );
 
   // Auto-save: throttle 1s on every project change. flushSave on unmount /
   // beforeunload so an abrupt navigation doesn't lose the latest edit.
@@ -383,12 +389,18 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                 devices={store.project.devices}
                 lookup={lookup}
                 selectedInstanceId={selectedInstanceId}
+                coveredInstanceIds={powerCoverage.coveredInstanceIds}
               />
+              {viewMode === 'power' && (
+                <PowerOverlay devices={store.project.devices} lookup={lookup} />
+              )}
             </>
           }
           overlay={
             <>
-              {ghost && <GhostPreview {...ghost} />}
+              {ghost && (
+                <GhostPreview {...ghost} existingDevices={store.project.devices} lookup={lookup} />
+              )}
               {draftPath && (
                 <DraftPath
                   path={draftPath.path}
