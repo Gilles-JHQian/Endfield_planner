@@ -14,6 +14,7 @@ export function SummaryCard({ result }: Props) {
       <Stat
         label={t('summary.targetRate')}
         value={`${result.target.rate_per_minute.toString()}/min`}
+        accent
       />
       <Stat label={t('summary.totalMachines')} value={totalMachines.toString()} />
       <Stat label={t('summary.totalPower')} value={result.total_power_draw.toString()} />
@@ -25,11 +26,26 @@ export function SummaryCard({ result }: Props) {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) {
   return (
-    <div className="rounded border border-neutral-200 bg-white p-3">
-      <div className="text-xs uppercase text-neutral-500">{label}</div>
-      <div className="mt-1 text-lg font-semibold tabular-nums">{value}</div>
+    <div className="relative rounded-[2px] border border-line bg-surface-1 p-3">
+      {accent && <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-amber" aria-hidden />}
+      <div className="font-display text-[9px] font-semibold uppercase tracking-[1.5px] text-fg-faint">
+        {label}
+      </div>
+      <div
+        className={`mt-1 font-tech-mono text-[18px] font-semibold tabular-nums ${accent ? 'text-amber' : 'text-fg'}`}
+      >
+        {value}
+      </div>
     </div>
   );
 }
