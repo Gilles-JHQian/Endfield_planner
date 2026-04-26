@@ -130,6 +130,25 @@ export interface CrossLayerException {
   readonly reason_en?: string;
 }
 
+export interface SolidBeltTier {
+  readonly tier: number;
+  readonly id: string;
+  readonly items_per_minute: number;
+  readonly source?: string;
+}
+
+export interface FluidPipeTier {
+  readonly tier: number;
+  readonly id: string;
+  readonly units_per_minute: number;
+  readonly source?: string;
+}
+
+export interface TransportTiers {
+  readonly solid_belts: readonly SolidBeltTier[];
+  readonly fluid_pipes: readonly FluidPipeTier[];
+}
+
 export interface DataBundle {
   readonly version: string;
   readonly devices: readonly Device[];
@@ -137,4 +156,5 @@ export interface DataBundle {
   readonly items: readonly Item[];
   readonly regions: readonly Region[];
   readonly crossing_rules: CrossingRules;
+  readonly transport_tiers: TransportTiers;
 }
