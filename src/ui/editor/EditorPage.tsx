@@ -27,7 +27,14 @@ import { IssueHighlight } from './IssueHighlight.tsx';
 import { LinkLayer } from './LinkLayer.tsx';
 import { PowerOverlay } from './PowerOverlay.tsx';
 import { ProjectMenu } from './ProjectMenu.tsx';
-import { routeAroundDevices } from './path.ts';
+import {
+  buildRouteContext,
+  crossBridgeId,
+  defaultTierId,
+  findOutputPortAtCell,
+  planSegments,
+  type ProjectRouteContext,
+} from './belt-router.ts';
 import { portsInWorldFrame } from '@core/domain/geometry.ts';
 import { computePowerCoverage } from '@core/domain/power-coverage.ts';
 import type { Layer } from '@core/domain/types.ts';
@@ -389,13 +396,38 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     const start = linkDraft.waypoints[0]!;
     const last = linkDraft.waypoints[linkDraft.waypoints.length - 1]!;
 
-    // Same cell as last waypoint → no-op (avoid degenerate zero-length segment).
-    if (last.x === cell.x && last.y === cell.y) return;
+    // P4 v5: clicking the same cell as the last waypoint FORCE-COMMITS the
+    // path as drawn (lets the owner end a belt at an empty cell).
+    if (last.x === cell.x && last.y === cell.y) {
+      if (linkDraft.waypoints.length >= 2) {
+        commitLink(linkDraft.waypoints, layer, null);
+      }
+      setLinkDraft(null);
+      return;
+    }
 
-    // Detect commit conditions.
+    // Validate the candidate next segment via the same planner the ghost uses.
+    // If it has collisions, reject the click — the ghost's red color already
+    // told the user it's illegal.
+    const ctx = buildRouteContext(store.project, layer, lookup);
+    const firstStep =
+      linkDraft.waypoints.length === 1
+        ? (findOutputPortAtCell(start, layer, store.project, lookup)?.face_direction ?? undefined)
+        : undefined;
+    const initialHeading = headingAtEnd(linkDraft.waypoints, ctx, firstStep);
+    const candidate = planSegments(
+      [last, cell],
+      ctx,
+      initialHeading,
+      // First-step direction only applies if last is itself the first waypoint
+      // (single-waypoint draft); otherwise the heading carries forward.
+      linkDraft.waypoints.length === 1 ? firstStep : undefined,
+    );
+    if (candidate.collisions.length > 0) return;
+
+    // Commit conditions.
     const closesLoop = cell.x === start.x && cell.y === start.y && linkDraft.waypoints.length >= 2;
     const portHit = findInputPortAtCell(cell, layer, store.project, lookup);
-
     if (closesLoop || portHit) {
       const finalWaypoints = closesLoop ? linkDraft.waypoints : [...linkDraft.waypoints, cell];
       commitLink(finalWaypoints, layer, portHit);
@@ -412,28 +444,49 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     layer: Layer,
     portHit: { device_instance_id: string; port_index: number } | null,
   ): void {
-    const occ = buildOccupancy(store.project, lookup);
-    const walls = wallSetFor(layer, occ);
-    const path: Cell[] = [];
-    for (let i = 0; i < waypoints.length - 1; i++) {
-      const seg = routeAroundDevices(waypoints[i]!, waypoints[i + 1]!, {
-        walls,
-        bounds: store.project.plot,
-      });
-      // Drop the leading cell on every segment after the first to avoid duplicating the joint.
-      path.push(...(i === 0 ? seg : seg.slice(1)));
+    const ctx = buildRouteContext(store.project, layer, lookup);
+    const firstStep =
+      findOutputPortAtCell(waypoints[0]!, layer, store.project, lookup)?.face_direction ??
+      undefined;
+    const planned = planSegments(waypoints, ctx, null, firstStep);
+    if (planned.collisions.length > 0) return; // shouldn't happen — ghost gates clicks
+
+    const actions: ProjectAction[] = [];
+    const seenBridge = new Set<string>();
+    const bridgeDev = lookup(crossBridgeId(layer));
+    if (bridgeDev) {
+      for (const c of planned.bridgesToAutoPlace) {
+        const k = `${c.x.toString()},${c.y.toString()}`;
+        if (seenBridge.has(k)) continue;
+        seenBridge.add(k);
+        actions.push({
+          type: 'place_device',
+          device: bridgeDev,
+          position: c,
+          rotation: 0,
+        });
+      }
     }
-    const tier_id =
-      layer === 'solid'
-        ? (bundle.transport_tiers.solid_belts[0]?.id ?? 'belt-1')
-        : (bundle.transport_tiers.fluid_pipes[0]?.id ?? 'pipe-wuling');
-    store.apply({
+    actions.push({
       type: 'add_link',
       layer,
-      tier_id,
-      path,
+      tier_id: defaultTierId(bundle, layer),
+      path: planned.path,
       ...(portHit ? { dst: portHit } : {}),
     });
+    store.applyMany(actions);
+  }
+
+  /** Compute the heading at the end of a partially-routed waypoint sequence
+   *  by re-running the planner on the committed segments. */
+  function headingAtEnd(
+    waypoints: readonly Cell[],
+    ctx: ProjectRouteContext,
+    firstStep: { dx: number; dy: number } | undefined,
+  ): { dx: number; dy: number } | null {
+    if (waypoints.length < 2) return null;
+    const prefix = planSegments(waypoints, ctx, null, firstStep);
+    return prefix.endHeading;
   }
 
   return (
@@ -572,6 +625,9 @@ interface DraftPathState {
   path: Cell[];
   layer: Layer;
   status: 'valid' | 'collision' | 'warn';
+  /** Cells where commit will auto-place a cross-bridge — the DraftPath
+   *  renderer can highlight them so the owner sees what's about to land. */
+  autoBridges: Cell[];
 }
 
 function computeDraftPath(
@@ -581,49 +637,37 @@ function computeDraftPath(
   lookup: (id: string) => Device | undefined,
 ): DraftPathState | null {
   if (!draft || draft.waypoints.length === 0) return null;
-  const occ = buildOccupancy(project, lookup);
-  const walls = wallSetFor(draft.layer, occ);
-  const route = (a: Cell, b: Cell): Cell[] =>
-    routeAroundDevices(a, b, { walls, bounds: project.plot });
+  const ctx = buildRouteContext(project, draft.layer, lookup);
 
-  // Build path by joining BFS segments between consecutive waypoints, then
-  // tacking on the live cursor segment (if cursor differs from the last waypoint).
+  // First-step direction: only set when waypoint[0] is itself the very first
+  // cell (no committed segments yet) — once we've passed at least one waypoint
+  // the heading carries through and overrides any port lock.
+  const firstStep =
+    findOutputPortAtCell(draft.waypoints[0]!, draft.layer, project, lookup)?.face_direction ??
+    undefined;
+
+  // Build the cell list to plan: waypoints + the live cursor cell if it
+  // differs from the last waypoint (otherwise the cursor sits on the last
+  // waypoint and there's no live segment to draw).
   const pts: Cell[] = [...draft.waypoints];
   if (cursor) {
     const last = pts[pts.length - 1]!;
     if (cursor.x !== last.x || cursor.y !== last.y) pts.push(cursor);
   }
-  const path: Cell[] = [];
-  for (let i = 0; i < pts.length - 1; i++) {
-    const seg = route(pts[i]!, pts[i + 1]!);
-    path.push(...(i === 0 ? seg : seg.slice(1)));
-  }
-  if (path.length === 0) path.push(pts[0]!);
 
-  // Status: collision if any path interior cell crosses a device or the
-  // path leaves the plot. Endpoints (start cell + cursor) are exempt because
-  // the start may sit on a port and the cursor may hover anywhere.
-  const cellKey = (c: Cell): string => `${c.x.toString()},${c.y.toString()}`;
-  const startKey = cellKey(draft.waypoints[0]!);
-  for (const c of path) {
-    if (c.x < 0 || c.y < 0 || c.x >= project.plot.width || c.y >= project.plot.height) {
-      return { path, layer: draft.layer, status: 'collision' };
-    }
-    if (cellKey(c) === startKey) continue;
-    if (cellBlockedFor(c, draft.layer, occ) === 'device') {
-      return { path, layer: draft.layer, status: 'collision' };
-    }
+  if (pts.length < 2) {
+    // Single-cell preview — just the start.
+    return { path: [pts[0]!], layer: draft.layer, status: 'valid', autoBridges: [] };
   }
-  return { path, layer: draft.layer, status: 'valid' };
-}
 
-/** Walls for BFS routing on a given layer: device cells (block both layers) +
- *  same-layer existing link cells (can't share without a bridge). */
-function wallSetFor(layer: Layer, occ: ReturnType<typeof buildOccupancy>): Set<string> {
-  const walls = new Set<string>(occ.device);
-  if (layer === 'solid') for (const k of occ.solid) walls.add(k);
-  else for (const k of occ.fluid) walls.add(k);
-  return walls;
+  const planned = planSegments(pts, ctx, null, firstStep);
+  const status: 'valid' | 'collision' = planned.collisions.length > 0 ? 'collision' : 'valid';
+  return {
+    path: planned.path as Cell[],
+    layer: draft.layer,
+    status,
+    autoBridges: planned.bridgesToAutoPlace as Cell[],
+  };
 }
 
 /** Find an input port (matching layer) at world cell `cell`, if any. Returns
