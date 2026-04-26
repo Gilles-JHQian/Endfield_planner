@@ -25,9 +25,18 @@ import { HistoryControls } from './HistoryControls.tsx';
 import { Inspector } from './Inspector.tsx';
 import { IssueHighlight } from './IssueHighlight.tsx';
 import { LinkLayer } from './LinkLayer.tsx';
+import { ProjectMenu } from './ProjectMenu.tsx';
 import { manhattanPath } from './path.ts';
 import type { Layer } from '@core/domain/types.ts';
 import type { Issue } from '@core/drc/index.ts';
+import {
+  clearCurrent,
+  exportProject,
+  flushSave,
+  importProject,
+  loadCurrent,
+  scheduleSave,
+} from '@core/persistence/index.ts';
 import { useDrc } from './use-drc.ts';
 import { useViewMode } from './use-view-mode.ts';
 import { useProject } from './use-project.ts';
@@ -66,6 +75,11 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     if (!region) {
       throw new Error(`Bundle v${bundle.version} has no regions.`);
     }
+    // Restore from localStorage if compatible with the current bundle version;
+    // otherwise drop the saved project (mismatched data_version risks dangling
+    // device_id / recipe_id refs).
+    const restored = loadCurrent();
+    if (restored?.data_version === bundle.version) return restored;
     return createProject({ region, data_version: bundle.version });
   }, [bundle]);
 
@@ -85,6 +99,55 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [panTarget, setPanTarget] = useState<{ cell: Cell; nonce: number } | null>(null);
   const toolApi = useTool();
   const drcReport = useDrc(store.project, bundle, lookup);
+
+  // Auto-save: throttle 1s on every project change. flushSave on unmount /
+  // beforeunload so an abrupt navigation doesn't lose the latest edit.
+  // ProjectMenu polls getLastSavedAt() on its own ticker for the indicator.
+  useEffect(() => {
+    scheduleSave(store.project);
+  }, [store.project]);
+  useEffect(() => {
+    const onBeforeUnload = (): void => flushSave();
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      flushSave();
+    };
+  }, []);
+
+  function handleNew(): void {
+    clearCurrent();
+    const region = bundle.regions[0];
+    if (!region) return;
+    store.reset(createProject({ region, data_version: bundle.version }));
+    setSelectedInstanceId(null);
+  }
+  function handleImport(json: string): void {
+    const result = importProject(json);
+    if (!result.ok) {
+      window.alert(`Import failed: ${result.error.message}`);
+      return;
+    }
+    if (result.value.data_version !== bundle.version) {
+      const proceed = window.confirm(
+        `Project was saved against data v${result.value.data_version}; current bundle is v${bundle.version}. Some device/recipe ids may not match. Continue?`,
+      );
+      if (!proceed) return;
+    }
+    store.reset(result.value);
+    setSelectedInstanceId(null);
+  }
+  function handleExport(): void {
+    const blob = new Blob([exportProject(store.project)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${store.project.name || 'project'}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 
   // Cancel an in-progress belt/pipe draft when the tool changes away from
   // belt/pipe (e.g. user pressed Esc/V). React 19 "adjusting state during
@@ -286,6 +349,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onUndo={store.undo}
           onRedo={store.redo}
         />
+        <ProjectMenu onNew={handleNew} onImport={handleImport} onExport={handleExport} />
         <DrcPanel report={drcReport} onIssueClick={handleIssueClick} />
         <StatusBar
           cursor={cursor}
