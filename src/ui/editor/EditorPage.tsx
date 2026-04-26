@@ -5,7 +5,7 @@
  *  fill the rail / library / inspector with real content and connect them
  *  to the project store via apply().
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDataBundle } from '@ui/use-data-bundle.ts';
 import { createProject } from '@core/domain/project.ts';
 import type { Cell } from '@core/domain/types.ts';
@@ -66,7 +66,28 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [viewMode, setViewMode] = useViewMode();
   const [category, setCategory] = useState<DeviceCategory>('basic_production');
   const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
   const toolApi = useTool();
+
+  // Selection-aware keyboard shortcuts (R rotates selected device, Delete
+  // deletes it). useTool's R already handles ghost rotation; this only fires
+  // when a placed device is selected and we're in the select tool.
+  useEffect(() => {
+    if (!selectedInstanceId) return;
+    const onKey = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      if (toolApi.tool.kind !== 'select') return;
+      if (e.key === 'r' || e.key === 'R') {
+        store.apply({ type: 'rotate_device', instance_id: selectedInstanceId });
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        store.apply({ type: 'delete_device', instance_id: selectedInstanceId });
+        setSelectedInstanceId(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedInstanceId, store, toolApi.tool]);
 
   // Picking a library card auto-switches to place tool. Clearing the pick
   // (re-click on the same card) reverts to select.
@@ -96,9 +117,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       }
     } else if (toolApi.tool.kind === 'delete') {
       const hit = findDeviceAtCell(store.project.devices, lookup, cell);
-      if (hit) store.apply({ type: 'delete_device', instance_id: hit.instance_id });
+      if (hit) {
+        store.apply({ type: 'delete_device', instance_id: hit.instance_id });
+        if (selectedInstanceId === hit.instance_id) setSelectedInstanceId(null);
+      }
+    } else if (toolApi.tool.kind === 'select') {
+      const hit = findDeviceAtCell(store.project.devices, lookup, cell);
+      setSelectedInstanceId(hit?.instance_id ?? null);
     }
-    // belt / pipe / select land in B7 commit 5+.
+    // belt / pipe land in B7 commit 8.
   }
 
   return (
@@ -131,7 +158,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       <main aria-label="workspace" className="relative bg-canvas">
         <Canvas
           plot={store.project.plot}
-          content={<DeviceLayer devices={store.project.devices} lookup={lookup} />}
+          content={
+            <DeviceLayer
+              devices={store.project.devices}
+              lookup={lookup}
+              selectedInstanceId={selectedInstanceId}
+            />
+          }
           overlay={ghost ? <GhostPreview {...ghost} /> : null}
           onCellClick={handleCellClick}
           onCursorChange={setCursor}
