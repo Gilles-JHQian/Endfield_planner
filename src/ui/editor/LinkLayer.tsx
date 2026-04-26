@@ -19,16 +19,22 @@ const FLUID_COLOR = '#4ec9d3';
 const EDGE_OFFSET = CELL_PX * 0.3;
 const ARROW_SPACING = 3; // cells between chevrons
 const ARROW_LEN = CELL_PX * 0.28;
+/** P4 v6 rounded corners: at each corner cell we insert TWO offset points into
+ *  the polylines (pre-bend and post-bend), each `CORNER_INSET` from the cell
+ *  center along the incoming / outgoing axis. Combined with `lineJoin=round`,
+ *  the polyline reads as a smooth quarter-arc instead of a sharp miter. */
+const CORNER_INSET = CELL_PX * 0.3;
 
 interface Props {
   project: Project;
   viewMode: ViewMode;
-  /** P4 v5: when set, that link's render gets a brighter overlay tint to
-   *  show the right-click selection. */
-  selectedLinkId?: string | null;
+  /** P4 v6: highlight set — every link in this set renders the selection
+   *  halo. Right-click adds {id}; right-mouse drag adds every link whose
+   *  path is fully inside the rectangle. */
+  selectedLinkIds?: ReadonlySet<string>;
 }
 
-export function LinkLayer({ project, viewMode, selectedLinkId }: Props) {
+export function LinkLayer({ project, viewMode, selectedLinkIds }: Props) {
   return (
     <>
       {project.solid_links.map((link) => (
@@ -37,7 +43,7 @@ export function LinkLayer({ project, viewMode, selectedLinkId }: Props) {
           link={link}
           color={SOLID_COLOR}
           dimmed={viewMode === 'fluid'}
-          selected={link.id === selectedLinkId}
+          selected={selectedLinkIds?.has(link.id) ?? false}
         />
       ))}
       {project.fluid_links.map((link) => (
@@ -46,7 +52,7 @@ export function LinkLayer({ project, viewMode, selectedLinkId }: Props) {
           link={link}
           color={FLUID_COLOR}
           dimmed={viewMode === 'solid'}
-          selected={link.id === selectedLinkId}
+          selected={selectedLinkIds?.has(link.id) ?? false}
         />
       ))}
     </>
@@ -98,8 +104,8 @@ function LinkRender({ link, color, dimmed, selected }: LinkRenderProps) {
           stroke="#4ec9d3"
           strokeWidth={CELL_PX * 0.85}
           opacity={0.4}
-          lineCap="butt"
-          lineJoin="miter"
+          lineCap="round"
+          lineJoin="round"
         />
       )}
       <Line
@@ -107,8 +113,8 @@ function LinkRender({ link, color, dimmed, selected }: LinkRenderProps) {
         stroke={color}
         strokeWidth={CELL_PX * 0.6}
         opacity={0.18}
-        lineCap="butt"
-        lineJoin="miter"
+        lineCap="round"
+        lineJoin="round"
       />
       <Line
         points={flatten(leftEdge)}
@@ -141,8 +147,32 @@ function LinkRender({ link, color, dimmed, selected }: LinkRenderProps) {
   );
 }
 
+/** Center polyline with chamfer points inserted at each corner. Straight cells
+ *  emit one center point; corner cells emit two — pre-bend and post-bend —
+ *  each `CORNER_INSET` from the center along the relevant axis. The straight
+ *  segment between them, combined with `lineJoin=round`, reads as a
+ *  rounded quarter-arc instead of a sharp miter. */
 function centerCoords(path: readonly Cell[]): { x: number; y: number }[] {
-  return path.map((c) => ({ x: (c.x + 0.5) * CELL_PX, y: (c.y + 0.5) * CELL_PX }));
+  const out: { x: number; y: number }[] = [];
+  for (let i = 0; i < path.length; i++) {
+    const cell = path[i]!;
+    const cx = (cell.x + 0.5) * CELL_PX;
+    const cy = (cell.y + 0.5) * CELL_PX;
+    const corner = cornerAxes(path, i);
+    if (!corner) {
+      out.push({ x: cx, y: cy });
+      continue;
+    }
+    out.push({
+      x: cx - corner.inDx * CORNER_INSET,
+      y: cy - corner.inDy * CORNER_INSET,
+    });
+    out.push({
+      x: cx + corner.outDx * CORNER_INSET,
+      y: cy + corner.outDy * CORNER_INSET,
+    });
+  }
+  return out;
 }
 
 function flatten(pts: readonly { x: number; y: number }[]): number[] {
@@ -152,8 +182,10 @@ function flatten(pts: readonly { x: number; y: number }[]): number[] {
 }
 
 /** Two parallel polylines offset perpendicular to the local flow direction.
- *  At a corner cell, the perpendicular bisects the incoming and outgoing
- *  segments — which gives a clean L join visually. */
+ *  At a corner cell, two chamfer points are emitted on each edge — one
+ *  perpendicular to the incoming axis, one to the outgoing axis. The straight
+ *  bevel segment between them, combined with `lineJoin=round`, reads as a
+ *  rounded corner. */
 function parallelEdges(
   path: readonly Cell[],
 ): [{ x: number; y: number }[], { x: number; y: number }[]] {
@@ -161,22 +193,56 @@ function parallelEdges(
   const right: { x: number; y: number }[] = [];
   for (let i = 0; i < path.length; i++) {
     const cell = path[i]!;
-    const { dx, dy } = tangentAt(path, i);
-    const len = Math.hypot(dx, dy) || 1;
-    // Perpendicular = rotate (dx,dy) by 90° CCW = (-dy, dx).
-    const px = -dy / len;
-    const py = dx / len;
     const cx = (cell.x + 0.5) * CELL_PX;
     const cy = (cell.y + 0.5) * CELL_PX;
-    left.push({ x: cx - px * EDGE_OFFSET, y: cy - py * EDGE_OFFSET });
-    right.push({ x: cx + px * EDGE_OFFSET, y: cy + py * EDGE_OFFSET });
+    const corner = cornerAxes(path, i);
+    if (!corner) {
+      const { dx, dy } = tangentAt(path, i);
+      const len = Math.hypot(dx, dy) || 1;
+      const px = -dy / len;
+      const py = dx / len;
+      left.push({ x: cx - px * EDGE_OFFSET, y: cy - py * EDGE_OFFSET });
+      right.push({ x: cx + px * EDGE_OFFSET, y: cy + py * EDGE_OFFSET });
+      continue;
+    }
+    // Pre-bend point — offset perpendicular to the incoming axis.
+    const inPx = -corner.inDy;
+    const inPy = corner.inDx;
+    const preCx = cx - corner.inDx * CORNER_INSET;
+    const preCy = cy - corner.inDy * CORNER_INSET;
+    left.push({ x: preCx - inPx * EDGE_OFFSET, y: preCy - inPy * EDGE_OFFSET });
+    right.push({ x: preCx + inPx * EDGE_OFFSET, y: preCy + inPy * EDGE_OFFSET });
+    // Post-bend point — offset perpendicular to the outgoing axis.
+    const outPx = -corner.outDy;
+    const outPy = corner.outDx;
+    const postCx = cx + corner.outDx * CORNER_INSET;
+    const postCy = cy + corner.outDy * CORNER_INSET;
+    left.push({ x: postCx - outPx * EDGE_OFFSET, y: postCy - outPy * EDGE_OFFSET });
+    right.push({ x: postCx + outPx * EDGE_OFFSET, y: postCy + outPy * EDGE_OFFSET });
   }
   return [left, right];
 }
 
-/** Tangent (dx, dy) at path index `i`. For interior cells we average the
- *  incoming and outgoing segment vectors so corners get a 45° perpendicular,
- *  giving clean L-joints in `parallelEdges`. */
+/** If cell `i` is a corner (incoming axis ≠ outgoing axis), return the unit
+ *  vectors for both axes. Otherwise null. */
+function cornerAxes(
+  path: readonly Cell[],
+  i: number,
+): { inDx: number; inDy: number; outDx: number; outDy: number } | null {
+  if (i === 0 || i === path.length - 1) return null;
+  const cell = path[i]!;
+  const prev = path[i - 1]!;
+  const next = path[i + 1]!;
+  const inDx = Math.sign(cell.x - prev.x);
+  const inDy = Math.sign(cell.y - prev.y);
+  const outDx = Math.sign(next.x - cell.x);
+  const outDy = Math.sign(next.y - cell.y);
+  // Same axis = straight, not a corner.
+  if ((inDx !== 0 && outDx !== 0) || (inDy !== 0 && outDy !== 0)) return null;
+  return { inDx, inDy, outDx, outDy };
+}
+
+/** Tangent (dx, dy) at path index `i`. Used for non-corner cells only. */
 function tangentAt(path: readonly Cell[], i: number): { dx: number; dy: number } {
   const cell = path[i]!;
   if (i === 0) {
