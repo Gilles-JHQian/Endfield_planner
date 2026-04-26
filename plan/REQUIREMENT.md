@@ -166,13 +166,13 @@ These rules are encoded declaratively in `data/versions/<version>/crossing_rules
 ### 4.6 Power model
 
 - **Protocol core** has **no AoE**. The core wirelessly powers **every 供电桩 placed inside the core's build plot**, with no distance constraint.
-- **供电桩** (power pole / diffuser): placed anywhere inside the core's build plot. Each pole has its own **square** AoE (not circular) around it; devices inside the square are powered. 息壤供电桩 is the 武陵-tier variant with a larger square.
-- **中继器** (repeater): extends connectivity between poles where a single pole's AoE doesn't reach. Does not supply power itself. 息壤中继器 is the 武陵-tier variant.
-- **热能池** (thermal battery): power source / storage.
+- **供电桩** (power pole / diffuser, `power-diffuser-1`): footprint 2×2, placed anywhere inside the core's build plot. Each pole has its own **square** AoE around it (not circular); devices whose footprint overlaps the AoE are powered. **AoE = 12 cells per side, centered on the pole's footprint center.** 息壤供电桩 (`power-diffuser-2`, 武陵-tier) has the **same** 12-cell AoE — the variant differs only in tech tier / unlock, not in range.
+- **中继器** (repeater, `power-pole-2`): footprint 3×3. Extends pole-to-pole connectivity inside a **7-cell-per-side** square centered on the repeater. **Does not supply power to devices itself** — DRC's POWER_001 only checks 供电桩 AoE coverage. Repeaters chain poles together when a single pole's AoE doesn't reach the next. 息壤中继器 (`power-pole-3`, 武陵-tier) has the same 7-cell range.
+- **热能池** (thermal battery, `power-station-1`): power source. Capacity per battery is data-driven (see §10.4 / `device.power_supply` field; first-pass value imported from JamboChen/endfield-calc per `plan/DRC_REPORT.md`).
 - Every device with `requires_power = true` consumes its `power_draw` while running; power budget is a hard constraint.
-- The pole AoE square edge length is a data-driven parameter per pole tier (see §10).
+- AoE / repeater range / battery capacity are all per-device data fields (`power_aoe`, `power_supply`); see §10.4 and the JSON schema in `data/schema/devices.schema.json`.
 
-DRC must flag: devices outside any pole's square; total power draw exceeding supply.
+DRC must flag: devices outside any 供电桩's AoE square (POWER_001); total power draw exceeding total 热能池 supply (POWER_002).
 
 ### 4.7 Region / plot
 
@@ -644,13 +644,20 @@ Items the coder agent should **implement TODO hooks for, but not block on**. Eac
 
 **Resolution path:** owner measures in-game and updates `regions.json`.
 
-### 10.4 Power pole (供电桩) AoE square side length
+### 10.4 Power pole / repeater AoE — RESOLVED 2026-04
 
-**Status:** Confirmed the AoE is a square (not a circle); the edge length is unknown. 息壤供电桩 has a larger square than base 供电桩.
+**Status:** Resolved by owner in-game measurement.
 
-**Default:** 供电桩 = 17 cells per side, 息壤供电桩 = 25 cells per side. Placeholders; will need owner measurement.
+**Values (canonical, encoded in `data/versions/<v>/devices.json` via the `power_aoe` field):**
 
-**Resolution path:** place a pole in-game, count cells along the AoE edge.
+- 供电桩 `power-diffuser-1`: footprint 2×2, AoE = **12 cells per side** centered on the device.
+- 息壤供电桩 `power-diffuser-2`: footprint 2×2, AoE = **12 cells per side** (same as base, despite the 武陵-tier label — the variant differs only in unlock requirement).
+- 中继器 `power-pole-2`: footprint 3×3, pole-to-pole connectivity range = **7 cells per side** centered on the repeater. Does NOT supply power to devices.
+- 息壤中继器 `power-pole-3`: footprint 3×3, range = **7 cells per side** (same as base).
+
+**Schema:** `device.power_aoe = { kind: "square_centered", edge: number, purpose: "device_supply" | "pole_link" }`. `device_supply` poles are what POWER_001 checks; `pole_link` repeaters are connectivity-only.
+
+**热能池 power_supply value** is still a separate gap — pursued via `scripts/import-endfield-calc.ts` (see `plan/DRC_REPORT.md` §3) before falling back to manual measurement.
 
 ### 10.5 Tech tree structure
 
