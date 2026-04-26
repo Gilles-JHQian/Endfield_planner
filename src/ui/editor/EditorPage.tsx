@@ -546,6 +546,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                 <DraftPath
                   path={draftPath.path}
                   status={draftPath.status}
+                  autoBridges={draftPath.autoBridges}
                   {...(linkDraft ? { waypoints: linkDraft.waypoints } : {})}
                 />
               )}
