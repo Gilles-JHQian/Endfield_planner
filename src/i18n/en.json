@@ -39,5 +39,9 @@
 
   "warning.cycles": "Detected cyclic recipes (expansion truncated): {cycles}",
 
-  "lang.toggle": "中文"
+  "lang.toggle": "中文",
+
+  "route.editor": "Editor",
+  "route.deviceEditor": "Device Editor",
+  "route.solver": "Solver"
 }
