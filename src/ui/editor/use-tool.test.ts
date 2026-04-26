@@ -37,8 +37,9 @@ describe('useTool', () => {
     act(() => dispatchKey('P'));
     expect(result.current.tool.kind).toBe('pipe');
 
+    // P4 v5: X is no longer bound (right-mouse drag handles box-select).
     act(() => dispatchKey('X'));
-    expect(result.current.tool.kind).toBe('box-select');
+    expect(result.current.tool.kind).toBe('pipe'); // tool unchanged from previous P
 
     act(() => dispatchKey('Escape'));
     expect(result.current.tool.kind).toBe('select');

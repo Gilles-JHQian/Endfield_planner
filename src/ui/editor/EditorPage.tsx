@@ -104,10 +104,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [category, setCategory] = useState<DeviceCategory>('basic_production');
   const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
   const [selectedInstanceId, setSelectedInstanceId] = useState<string | null>(null);
-  // Box-select multi-selection. Distinct from selectedInstanceId (which the
-  // Inspector single-select uses); both can be live at once. Box-select adds
-  // and removes by click/Shift-click, and is cleared on tool change.
+  // Box-select multi-selection. Distinct from selectedInstanceId (Inspector
+  // single-select); both can be live at once. P4 v5: built up via right-mouse
+  // drag (Canvas's onBoxSelect); right-click on a single device populates
+  // selectedInstanceId instead.
   const [boxSelected, setBoxSelected] = useState<ReadonlySet<string>>(new Set());
+  /** P4 v5: single-belt selection (right-click on any cell of a link). */
+  const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
   // Multi-segment belt/pipe draft. Each click adds a waypoint; the segment
   // between consecutive waypoints is BFS-routed around devices. Drafting
   // commits when the user clicks an input port of the matching layer or
@@ -181,14 +184,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // Cancel an in-progress belt/pipe draft when the tool changes away from
   // belt/pipe (e.g. user pressed Esc/V). React 19 "adjusting state during
   // render" pattern — prevTool is mirror-state used only for change detection.
+  // P4 v5: boxSelected persists across tool switches now (right-mouse drag
+  // is the universal box-select; tool changes don't invalidate it).
   const [prevTool, setPrevTool] = useState(toolApi.tool.kind);
   if (prevTool !== toolApi.tool.kind) {
     setPrevTool(toolApi.tool.kind);
     if (toolApi.tool.kind !== 'belt' && toolApi.tool.kind !== 'pipe') {
       setLinkDraft(null);
-    }
-    if (toolApi.tool.kind !== 'box-select' && boxSelected.size > 0) {
-      setBoxSelected(new Set());
     }
   }
 
@@ -234,10 +236,11 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedInstanceId, store, toolApi.tool]);
 
-  // Box-select group operations. F = batch-delete; Ctrl+C = copy current
-  // selection to the clipboard; Ctrl+V = paste at cursor (offset preserved).
+  // Selection-aware global keybindings (P4 v5 — no longer tool-bound):
+  // - F / Delete: batch-delete the box selection, OR delete the selected
+  //   single belt, OR delete the selected single device.
+  // - Ctrl+C / Ctrl+V: copy/paste the box selection (devices only).
   useEffect(() => {
-    if (toolApi.tool.kind !== 'box-select') return;
     const onKey = (e: KeyboardEvent): void => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
@@ -273,23 +276,34 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         }
         return;
       }
-      if (e.key === 'f' || e.key === 'F') {
-        if (boxSelected.size === 0) return;
-        e.preventDefault();
-        const actions = Array.from(boxSelected).map((instance_id) => ({
-          type: 'delete_device' as const,
-          instance_id,
-        }));
-        store.applyMany(actions);
-        setBoxSelected(new Set());
-        if (selectedInstanceId && boxSelected.has(selectedInstanceId)) {
-          setSelectedInstanceId(null);
+      if (e.key === 'f' || e.key === 'F' || e.key === 'Delete') {
+        if (boxSelected.size > 0) {
+          e.preventDefault();
+          const actions = Array.from(boxSelected).map((instance_id) => ({
+            type: 'delete_device' as const,
+            instance_id,
+          }));
+          store.applyMany(actions);
+          setBoxSelected(new Set());
+          if (selectedInstanceId && boxSelected.has(selectedInstanceId)) {
+            setSelectedInstanceId(null);
+          }
+          return;
         }
+        if (selectedLinkId) {
+          e.preventDefault();
+          store.apply({ type: 'delete_link', link_id: selectedLinkId });
+          setSelectedLinkId(null);
+          return;
+        }
+        // Single-device deletion via Delete key (selected via right-click or
+        // V-tool left-click) is handled by the existing selection-aware
+        // listener below — this listener only owns multi-select + link.
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [boxSelected, store, toolApi.tool, selectedInstanceId, cursor, lookup]);
+  }, [boxSelected, store, selectedInstanceId, selectedLinkId, cursor, lookup]);
 
   // Belt/pipe draft keybindings. Esc cancels the whole draft; Backspace pops
   // the last waypoint (so owners can correct a mis-click without restarting).
@@ -343,7 +357,46 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const ghost = computeGhost(toolApi.tool, cursor, store.project, lookup);
   const draftPath = computeDraftPath(linkDraft, cursor, store.project, lookup);
 
-  function handleCellClick(cell: Cell, evt: MouseEvent): void {
+  /** P4 v5 right-click selection: device under cell > belt under cell > clear. */
+  function handleCellRightClick(cell: Cell): void {
+    const hitDevice = findDeviceAtCell(store.project.devices, lookup, cell);
+    if (hitDevice) {
+      setSelectedInstanceId(hitDevice.instance_id);
+      setSelectedLinkId(null);
+      setBoxSelected(new Set());
+      return;
+    }
+    const hitLink = findLinkAtCell(store.project, cell);
+    if (hitLink) {
+      setSelectedLinkId(hitLink.id);
+      setSelectedInstanceId(null);
+      setBoxSelected(new Set());
+      return;
+    }
+    // Empty cell — clear all selections.
+    setSelectedInstanceId(null);
+    setSelectedLinkId(null);
+    setBoxSelected(new Set());
+  }
+
+  /** P4 v5 right-mouse drag: select every device fully inside the rectangle. */
+  function handleBoxSelect(rect: { from: Cell; to: Cell }): void {
+    const ids = new Set<string>();
+    for (const placed of store.project.devices) {
+      const dev = lookup(placed.device_id);
+      if (!dev) continue;
+      const cells = footprintCells(dev, placed);
+      const allInside = cells.every(
+        (c) => c.x >= rect.from.x && c.x <= rect.to.x && c.y >= rect.from.y && c.y <= rect.to.y,
+      );
+      if (allInside) ids.add(placed.instance_id);
+    }
+    setBoxSelected(ids);
+    setSelectedLinkId(null);
+    setSelectedInstanceId(null);
+  }
+
+  function handleCellClick(cell: Cell, _evt: MouseEvent): void {
     if (toolApi.tool.kind === 'place') {
       const result = store.apply({
         type: 'place_device',
@@ -353,35 +406,12 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       });
       if (!result.ok) {
         // For now silent — visual ghost color already told the user it's invalid.
-        // TODO B8: surface as DRC issue / toast.
         return;
       }
     } else if (toolApi.tool.kind === 'select') {
       const hit = findDeviceAtCell(store.project.devices, lookup, cell);
       setSelectedInstanceId(hit?.instance_id ?? null);
-    } else if (toolApi.tool.kind === 'box-select') {
-      const hit = findDeviceAtCell(store.project.devices, lookup, cell);
-      if (!hit) {
-        // Click on empty cell clears the box selection.
-        if (boxSelected.size > 0) setBoxSelected(new Set());
-        return;
-      }
-      setBoxSelected((prev) => {
-        const next = new Set(prev);
-        if (evt.shiftKey) {
-          // Shift-click: toggle membership.
-          if (next.has(hit.instance_id)) next.delete(hit.instance_id);
-          else next.add(hit.instance_id);
-        } else if (next.has(hit.instance_id) && next.size === 1) {
-          // Click on the lone selected device clears the selection.
-          next.clear();
-        } else {
-          // Click on an unselected device: replace the selection (single click semantics).
-          next.clear();
-          next.add(hit.instance_id);
-        }
-        return next;
-      });
+      setSelectedLinkId(null);
     } else if (toolApi.tool.kind === 'belt' || toolApi.tool.kind === 'pipe') {
       handleLinkClick(cell, toolApi.tool.kind === 'belt' ? 'solid' : 'fluid');
     }
@@ -524,7 +554,11 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           plot={store.project.plot}
           content={
             <>
-              <LinkLayer project={store.project} viewMode={viewMode} />
+              <LinkLayer
+                project={store.project}
+                viewMode={viewMode}
+                selectedLinkId={selectedLinkId}
+              />
               <DeviceLayer
                 devices={store.project.devices}
                 lookup={lookup}
@@ -556,6 +590,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
             </>
           }
           onCellClick={handleCellClick}
+          onCellRightClick={handleCellRightClick}
+          onBoxSelect={handleBoxSelect}
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
           panTarget={panTarget}
@@ -689,6 +725,26 @@ function findInputPortAtCell(
       const matches =
         (layer === 'solid' && p.kind === 'solid') || (layer === 'fluid' && p.kind === 'fluid');
       if (matches) return { device_instance_id: placed.instance_id, port_index: p.port_index };
+    }
+  }
+  return null;
+}
+
+/** Find any link (solid or fluid) whose path includes `cell`. Used by P4 v5
+ *  right-click → single-belt selection. Devices already shadow the cell at
+ *  their footprint cells, so the caller checks for a device hit first. */
+function findLinkAtCell(
+  project: ReturnType<typeof useProject>['project'],
+  cell: Cell,
+): { id: string; layer: Layer } | null {
+  for (const link of project.solid_links) {
+    for (const c of link.path) {
+      if (c.x === cell.x && c.y === cell.y) return { id: link.id, layer: 'solid' };
+    }
+  }
+  for (const link of project.fluid_links) {
+    for (const c of link.path) {
+      if (c.x === cell.x && c.y === cell.y) return { id: link.id, layer: 'fluid' };
     }
   }
   return null;
