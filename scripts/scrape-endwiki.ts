@@ -71,12 +71,22 @@ type CuratedFields = Pick<ScrapedDevice, 'io_ports' | 'tech_prereq'> & {
   power_aoe?: ScrapedDevice['power_aoe'];
 };
 
-async function loadCuratedDevices(versionDir: string): Promise<Map<string, CuratedFields>> {
+interface CuratedSet {
+  /** Per-id field overrides for devices the scraper finds on end.wiki. */
+  fields: Map<string, CuratedFields>;
+  /** Full device records for ids the scraper does NOT find — typically
+   *  hand-authored devices like the 6 logistics bridges that don't exist
+   *  on end.wiki. These are preserved verbatim. */
+  fullRecords: Map<string, ScrapedDevice>;
+}
+
+async function loadCuratedDevices(versionDir: string): Promise<CuratedSet> {
   const devicesFile = resolve(versionDir, 'devices.json');
-  if (!(await fileExists(devicesFile))) return new Map();
+  if (!(await fileExists(devicesFile))) return { fields: new Map(), fullRecords: new Map() };
   const raw = await readFile(devicesFile, 'utf8');
   const parsed = JSON.parse(raw) as Partial<ScrapedDevice>[];
-  const map = new Map<string, CuratedFields>();
+  const fields = new Map<string, CuratedFields>();
+  const fullRecords = new Map<string, ScrapedDevice>();
   for (const d of parsed) {
     if (typeof d.id !== 'string') continue;
     const entry: CuratedFields = {
@@ -84,9 +94,23 @@ async function loadCuratedDevices(versionDir: string): Promise<Map<string, Curat
       tech_prereq: d.tech_prereq ?? [],
     };
     if (d.power_aoe) entry.power_aoe = d.power_aoe;
-    map.set(d.id, entry);
+    fields.set(d.id, entry);
+    // Anything that looks like a complete device record (has all required
+    // schema fields) is also stashed for full-record preservation when the
+    // scraper later finds the id missing from end.wiki.
+    if (
+      typeof d.display_name_zh_hans === 'string' &&
+      typeof d.footprint === 'object' &&
+      typeof d.bandwidth === 'number' &&
+      typeof d.power_draw === 'number' &&
+      typeof d.requires_power === 'boolean' &&
+      typeof d.has_fluid_interface === 'boolean' &&
+      typeof d.category === 'string'
+    ) {
+      fullRecords.set(d.id, d as ScrapedDevice);
+    }
   }
-  return map;
+  return { fields, fullRecords };
 }
 
 async function writeAtomic(target: string, content: string): Promise<void> {
@@ -138,11 +162,11 @@ async function main(): Promise<void> {
   }
 
   console.log(
-    '[scrape] preserving curated io_ports / tech_prereq / power_aoe from existing devices.json (if any) ...',
+    '[scrape] preserving curated io_ports / tech_prereq / power_aoe + fully-curated devices ...',
   );
   const curated = await loadCuratedDevices(versionDir);
   const finalDevices: ScrapedDevice[] = xref.devices.map((d) => {
-    const c = curated.get(d.id);
+    const c = curated.fields.get(d.id);
     if (!c) return d;
     // Preserve io_ports if curated; preserve tech_prereq only if scraper produced an empty list;
     // always preserve curated power_aoe (scraper has no way to derive it from end.wiki text).
@@ -154,6 +178,22 @@ async function main(): Promise<void> {
     if (c.power_aoe) merged.power_aoe = c.power_aoe;
     return merged;
   });
+  // Append hand-authored devices that the scraper didn't find on end.wiki
+  // (e.g. the 6 logistics bridges added in P3-B13). These are preserved
+  // verbatim across re-scrapes; schema validation at the end of main()
+  // catches malformed records before they land.
+  const scrapedIds = new Set(xref.devices.map((d) => d.id));
+  let preservedCount = 0;
+  for (const [id, record] of curated.fullRecords) {
+    if (scrapedIds.has(id)) continue;
+    finalDevices.push(record);
+    preservedCount++;
+  }
+  if (preservedCount > 0) {
+    console.log(
+      `[scrape] preserved ${preservedCount.toString()} hand-authored devices not found on end.wiki`,
+    );
+  }
 
   // Drop recipes nobody can produce — they show up when the global recipes
   // index lists a recipe but no device page mentions a matching fingerprint

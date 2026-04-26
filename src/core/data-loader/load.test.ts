@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { loadDataBundle } from './load-from-fs.ts';
 
 describe('loadDataBundle', () => {
-  it('loads v1.2 with the full scraped catalog (69 devices)', async () => {
+  it('loads v1.2 with the full scraped catalog + 6 hand-authored bridges (75 devices)', async () => {
     const bundle = await loadDataBundle('1.2');
     expect(bundle.version).toBe('1.2');
-    expect(bundle.devices.length).toBe(69);
+    expect(bundle.devices.length).toBe(75);
     expect(bundle.recipes.length).toBeGreaterThan(0);
     expect(bundle.items.length).toBeGreaterThan(0);
     expect(bundle.regions.length).toBeGreaterThan(0);
@@ -16,6 +16,27 @@ describe('loadDataBundle', () => {
     expect(bundle.transport_tiers.fluid_pipes.find((t) => t.tier === 1)?.units_per_minute).toBe(
       120,
     );
+  });
+
+  it('exposes the 6 logistics bridges with correct port geometry', async () => {
+    const bundle = await loadDataBundle('1.2');
+    const ids = new Set(bundle.devices.map((d) => d.id));
+    for (const expected of [
+      'belt-merger',
+      'belt-splitter',
+      'belt-cross-bridge',
+      'pipe-merger',
+      'pipe-splitter',
+      'pipe-cross-bridge',
+    ]) {
+      expect(ids.has(expected)).toBe(true);
+    }
+    const cross = bundle.devices.find((d) => d.id === 'belt-cross-bridge');
+    expect(cross?.io_ports).toHaveLength(4);
+    expect(cross?.io_ports.every((p) => p.direction_constraint === 'paired_opposite')).toBe(true);
+    const merger = bundle.devices.find((d) => d.id === 'belt-merger');
+    expect(merger?.io_ports.filter((p) => p.direction_constraint === 'input')).toHaveLength(3);
+    expect(merger?.io_ports.filter((p) => p.direction_constraint === 'output')).toHaveLength(1);
   });
 
   it('exposes power_aoe on 供电桩 / 中继器 devices (B1 round-trip check)', async () => {
