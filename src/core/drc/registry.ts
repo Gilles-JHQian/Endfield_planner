@@ -4,8 +4,11 @@
  */
 import type { Rule } from './types.ts';
 import { belt001 } from './rules/belt-bandwidth.ts';
+import { beltCorner001 } from './rules/belt-corner.ts';
 import { beltCross001, pipeCross001 } from './rules/belt-cross.ts';
 import { beltCrossDelay001 } from './rules/belt-cross-delay.ts';
+import { beltParallel001 } from './rules/belt-parallel.ts';
+import { beltTap001 } from './rules/belt-tap.ts';
 import { layerCross001, layerCross002 } from './rules/layer-cross-infra.ts';
 import { layerCross003 } from './rules/layer-cross-non-port.ts';
 import { pipe001 } from './rules/pipe-bandwidth.ts';
@@ -28,6 +31,9 @@ export const ALL_RULES: readonly Rule[] = [
   beltCross001,
   pipeCross001,
   beltCrossDelay001,
+  beltParallel001,
+  beltCorner001,
+  beltTap001,
   port001,
   port002,
   port003,

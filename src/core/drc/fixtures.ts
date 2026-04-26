@@ -36,7 +36,7 @@ export const TEST_CROSSING_RULES: CrossingRules = {
   same_layer_crossing: {
     solid: {
       allowed_without_component: false,
-      crossing_component_id: 'belt-bridge',
+      crossing_component_id: 'belt-cross-bridge',
       latency_penalty: {
         model: 'bridge_count_step',
         thresholds: [
@@ -47,7 +47,7 @@ export const TEST_CROSSING_RULES: CrossingRules = {
     },
     fluid: {
       allowed_without_component: false,
-      crossing_component_id: 'pipe-bridge',
+      crossing_component_id: 'pipe-cross-bridge',
       latency_penalty: null,
     },
   },
