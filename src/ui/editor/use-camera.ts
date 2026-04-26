@@ -83,10 +83,12 @@ export function useCamera(initial: CameraState = DEFAULT): CameraApi {
 
   const visibleBounds = useCallback(
     (w: number, h: number) => {
-      const minCellX = Math.floor(-state.pos.x / (CELL_PX * state.zoom));
-      const minCellY = Math.floor(-state.pos.y / (CELL_PX * state.zoom));
-      const maxCellX = Math.ceil((w - state.pos.x) / (CELL_PX * state.zoom));
-      const maxCellY = Math.ceil((h - state.pos.y) / (CELL_PX * state.zoom));
+      // `0 + ...` normalizes -0 → 0 so callers and tests don't trip on the
+      // signed-zero distinction.
+      const minCellX = 0 + Math.floor(-state.pos.x / (CELL_PX * state.zoom));
+      const minCellY = 0 + Math.floor(-state.pos.y / (CELL_PX * state.zoom));
+      const maxCellX = 0 + Math.ceil((w - state.pos.x) / (CELL_PX * state.zoom));
+      const maxCellY = 0 + Math.ceil((h - state.pos.y) / (CELL_PX * state.zoom));
       return { minCellX, minCellY, maxCellX, maxCellY };
     },
     [state.pos.x, state.pos.y, state.zoom],

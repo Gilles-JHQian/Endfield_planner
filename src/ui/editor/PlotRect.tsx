@@ -3,7 +3,7 @@
  *  pan/zoom comes from the parent Stage.
  */
 import { Line, Rect } from 'react-konva';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 interface Props {
   plot: { width: number; height: number };
@@ -40,12 +40,14 @@ export function PlotRect({ plot, cellPx }: Props) {
   );
 }
 
+/** Resolve a `--color-*` token to its computed RGB value. Lazy-initialized
+ *  state — no effect, no re-render needed because design tokens don't
+ *  change after mount. */
 function useCssColor(varName: string, fallback: string): string {
-  const [value, setValue] = useState(fallback);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
+  const [value] = useState(() => {
+    if (typeof window === 'undefined') return fallback;
     const v = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-    if (v) setValue(v);
-  }, [varName]);
+    return v || fallback;
+  });
   return value;
 }
