@@ -19,6 +19,7 @@ import { Library } from './Library.tsx';
 import { Toolbar } from './Toolbar.tsx';
 import { DeviceLayer, findDeviceAtCell } from './DeviceLayer.tsx';
 import { GhostPreview } from './GhostPreview.tsx';
+import { Inspector } from './Inspector.tsx';
 import { useViewMode } from './use-view-mode.ts';
 import { useProject } from './use-project.ts';
 import { useTool } from './use-tool.ts';
@@ -181,17 +182,11 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         />
       </main>
       <aside aria-label="inspector" className="flex flex-col border-l border-line bg-surface-1">
-        <div className="flex flex-col p-4">
-          <span className="font-display text-[11px] font-semibold uppercase tracking-[1.5px] text-fg-soft">
-            INSPECTOR
-          </span>
-          <span className="font-cn text-[12px] text-fg-faint">检视器 — B7 后续</span>
-          {pickedDevice && (
-            <span className="mt-3 font-tech-mono text-[11px] text-amber">
-              picked: {pickedDevice.id}
-            </span>
-          )}
-        </div>
+        <Inspector
+          project={store.project}
+          selectedInstanceId={selectedInstanceId}
+          lookup={lookup}
+        />
       </aside>
     </div>
   );

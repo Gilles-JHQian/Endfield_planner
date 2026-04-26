@@ -57,5 +57,31 @@
 
   "library.title": "Device Library",
   "library.search": "search…",
-  "library.empty": "no devices"
+  "library.empty": "no devices",
+
+  "inspector.title": "Inspector",
+  "inspector.empty": "Nothing selected",
+  "inspector.emptyHint": "Pick a category on the left, drop a device on the canvas, then use V to select it.",
+  "inspector.section.properties": "Properties",
+  "inspector.section.ports": "Ports",
+  "inspector.section.recipe": "Recipe",
+  "inspector.section.plotSummary": "Project summary",
+  "inspector.props.footprint": "Footprint",
+  "inspector.props.bandwidth": "Bandwidth",
+  "inspector.props.powerDraw": "Power",
+  "inspector.props.requiresPower": "Needs Power",
+  "inspector.props.hasFluid": "Fluid Interface",
+  "inspector.props.category": "Category",
+  "inspector.props.position": "Position",
+  "inspector.props.rotation": "Rotation",
+  "inspector.props.techPrereq": "Tech",
+  "inspector.ports.empty": "No port data — populate via Device Editor (B9).",
+  "inspector.ports.count": "{count} ports",
+  "inspector.recipe.none": "no recipe bound",
+  "inspector.recipe.placeholder": "RecipeSelector — B7.7",
+  "inspector.summary.devices": "devices",
+  "inspector.summary.solidLinks": "belts",
+  "inspector.summary.fluidLinks": "pipes",
+  "yes": "yes",
+  "no": "no"
 }
