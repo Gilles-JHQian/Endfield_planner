@@ -508,8 +508,11 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
    *  reaching for Esc. */
   /** P4 v7: paste a clipboard payload at the cursor cell. Pre-generates
    *  instance ids for the new devices so the link `add_link` actions in the
-   *  same applyMany batch can forward-reference them via PortRef. */
-  function pastePayloadAtCursor(payload: ClipboardPayload, anchor: Cell): void {
+   *  same applyMany batch can forward-reference them via PortRef.
+   *
+   *  P4 v7.8: cursor anchors the cluster's CENTER (matching the v7.8 ghost). */
+  function pastePayloadAtCursor(payload: ClipboardPayload, cursor: Cell): void {
+    const anchor = clipboardCenterAnchor(payload, cursor, lookup);
     const itemIds = payload.items.map(() => generateInstanceId('d'));
     const placeActions: ProjectAction[] = [];
     for (let i = 0; i < payload.items.length; i++) {
@@ -1617,16 +1620,54 @@ function clusterCollisions(
   return colliding;
 }
 
+/** P4 v7.8: convert a cursor cell to the bbox top-left so the cluster's
+ *  geometric center lands roughly on the cursor. The bbox is computed over
+ *  device footprints (rotated) + link path cells so a paste with detached
+ *  belts still centers correctly. Floor-rounded since cells are integers —
+ *  on odd-sized bboxes the cursor sits a half-cell above-left of true center,
+ *  acceptable for the grid model.
+ *
+ *  Both `computePasteGhost` (rendering) and `pastePayloadAtCursor` (commit)
+ *  must call this so the ghost preview matches what actually lands. */
+function clipboardCenterAnchor(
+  payload: ClipboardPayload,
+  cursor: Cell,
+  lookup: (id: string) => Device | undefined,
+): Cell {
+  let bboxW = 0;
+  let bboxH = 0;
+  for (const it of payload.items) {
+    const dev = lookup(it.device_id);
+    if (!dev) continue;
+    const bbox = rotatedBoundingBox(dev, it.rotation);
+    bboxW = Math.max(bboxW, it.rel_position.x + bbox.width);
+    bboxH = Math.max(bboxH, it.rel_position.y + bbox.height);
+  }
+  for (const l of payload.links) {
+    for (const c of l.rel_path) {
+      bboxW = Math.max(bboxW, c.x + 1);
+      bboxH = Math.max(bboxH, c.y + 1);
+    }
+  }
+  return {
+    x: cursor.x - Math.floor(bboxW / 2),
+    y: cursor.y - Math.floor(bboxH / 2),
+  };
+}
+
 /** P4 v7.7: paste-mode cursor-following ghost. Translates the clipboard
  *  payload's relative cells to absolute (anchor + rel) and reuses the
  *  cluster-collision check. The caller wires the ghost into MoveModeGhost
- *  for rendering and blocks the paste click when `collides`. */
+ *  for rendering and blocks the paste click when `collides`.
+ *
+ *  P4 v7.8: cursor anchors the cluster's CENTER, not its top-left. */
 function computePasteGhost(
   payload: ClipboardPayload,
-  anchor: Cell,
+  cursor: Cell,
   project: { plot: { width: number; height: number } } & Parameters<typeof buildOccupancy>[0],
   lookup: (id: string) => Device | undefined,
 ): MoveGhost {
+  const anchor = clipboardCenterAnchor(payload, cursor, lookup);
   const newDevices: PlacedDevice[] = payload.items.map((it, i) => ({
     instance_id: `paste-ghost-${i.toString()}`,
     device_id: it.device_id,
