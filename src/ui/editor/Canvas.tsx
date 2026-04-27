@@ -73,11 +73,21 @@ export function Canvas({
   const rightDragStart = useRef<Cell | null>(null);
   const rightDragMoved = useRef(false);
   const [boxRect, setBoxRect] = useState<BoxRect | null>(null);
+  // P4 v7.9: dedupe `onCursorChange` at the cell level. Without this,
+  // `pointerCell` returns a new {x,y} object every mousemove pixel; setCursor
+  // on the parent treats every event as a state change → full EditorPage
+  // re-render at 60+ FPS even when the cursor stays in one cell.
+  const lastCellRef = useRef<Cell | null>(null);
   // P4 v7.7: hold space + left-drag to pan (trackpad-friendly alternative to
   // middle-click). `spaceDown` drives the cursor visual via state; the ref
   // mirrors it for the mouse handlers (refs don't wait for re-render).
   const [spaceDown, setSpaceDown] = useState(false);
   const spaceDownRef = useRef(false);
+  // P4 v7.9: Shift+left-click / drag mirrors right-button so trackpad users
+  // (or anyone without an easy right-click gesture) can highlight + box-
+  // select. Tracked via a ref because the click vs drag decision is made
+  // on mouseup based on whether `rightDragMoved.current` flipped.
+  const shiftAsRightActive = useRef(false);
   // True while the left button is held during a Space-initiated pan; mouseUp
   // uses it to suppress the onCellClick that would otherwise fire. State
   // (not just ref) so the cursor visual flips to 'grabbing' during the drag.
@@ -153,12 +163,46 @@ export function Canvas({
     };
   }, []);
 
+  // P4 v7.9: ArrowUp / ArrowDown adjust zoom centered on the viewport. Same
+  // ZOOM_STEP (1.1×) as wheel zoom so the gesture feels consistent. Long-
+  // press auto-repeats via OS key-repeat, giving smooth continuous zoom.
+  useEffect(() => {
+    function isEditableTarget(t: EventTarget | null): boolean {
+      if (!(t instanceof HTMLElement)) return false;
+      const tag = t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+      if (t.isContentEditable) return true;
+      return false;
+    }
+    function onKeyDown(e: KeyboardEvent): void {
+      if (e.code !== 'ArrowUp' && e.code !== 'ArrowDown') return;
+      if (isEditableTarget(e.target)) return;
+      if (size.width === 0 || size.height === 0) return;
+      e.preventDefault();
+      const dir = e.code === 'ArrowUp' ? 1 : -1;
+      camera.zoomAt(size.width / 2, size.height / 2, dir);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [camera, size.width, size.height]);
+
   function pointerCell(e: Konva.KonvaEventObject<MouseEvent | WheelEvent>): Cell | null {
     const stage = e.target.getStage();
     const pointer = stage?.getPointerPosition();
     if (!pointer) return null;
     const w = camera.toWorld(pointer.x, pointer.y);
     return { x: Math.floor(w.x), y: Math.floor(w.y) };
+  }
+
+  /** P4 v7.9: emit `onCursorChange` only when the cell actually changes
+   *  (or transitions to/from null on leave/enter). Prevents pixel-level
+   *  re-renders during mousemove inside a single cell. */
+  function emitCursor(cell: Cell | null): void {
+    const last = lastCellRef.current;
+    if (cell === null && last === null) return;
+    if (cell && cell.x === last?.x && cell.y === last.y) return;
+    lastCellRef.current = cell;
+    onCursorChange?.(cell);
   }
 
   function handleWheel(e: Konva.KonvaEventObject<WheelEvent>): void {
@@ -176,6 +220,20 @@ export function Canvas({
       isPanning.current = true;
       lastPan.current = { x: e.evt.clientX, y: e.evt.clientY };
       setSpacePan(true);
+      e.evt.preventDefault();
+      return;
+    }
+    // P4 v7.9: Shift+left mimics right-button. spaceDown takes priority since
+    // someone holding Space + Shift presumably wants to pan. Otherwise route
+    // through the same rightDrag* state machine as button 2.
+    if (e.evt.button === 0 && e.evt.shiftKey) {
+      const cell = pointerCell(e);
+      if (cell) {
+        rightDragStart.current = cell;
+        rightDragMoved.current = false;
+        shiftAsRightActive.current = true;
+        if (boxSelectEnabled) setBoxRect({ from: cell, to: cell });
+      }
       e.evt.preventDefault();
       return;
     }
@@ -213,7 +271,7 @@ export function Canvas({
         if (boxSelectEnabled) setBoxRect(normalizeBox(start, cur));
       }
     }
-    onCursorChange?.(pointerCell(e));
+    emitCursor(pointerCell(e));
   }
 
   function handleMouseUp(e: Konva.KonvaEventObject<MouseEvent>): void {
@@ -227,6 +285,25 @@ export function Canvas({
       isPanning.current = false;
       lastPan.current = null;
       setSpacePan(false);
+      return;
+    }
+    // P4 v7.9: Shift+left release fires the right-button release path
+    // instead of onCellClick. Drag → onBoxSelect (gated by boxSelectEnabled),
+    // click → onCellRightClick.
+    if (e.evt.button === 0 && shiftAsRightActive.current) {
+      const start = rightDragStart.current;
+      if (start) {
+        const end = pointerCell(e) ?? start;
+        if (rightDragMoved.current && boxSelectEnabled) {
+          onBoxSelect?.(normalizeBox(start, end), e.evt);
+        } else {
+          onCellRightClick?.(start, e.evt);
+        }
+      }
+      rightDragStart.current = null;
+      rightDragMoved.current = false;
+      shiftAsRightActive.current = false;
+      setBoxRect(null);
       return;
     }
     if (e.evt.button === 0) {
@@ -256,8 +333,9 @@ export function Canvas({
     setSpacePan(false);
     rightDragStart.current = null;
     rightDragMoved.current = false;
+    shiftAsRightActive.current = false;
     setBoxRect(null);
-    onCursorChange?.(null);
+    emitCursor(null);
   }
 
   function handleContextMenu(e: Konva.KonvaEventObject<PointerEvent>): void {
