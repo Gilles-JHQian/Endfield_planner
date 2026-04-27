@@ -17,6 +17,7 @@ import { mergeEdited, saveDevicesJson, type SaveResult } from './save-devices.ts
 import { useDeviceDraft } from './use-device-draft.ts';
 import { applyBaseline, useScrapedBaseline } from './use-scraped-baseline.ts';
 import { useState } from 'react';
+import type { Device } from '@core/data-loader/types.ts';
 
 const DATA_VERSION = '1.2';
 
@@ -63,6 +64,17 @@ export function DeviceEditorPage() {
     return true;
   }
 
+  async function handlePickDevice(next: Device): Promise<void> {
+    if (next.id === draftApi.draft?.id) return;
+    if (draftApi.dirty) {
+      // Auto-save the current draft before swapping so edits don't get lost.
+      // On save failure stay on the dirty draft so the user can retry.
+      const ok = await handleSave();
+      if (!ok) return;
+    }
+    draftApi.load(next);
+  }
+
   function handleResetToBaseline(): void {
     if (!draftApi.draft || !baseline) return;
     const baseRecord = baseline.byId.get(draftApi.draft.id);
@@ -94,7 +106,9 @@ export function DeviceEditorPage() {
         <DeviceList
           devices={bundle.devices}
           selectedId={draftApi.draft?.id ?? null}
-          onPick={draftApi.load}
+          onPick={(d) => {
+            void handlePickDevice(d);
+          }}
         />
       </aside>
 
