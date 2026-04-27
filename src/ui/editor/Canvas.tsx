@@ -73,6 +73,11 @@ export function Canvas({
   const rightDragStart = useRef<Cell | null>(null);
   const rightDragMoved = useRef(false);
   const [boxRect, setBoxRect] = useState<BoxRect | null>(null);
+  // P4 v7.9: dedupe `onCursorChange` at the cell level. Without this,
+  // `pointerCell` returns a new {x,y} object every mousemove pixel; setCursor
+  // on the parent treats every event as a state change → full EditorPage
+  // re-render at 60+ FPS even when the cursor stays in one cell.
+  const lastCellRef = useRef<Cell | null>(null);
   // P4 v7.7: hold space + left-drag to pan (trackpad-friendly alternative to
   // middle-click). `spaceDown` drives the cursor visual via state; the ref
   // mirrors it for the mouse handlers (refs don't wait for re-render).
@@ -161,6 +166,17 @@ export function Canvas({
     return { x: Math.floor(w.x), y: Math.floor(w.y) };
   }
 
+  /** P4 v7.9: emit `onCursorChange` only when the cell actually changes
+   *  (or transitions to/from null on leave/enter). Prevents pixel-level
+   *  re-renders during mousemove inside a single cell. */
+  function emitCursor(cell: Cell | null): void {
+    const last = lastCellRef.current;
+    if (cell === null && last === null) return;
+    if (cell && cell.x === last?.x && cell.y === last.y) return;
+    lastCellRef.current = cell;
+    onCursorChange?.(cell);
+  }
+
   function handleWheel(e: Konva.KonvaEventObject<WheelEvent>): void {
     e.evt.preventDefault();
     const stage = e.target.getStage();
@@ -213,7 +229,7 @@ export function Canvas({
         if (boxSelectEnabled) setBoxRect(normalizeBox(start, cur));
       }
     }
-    onCursorChange?.(pointerCell(e));
+    emitCursor(pointerCell(e));
   }
 
   function handleMouseUp(e: Konva.KonvaEventObject<MouseEvent>): void {
@@ -257,7 +273,7 @@ export function Canvas({
     rightDragStart.current = null;
     rightDragMoved.current = false;
     setBoxRect(null);
-    onCursorChange?.(null);
+    emitCursor(null);
   }
 
   function handleContextMenu(e: Konva.KonvaEventObject<PointerEvent>): void {
