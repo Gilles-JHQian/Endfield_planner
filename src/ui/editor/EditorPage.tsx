@@ -762,18 +762,21 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     setSelectedLinkIds(linkIds);
   }
 
-  function handleCellClick(cell: Cell, _evt: MouseEvent): void {
+  function handleCellClick(cell: Cell, evt: MouseEvent): void {
     // P4 v7.3 move mode: left-click commits the snapshot at the cursor's
     // current position + rotation (silent no-op on collision).
     if (moveMode) {
       commitMoveMode();
       return;
     }
+    // P4 v7.7: Ctrl/Cmd + left-click in a placement mode = "drop a copy and
+    // STAY in the mode" (clone gesture). Plain left-click drops one and
+    // exits back to select. Move mode is unchanged (always commit + exit).
+    const cloneModifier = evt.ctrlKey || evt.metaKey;
     // P4 v7 paste mode: a clipboard slot was picked from the Library tab.
-    // Next left click pastes at cursor; mode persists until right-click /
-    // Esc / tool change.
     if (pasteSource) {
       pastePayloadAtCursor(pasteSource, cell);
+      if (!cloneModifier) setPasteSource(null);
       return;
     }
     if (toolApi.tool.kind === 'place') {
@@ -830,6 +833,12 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       }
       const result = store.applyMany(actions);
       if (!result.ok) return;
+      // P4 v7.7: plain click drops one and returns to select; Ctrl/Cmd
+      // keeps place mode armed for rapid cloning.
+      if (!cloneModifier) {
+        toolApi.setSelect();
+        setPickedDevice(null);
+      }
     } else if (toolApi.tool.kind === 'select') {
       // Inspector pin: drives the right-column panel content. Only left-click
       // in the select tool sets it (P4 v6 — was also right-click in v5).
