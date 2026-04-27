@@ -80,18 +80,33 @@ export function MoveModeGhost({ ghost, lookup }: Props) {
         const color = l.layer === 'solid' ? SOLID_LINK : FLUID_LINK;
         return (
           <Group key={`l-${i.toString()}`}>
-            {l.path.map((c, j) => (
-              <Rect
-                key={j.toString()}
-                x={c.x * CELL_PX + CELL_PX * 0.2}
-                y={c.y * CELL_PX + CELL_PX * 0.2}
-                width={CELL_PX * 0.6}
-                height={CELL_PX * 0.6}
-                fill={color}
-                opacity={0.35}
-                cornerRadius={2}
-              />
-            ))}
+            {l.path.map((c, j) => {
+              const k = `${c.x.toString()},${c.y.toString()}`;
+              const collides = ghost.collidingCells.has(k);
+              return (
+                <Group key={j.toString()}>
+                  {/* P4 v7.4: red wash on colliding link cells. */}
+                  {collides && (
+                    <Rect
+                      x={c.x * CELL_PX}
+                      y={c.y * CELL_PX}
+                      width={CELL_PX}
+                      height={CELL_PX}
+                      fill={COLLISION_FILL}
+                    />
+                  )}
+                  <Rect
+                    x={c.x * CELL_PX + CELL_PX * 0.2}
+                    y={c.y * CELL_PX + CELL_PX * 0.2}
+                    width={CELL_PX * 0.6}
+                    height={CELL_PX * 0.6}
+                    fill={color}
+                    opacity={0.35}
+                    cornerRadius={2}
+                  />
+                </Group>
+              );
+            })}
           </Group>
         );
       })}
