@@ -248,7 +248,7 @@ A 2D grid-based canvas where the user can:
 - Toggle between "solid layer", "fluid layer", and "power" view modes. In each non-power mode the other transport layer's paths are rendered dimmed.
 - Edit placed devices' recipe selection inline.
 
-**Keyboard shortcuts:** V = select; B / E = belt; P / Q = pipe (B/P preserved for muscle memory; Q/E added in P3 for one-hand reach); R = rotate ghost or selection; M = move selection; F / Delete = delete selection; Esc = cancel; Backspace = pop waypoint while drawing.
+**Keyboard shortcuts:** V = select; B / E = belt; P / Q = pipe (B/P preserved for muscle memory; Q/E added in P3 for one-hand reach); R = rotate ghost or selection; M / X = move selection; F / Delete = delete selection; Esc = cancel; Backspace = pop waypoint while drawing. **Trackpad-friendly aliases (P4 v7.7 / v7.9):** hold Space + left-drag to pan (alternative to middle-mouse); ArrowUp / ArrowDown adjust zoom (centered on viewport); Shift + left-click / drag mirrors right-button (single = highlight / tool-cancel, drag = box-select / tool-cancel). **Modifier semantics (P4 v7.7 / v7.8):** Ctrl/Cmd + left-click in place / paste / move modes drops a copy and stays in the mode (clone gesture); plain left-click drops one and exits to select.
 
 **Live ghost preview (mandatory):** while the user is drawing a belt or pipe, or has a device selected from the palette, the tool renders a **real-time ghost** of the placement at the current mouse position. The ghost updates every mouse-move event, shows the candidate path/footprint, and color-codes validity (green = valid, red = DRC violation, yellow = valid but sub-optimal). Performance budget: ghost render must complete within one frame (~16ms) at the performance targets in §6.5.
 
@@ -850,7 +850,19 @@ A feature is "done" when:
 
 ## Changelog
 
-### v7.8 — bug fixes + move-mode perf (this document)
+### v7.9 — true move-mode perf fix + AoE coverage highlight + trackpad shortcuts (this document)
+
+Two follow-ups on v7.8 (AoE coverage shading + correctly-diagnosed perf fix) plus two trackpad-friendly shortcuts.
+
+- **Move-mode AoE highlights covered devices.** v7.8 added the dashed AoE box but didn't shade which existing devices the new placement would cover; the place-tool ghost has had this since P3. Export `CoveredHighlight` from GhostPreview, accept `existingDevices` on MoveModeGhost, render the wash inside the AoE loop for every `device_supply` ghost device.
+- **Move mode is no longer laggy — the *real* fix.** v7.8's occupancy-memo helped per-render cost but didn't address the underlying cause: `pointerCell` returned a new `{x,y}` object every mousemove pixel, so `setCursor` triggered a full EditorPage re-render at 60+ FPS even when the cursor stayed inside one cell. v7.9 lands three layers:
+  1. **Cell-level cursor dedupe in Canvas** (~95% win): a `lastCellRef` + `emitCursor` helper suppresses the callback when the cell is unchanged. A 100-pixel drag across 5 cells now fires 5 cursor events instead of 100.
+  2. **useMemo on `moveGhost` / `pasteGhost`** keyed on `cursor?.x` / `cursor?.y` so unrelated EditorPage re-renders don't recompute the ghost.
+  3. **React.memo on `MoveModeGhost`** so a stable `ghost` prop reference (from layer 2) skips the component function entirely.
+- **Shift + left-click / drag mirrors right-button.** Trackpad-friendly alias for right-mouse-button. shift+left-click = right-click (highlight in select / cancel in tool modes); shift+left-drag = right-drag (box-select in select / cancel elsewhere). Reuses the existing rightDrag* state machine via a new `shiftAsRightActive` ref. Space-pan takes priority when both are held.
+- **ArrowUp / ArrowDown adjust zoom.** Trackpad-friendly alias for wheel zoom. Same ZOOM_STEP (1.1×) as the wheel handler; centered on the viewport (not cursor) for predictability. Long-press auto-repeats via OS key-repeat. Same editable-target guard as Space-pan.
+
+### v7.8 — bug fixes + move-mode perf
 
 Five small fixes + one perf win on top of v7.7.
 
