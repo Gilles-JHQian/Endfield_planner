@@ -118,8 +118,11 @@ export function AoeBox({
 /** Shade existing devices whose footprint touches the candidate AoE.
  *  P4 v6: matches `computePowerCoverage` — any one footprint cell inside the
  *  AoE is enough (was `cells.every` until v5; the preview was the last
- *  consumer still using the strict v4 predicate). */
-function CoveredHighlight({
+ *  consumer still using the strict v4 predicate).
+ *
+ *  P4 v7.9: exported so MoveModeGhost can reuse the same shading when a
+ *  power-diffuser is being dragged inside move mode. */
+export function CoveredHighlight({
   zone,
   devices,
   lookup,

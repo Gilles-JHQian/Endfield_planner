@@ -1246,8 +1246,20 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                   onPort={beltCursorState.onPort}
                 />
               )}
-              {moveGhost && <MoveModeGhost ghost={moveGhost} lookup={lookup} />}
-              {pasteGhost && <MoveModeGhost ghost={pasteGhost} lookup={lookup} />}
+              {moveGhost && (
+                <MoveModeGhost
+                  ghost={moveGhost}
+                  lookup={lookup}
+                  existingDevices={store.project.devices}
+                />
+              )}
+              {pasteGhost && (
+                <MoveModeGhost
+                  ghost={pasteGhost}
+                  lookup={lookup}
+                  existingDevices={store.project.devices}
+                />
+              )}
               {highlight && (
                 <IssueHighlight cells={highlight.cells} severity={highlight.severity} />
               )}

@@ -7,6 +7,10 @@
  *  P4 v7.8: power-diffuser / repeater devices in the snapshot also render
  *  their candidate AoE as a dashed box so owners can see what supply zone
  *  the new placement would create — symmetric with the place-tool ghost.
+ *
+ *  P4 v7.9: AoE preview ALSO highlights the existing-project devices that
+ *  would fall inside the supply zone (white wash), so owners can see what
+ *  the move covers, not just where the box lands.
  */
 import { Group, Rect } from 'react-konva';
 import { footprintCells, rotatedBoundingBox } from '@core/domain/geometry.ts';
@@ -15,7 +19,7 @@ import type { Cell, Layer, PlacedDevice } from '@core/domain/types.ts';
 import type { Device } from '@core/data-loader/types.ts';
 import { CELL_PX } from './use-camera.ts';
 import { PortMarkers } from './DeviceLayer.tsx';
-import { AoeBox } from './GhostPreview.tsx';
+import { AoeBox, CoveredHighlight } from './GhostPreview.tsx';
 
 interface MoveGhostShape {
   devices: PlacedDevice[];
@@ -27,6 +31,11 @@ interface MoveGhostShape {
 interface Props {
   ghost: MoveGhostShape;
   lookup: (id: string) => Device | undefined;
+  /** P4 v7.9: live project devices used to compute the white wash on the
+   *  AoE preview's covered devices. Only consulted when at least one ghost
+   *  device has `power_aoe.purpose === 'device_supply'`. Empty array is a
+   *  safe default — the wash just won't render. */
+  existingDevices?: readonly PlacedDevice[];
 }
 
 const VALID_FILL = 'rgba(109, 194, 109, 0.18)';
@@ -36,12 +45,14 @@ const COLLISION_STROKE = '#e85d4a';
 const SOLID_LINK = '#ff9a3d';
 const FLUID_LINK = '#4ec9d3';
 
-export function MoveModeGhost({ ghost, lookup }: Props) {
+export function MoveModeGhost({ ghost, lookup, existingDevices }: Props) {
   return (
     <Group listening={false} opacity={0.85}>
       {/* P4 v7.8: AoE preview for any ghost device with `power_aoe`. Drawn
        *  underneath the device rects so the dashed box doesn't obscure the
-       *  device outline at the corners. */}
+       *  device outline at the corners.
+       *  P4 v7.9: device_supply zones also get a CoveredHighlight wash on
+       *  every existing device whose footprint would fall inside. */}
       {ghost.devices.map((d) => {
         const dev = lookup(d.device_id);
         if (!dev?.power_aoe) return null;
@@ -49,7 +60,14 @@ export function MoveModeGhost({ ghost, lookup }: Props) {
           previewSupplyZone(dev, d.position, d.rotation) ??
           previewPoleLinkZone(dev, d.position, d.rotation);
         if (!zone) return null;
-        return <AoeBox key={`aoe-${d.instance_id}`} zone={zone} kind={dev.power_aoe.purpose} />;
+        return (
+          <Group key={`aoe-${d.instance_id}`}>
+            <AoeBox zone={zone} kind={dev.power_aoe.purpose} />
+            {dev.power_aoe.purpose === 'device_supply' && existingDevices && (
+              <CoveredHighlight zone={zone} devices={existingDevices} lookup={lookup} />
+            )}
+          </Group>
+        );
       })}
       {ghost.devices.map((d) => {
         const dev = lookup(d.device_id);
