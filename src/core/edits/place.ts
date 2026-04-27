@@ -137,6 +137,46 @@ export function rotateDevice(
   );
 }
 
+/** Apply a new position AND rotation to a device in one transactional step.
+ *  Used by the v7 batch-rotate-around-centroid flow: rotating each device
+ *  separately with `rotateDevice` + `moveDevice` would fail when the
+ *  intermediate state collides with a sibling device that hasn't moved yet.
+ *  P4 v7. */
+export function moveRotateDevice(
+  project: Project,
+  instance_id: string,
+  newPosition: Cell,
+  newRotation: Rotation,
+  lookup: DeviceLookup,
+): Result<Project> {
+  const placed = findDevice(project, instance_id);
+  if (!placed) return err('not_found', `No placed device with instance_id=${instance_id}.`);
+  const device = lookup(placed.device_id);
+  if (!device) return err('not_found', `Catalog device ${placed.device_id} missing.`);
+
+  const moved: PlacedDevice = { ...placed, position: newPosition, rotation: newRotation };
+  if (!fitsInPlot(device, moved, project.plot)) {
+    return err('out_of_bounds', `Move+rotate would push device ${device.id} past the plot.`, {
+      at: newPosition,
+    });
+  }
+  const occupied = occupiedCellSet(project, lookup, instance_id);
+  const collision = findCollision(device, moved, occupied);
+  if (collision) {
+    return err(
+      'collision',
+      `Move+rotate would overlap an existing device at (${collision.x.toString()}, ${collision.y.toString()}).`,
+      { at: collision },
+    );
+  }
+
+  return ok(
+    bumpUpdatedAt(project, {
+      devices: project.devices.map((d) => (d.instance_id === instance_id ? moved : d)),
+    }),
+  );
+}
+
 export function deleteDevice(project: Project, instance_id: string): Result<Project> {
   const exists = project.devices.some((d) => d.instance_id === instance_id);
   if (!exists) return err('not_found', `No placed device with instance_id=${instance_id}.`);

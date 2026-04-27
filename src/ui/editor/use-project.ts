@@ -13,6 +13,7 @@ import {
   deleteDevice,
   deleteLink,
   moveDevice,
+  moveRotateDevice,
   placeDevice,
   resizePlot,
   rotateDevice,
@@ -45,6 +46,14 @@ export type ProjectAction =
     }
   | { type: 'move_device'; instance_id: string; position: Cell }
   | { type: 'rotate_device'; instance_id: string }
+  | {
+      /** P4 v7 batch-rotate-around-centroid: each affected device gets a new
+       *  position AND a new rotation in one transactional step. */
+      type: 'move_rotate_device';
+      instance_id: string;
+      position: Cell;
+      rotation: Rotation;
+    }
   | { type: 'delete_device'; instance_id: string }
   | { type: 'set_recipe'; instance_id: string; recipe_id: string | null }
   | {
@@ -189,6 +198,10 @@ function applyAction(
       return wrap(moveDevice(project, action.instance_id, action.position, lookup));
     case 'rotate_device':
       return wrap(rotateDevice(project, action.instance_id, lookup));
+    case 'move_rotate_device':
+      return wrap(
+        moveRotateDevice(project, action.instance_id, action.position, action.rotation, lookup),
+      );
     case 'delete_device':
       return wrap(deleteDevice(project, action.instance_id));
     case 'set_recipe':

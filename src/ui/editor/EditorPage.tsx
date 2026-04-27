@@ -320,6 +320,16 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         // Single-device deletion via Delete key (selected via V-tool left-
         // click) is handled by the existing selection-aware listener below.
       }
+      // P4 v7: R rotates the box selection 90° CW around the centroid. Only
+      // fires when ≥ 1 device is highlighted AND the active tool is select
+      // (so it doesn't conflict with the place-tool's R = ghost rotate).
+      if ((e.key === 'r' || e.key === 'R') && !meta) {
+        if (boxSelected.size === 0 || toolApi.tool.kind !== 'select') return;
+        e.preventDefault();
+        const actions = batchRotateActions(store.project, boxSelected, lookup);
+        if (actions.length > 0) store.applyMany(actions);
+        return;
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -398,6 +408,33 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
    *  In PLACING state (linkDraft active), right-click cancels the draft
    *  back to READY instead — owners can abort a mis-started path without
    *  reaching for Esc. */
+  /** P4 v7: a cell is "highlighted" when it sits inside the footprint of a
+   *  device in the boxSelected set. Used by Canvas to decide whether
+   *  left-mousedown enters drag-move mode. */
+  function isCellHighlighted(cell: Cell): boolean {
+    if (boxSelected.size === 0) return false;
+    const hit = findDeviceAtCell(store.project.devices, lookup, cell);
+    return hit !== null && boxSelected.has(hit.instance_id);
+  }
+
+  /** P4 v7: drag-move every device in `boxSelected` by `delta` cells.
+   *  Batched into one applyMany so a partial collision rolls back the entire
+   *  drag (no half-moved selections). */
+  function handleDragMove(delta: Cell): void {
+    if (boxSelected.size === 0 || (delta.x === 0 && delta.y === 0)) return;
+    const actions: ProjectAction[] = [];
+    for (const id of boxSelected) {
+      const placed = store.project.devices.find((d) => d.instance_id === id);
+      if (!placed) continue;
+      actions.push({
+        type: 'move_device',
+        instance_id: id,
+        position: { x: placed.position.x + delta.x, y: placed.position.y + delta.y },
+      });
+    }
+    store.applyMany(actions);
+  }
+
   function handleCellRightClick(cell: Cell): void {
     // P4 v7: right-click in PLACE mode cancels the device-placement ghost,
     // symmetric with the v6 belt/pipe-tool right-click cancel.
@@ -785,6 +822,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onCellClick={handleCellClick}
           onCellRightClick={handleCellRightClick}
           onBoxSelect={handleBoxSelect}
+          isCellHighlighted={isCellHighlighted}
+          onDragMove={handleDragMove}
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
           panTarget={panTarget}
@@ -991,6 +1030,69 @@ function findLayerLinkAtCell(
  *  assumed adjacent (differ by exactly 1 in one axis). */
 function signDir(to: Cell, from: Cell): { dx: number; dy: number } {
   return { dx: Math.sign(to.x - from.x), dy: Math.sign(to.y - from.y) };
+}
+
+const NEXT_ROTATION_CW: Record<0 | 90 | 180 | 270, 0 | 90 | 180 | 270> = {
+  0: 90,
+  90: 180,
+  180: 270,
+  270: 0,
+};
+
+/** P4 v7: build N `move_rotate_device` actions to rotate every device in
+ *  `selectedIds` 90° CW around the SELECTION centroid. Returns [] if the
+ *  selection is empty. Math:
+ *  - Each device's center is `position + bbox/2` (continuous coords).
+ *  - centroid = average of centers.
+ *  - For each device: relative = center - centroid; rotated = (-rel.y, rel.x);
+ *    new_center = centroid + rotated; new bbox after rotation; new position
+ *    = floor(new_center - new_bbox/2). */
+function batchRotateActions(
+  project: ReturnType<typeof useProject>['project'],
+  selectedIds: ReadonlySet<string>,
+  lookup: (id: string) => Device | undefined,
+): ProjectAction[] {
+  const targets: { placed: { instance_id: string; position: Cell; rotation: 0 | 90 | 180 | 270 }; device: Device; cx: number; cy: number }[] = [];
+  for (const id of selectedIds) {
+    const placed = project.devices.find((d) => d.instance_id === id);
+    if (!placed) continue;
+    const dev = lookup(placed.device_id);
+    if (!dev) continue;
+    const bbox = rotatedBoundingBox(dev, placed.rotation);
+    targets.push({
+      placed: { instance_id: placed.instance_id, position: placed.position, rotation: placed.rotation },
+      device: dev,
+      cx: placed.position.x + bbox.width / 2,
+      cy: placed.position.y + bbox.height / 2,
+    });
+  }
+  if (targets.length === 0) return [];
+  const sumX = targets.reduce((acc, t) => acc + t.cx, 0);
+  const sumY = targets.reduce((acc, t) => acc + t.cy, 0);
+  const centroidX = sumX / targets.length;
+  const centroidY = sumY / targets.length;
+  const out: ProjectAction[] = [];
+  for (const t of targets) {
+    const relX = t.cx - centroidX;
+    const relY = t.cy - centroidY;
+    // 90° CW screen rotation: (relX, relY) → (-relY, relX).
+    const newRelX = -relY;
+    const newRelY = relX;
+    const newCenterX = centroidX + newRelX;
+    const newCenterY = centroidY + newRelY;
+    const newRotation = NEXT_ROTATION_CW[t.placed.rotation];
+    const newBbox = rotatedBoundingBox(t.device, newRotation);
+    out.push({
+      type: 'move_rotate_device',
+      instance_id: t.placed.instance_id,
+      position: {
+        x: Math.floor(newCenterX - newBbox.width / 2),
+        y: Math.floor(newCenterY - newBbox.height / 2),
+      },
+      rotation: newRotation,
+    });
+  }
+  return out;
 }
 
 /** Belt port indices on cross-bridge devices (1×1, ports declared in N,E,S,W

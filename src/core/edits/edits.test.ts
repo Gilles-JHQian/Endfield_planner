@@ -5,6 +5,7 @@ import {
   deleteDevice,
   deleteLink,
   moveDevice,
+  moveRotateDevice,
   placeDevice,
   resizePlot,
   rotateDevice,
@@ -387,6 +388,62 @@ describe('resizePlot', () => {
     ).project;
     const after = unwrap(resizePlot(project, 5, 5, lookup));
     expect(after.plot).toEqual({ width: 5, height: 5 });
+  });
+});
+
+describe('moveRotateDevice (P4 v7)', () => {
+  it('applies a new position AND rotation in one transactional step', () => {
+    const project = unwrap(
+      placeDevice({
+        project: freshProject(),
+        device: FURNACE,
+        position: { x: 0, y: 0 },
+        lookup,
+        instance_id: 'a',
+      }),
+    ).project;
+    const after = unwrap(moveRotateDevice(project, 'a', { x: 10, y: 10 }, 90, lookup));
+    expect(after.devices[0]!.position).toEqual({ x: 10, y: 10 });
+    expect(after.devices[0]!.rotation).toBe(90);
+  });
+
+  it('rejects out-of-bounds new position', () => {
+    const project = unwrap(
+      placeDevice({
+        project: { ...freshProject(), plot: { width: 10, height: 10 } },
+        device: FURNACE,
+        position: { x: 0, y: 0 },
+        lookup,
+        instance_id: 'a',
+      }),
+    ).project;
+    const r = moveRotateDevice(project, 'a', { x: 9, y: 0 }, 0, lookup);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.kind).toBe('out_of_bounds');
+  });
+
+  it('rejects collision with another device at the new spot', () => {
+    let project = unwrap(
+      placeDevice({
+        project: freshProject(),
+        device: FURNACE,
+        position: { x: 0, y: 0 },
+        lookup,
+        instance_id: 'a',
+      }),
+    ).project;
+    project = unwrap(
+      placeDevice({
+        project,
+        device: MINER,
+        position: { x: 10, y: 10 },
+        lookup,
+        instance_id: 'b',
+      }),
+    ).project;
+    const r = moveRotateDevice(project, 'a', { x: 10, y: 10 }, 0, lookup);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.kind).toBe('collision');
   });
 });
 
