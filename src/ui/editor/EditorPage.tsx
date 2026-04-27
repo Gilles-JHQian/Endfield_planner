@@ -68,6 +68,7 @@ import { useDrc } from './use-drc.ts';
 import { useViewMode } from './use-view-mode.ts';
 import { useProject, type ProjectAction } from './use-project.ts';
 import { useTool } from './use-tool.ts';
+import { CELL_PX } from './use-camera.ts';
 
 const DATA_VERSION = '1.2';
 
@@ -497,25 +498,39 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           };
         })()
       : null;
+  // P4 v7.10: rotation-applied snapshot body, computed once per moveMode entry
+  // / R press. Stable across cursor moves so MoveModeGhost's GhostBody hits
+  // its memo cache and the Konva subtree (~hundreds of nodes for big moves)
+  // is not reconciled per cursor cell change.
+  const moveBody = useMemo(
+    () => (moveMode ? computeMoveBody(moveMode, lookup) : null),
+    [moveMode, lookup],
+  );
+  // Same idea for paste mode — payload-relative body computed once per slot.
+  const pasteBody = useMemo(
+    () => (pasteSource ? computePasteBody(pasteSource) : null),
+    [pasteSource],
+  );
+
   // P4 v7.3: cursor-following ghost for move mode. P4 v7.9 wraps in useMemo
   // keyed on cursor.x/cursor.y (NOT cursor object identity) so any unrelated
   // EditorPage re-render that doesn't change the cell skips the recompute.
   const moveGhost = useMemo(
     () =>
-      moveMode && cursor
-        ? computeMoveGhost(moveMode, cursor, store.project.plot, lookup, occupancy)
+      moveMode && moveBody && cursor
+        ? computeMoveGhost(moveMode, moveBody, cursor, store.project.plot, lookup, occupancy)
         : null,
-    [moveMode, cursor?.x, cursor?.y, store.project.plot, lookup, occupancy],
+    [moveMode, moveBody, cursor?.x, cursor?.y, store.project.plot, lookup, occupancy],
   );
   // P4 v7.7: paste mode renders the same multi-device cluster ghost so the
   // owner can see the placement footprint before clicking. Reuses the move-
   // ghost shape + MoveModeGhost renderer.
   const pasteGhost = useMemo(
     () =>
-      pasteSource && cursor && !moveMode
-        ? computePasteGhost(pasteSource, cursor, store.project.plot, lookup, occupancy)
+      pasteSource && pasteBody && cursor && !moveMode
+        ? computePasteGhost(pasteSource, pasteBody, cursor, store.project.plot, lookup, occupancy)
         : null,
-    [pasteSource, moveMode, cursor?.x, cursor?.y, store.project.plot, lookup, occupancy],
+    [pasteSource, pasteBody, moveMode, cursor?.x, cursor?.y, store.project.plot, lookup, occupancy],
   );
 
   /** P4 v6 right-click: device or belt under cell goes into the highlight set
@@ -671,8 +686,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
    *  new cursor cell. Symmetric with the place / paste Ctrl+click clone
    *  semantics from v7.7. */
   function commitMoveMode(keepMode: boolean): void {
-    if (!moveMode || !cursor) return;
-    const ghost = computeMoveGhost(moveMode, cursor, store.project.plot, lookup, occupancy);
+    if (!moveMode || !cursor || !moveBody) return;
+    const ghost = computeMoveGhost(
+      moveMode,
+      moveBody,
+      cursor,
+      store.project.plot,
+      lookup,
+      occupancy,
+    );
     if (ghost.collides) return;
     const itemIdMap = new Map<string, string>();
     for (const d of moveMode.devices) {
@@ -809,9 +831,16 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       return;
     }
     // P4 v7 paste mode: a clipboard slot was picked from the Library tab.
-    if (pasteSource) {
+    if (pasteSource && pasteBody) {
       // P4 v7.7: block paste when the cluster ghost is red.
-      const ghost = computePasteGhost(pasteSource, cell, store.project.plot, lookup, occupancy);
+      const ghost = computePasteGhost(
+        pasteSource,
+        pasteBody,
+        cell,
+        store.project.plot,
+        lookup,
+        occupancy,
+      );
       if (ghost.collides) return;
       pastePayloadAtCursor(pasteSource, cell);
       if (!cloneModifier) setPasteSource(null);
@@ -1532,8 +1561,26 @@ function rotateCellCW(c: Cell, pivot: Cell): Cell {
  *  rotated cell-by-cell. Collision check: every ghost device footprint cell
  *  is tested against the live (post-snapshot-removal) project per-layer
  *  occupancy; out-of-plot also collides. */
+/** P4 v7.10 — ghost body data: snapshot devices/links AFTER any rotation has
+ *  been applied, but BEFORE the per-cursor translation. Reference is stable
+ *  across cursor moves — only changes on moveMode entry / R press / paste
+ *  source change — which lets the GhostBody subtree skip React reconciliation
+ *  entirely on most cursor events. */
+interface GhostBody {
+  devices: readonly PlacedDevice[];
+  links: readonly { layer: Layer; tier_id: string; path: readonly Cell[] }[];
+}
+
 interface MoveGhost {
-  /** Ghost devices at their new positions/rotations. */
+  /** Static body (rotation applied, no translation). Stable across cursor
+   *  moves — pass to MoveModeGhost so its memoized GhostBody hits the cache. */
+  bodyDevices: readonly PlacedDevice[];
+  bodyLinks: readonly { layer: Layer; tier_id: string; path: readonly Cell[] }[];
+  /** Pixel translation applied via the outer Group's `(x, y)` attrs. */
+  transform: { x: number; y: number };
+  /** Ghost devices at their NEW positions (= bodyDevices ⊕ translation).
+   *  Used by callers that need post-translation data: AoE preview,
+   *  commit-move-mode, paste, etc. */
   devices: PlacedDevice[];
   /** Ghost links at their new path positions (src/dst PortRefs unchanged). */
   links: {
@@ -1544,18 +1591,59 @@ interface MoveGhost {
   /** True when at least one ghost cell collides with the live project or
    *  falls outside the plot. The full set is in `collidingCells`. */
   collides: boolean;
-  /** "x,y" keys for cells the ghost wants to occupy that are blocked. The
-   *  renderer overlays these in red. */
+  /** "x,y" world-coord keys for cells the ghost wants to occupy that are
+   *  blocked. CollisionTints overlay reads this. */
   collidingCells: Set<string>;
 }
 
-function computeMoveGhost(
+/** P4 v7.10 — apply the move-mode rotation to snapshot devices/links once.
+ *  Returns a body whose positions are SNAPSHOT-relative (rotation baked in,
+ *  no translation). The outer Group at render time supplies the translation.
+ *  Hoisted out of `computeMoveGhost` so the cursor-frequent path doesn't
+ *  redo this O(snapshot) work; callers cache via useMemo on `[moveMode]`. */
+function computeMoveBody(
   state: {
     devices: readonly PlacedDevice[];
     links: readonly Link[];
     pivot: Cell;
     rotationSteps: 0 | 1 | 2 | 3;
   },
+  lookup: (id: string) => Device | undefined,
+): GhostBody {
+  const rotate = (c: Cell): Cell => {
+    let cell = c;
+    for (let i = 0; i < state.rotationSteps; i++) {
+      cell = rotateCellCW(cell, state.pivot);
+    }
+    return cell;
+  };
+  const devices: PlacedDevice[] = state.devices.map((d) => {
+    const dev = lookup(d.device_id);
+    if (!dev) return d;
+    const fpCells = footprintCells(dev, { position: d.position, rotation: d.rotation });
+    let minX = Infinity;
+    let minY = Infinity;
+    for (const c of fpCells) {
+      const rc = rotate(c);
+      if (rc.x < minX) minX = rc.x;
+      if (rc.y < minY) minY = rc.y;
+    }
+    const newRotation = ((d.rotation + 90 * state.rotationSteps) % 360) as 0 | 90 | 180 | 270;
+    return { ...d, position: { x: minX, y: minY }, rotation: newRotation };
+  });
+  const links = state.links.map((l) => ({
+    layer: l.layer,
+    tier_id: l.tier_id,
+    path: l.path.map(rotate),
+  }));
+  return { devices, links };
+}
+
+function computeMoveGhost(
+  state: {
+    pivot: Cell;
+  },
+  body: GhostBody,
   cursor: Cell,
   plot: { width: number; height: number },
   lookup: (id: string) => Device | undefined,
@@ -1563,37 +1651,21 @@ function computeMoveGhost(
 ): MoveGhost {
   const dx = cursor.x - state.pivot.x;
   const dy = cursor.y - state.pivot.y;
-  const rotateAndTranslate = (c: Cell): Cell => {
-    let cell = c;
-    for (let i = 0; i < state.rotationSteps; i++) {
-      cell = rotateCellCW(cell, state.pivot);
-    }
-    return { x: cell.x + dx, y: cell.y + dy };
-  };
-
-  const newDevices: PlacedDevice[] = state.devices.map((d) => {
-    const dev = lookup(d.device_id);
-    if (!dev) return d;
-    const fpCells = footprintCells(dev, { position: d.position, rotation: d.rotation });
-    const newFootprint = fpCells.map(rotateAndTranslate);
-    let minX = Infinity;
-    let minY = Infinity;
-    for (const c of newFootprint) {
-      if (c.x < minX) minX = c.x;
-      if (c.y < minY) minY = c.y;
-    }
-    const newRotation = ((d.rotation + 90 * state.rotationSteps) % 360) as 0 | 90 | 180 | 270;
-    return { ...d, position: { x: minX, y: minY }, rotation: newRotation };
-  });
-
-  const newLinks = state.links.map((l) => ({
+  // Body positions are already rotated; translate to current cursor.
+  const newDevices: PlacedDevice[] = body.devices.map((d) => ({
+    ...d,
+    position: { x: d.position.x + dx, y: d.position.y + dy },
+  }));
+  const newLinks = body.links.map((l) => ({
     layer: l.layer,
     tier_id: l.tier_id,
-    path: l.path.map(rotateAndTranslate),
+    path: l.path.map((c) => ({ x: c.x + dx, y: c.y + dy })),
   }));
-
   const colliding = clusterCollisions(newDevices, newLinks, plot, lookup, occupancy);
   return {
+    bodyDevices: body.devices,
+    bodyLinks: body.links,
+    transform: { x: dx * CELL_PX, y: dy * CELL_PX },
     devices: newDevices,
     links: newLinks,
     collides: colliding.size > 0,
@@ -1692,34 +1764,53 @@ function clipboardCenterAnchor(
   };
 }
 
-/** P4 v7.7: paste-mode cursor-following ghost. Translates the clipboard
- *  payload's relative cells to absolute (anchor + rel) and reuses the
- *  cluster-collision check. The caller wires the ghost into MoveModeGhost
- *  for rendering and blocks the paste click when `collides`.
- *
- *  P4 v7.8: cursor anchors the cluster's CENTER, not its top-left. */
+/** P4 v7.10 — pre-bake the clipboard payload into a body whose positions
+ *  are RELATIVE to the payload's own bbox origin (rel_position / rel_path
+ *  unchanged). Stable per pasteSource. The outer Group at render time
+ *  translates by `clipboardCenterAnchor(payload, cursor)` to land on the
+ *  cursor. */
+function computePasteBody(payload: ClipboardPayload): GhostBody {
+  const devices: PlacedDevice[] = payload.items.map((it, i) => ({
+    instance_id: `paste-ghost-${i.toString()}`,
+    device_id: it.device_id,
+    position: it.rel_position,
+    rotation: it.rotation,
+    recipe_id: it.recipe_id,
+  }));
+  const links = payload.links.map((l) => ({
+    layer: l.layer,
+    tier_id: l.tier_id,
+    path: l.rel_path.map((c) => ({ x: c.x, y: c.y })),
+  }));
+  return { devices, links };
+}
+
+/** P4 v7.7: paste-mode cursor-following ghost. P4 v7.8 centers the cluster
+ *  on the cursor; v7.10 hoists the per-cursor work to a translation that the
+ *  outer Group applies, leaving the body subtree referentially stable. */
 function computePasteGhost(
   payload: ClipboardPayload,
+  body: GhostBody,
   cursor: Cell,
   plot: { width: number; height: number },
   lookup: (id: string) => Device | undefined,
   occupancy: OccupancyMap,
 ): MoveGhost {
   const anchor = clipboardCenterAnchor(payload, cursor, lookup);
-  const newDevices: PlacedDevice[] = payload.items.map((it, i) => ({
-    instance_id: `paste-ghost-${i.toString()}`,
-    device_id: it.device_id,
-    position: { x: anchor.x + it.rel_position.x, y: anchor.y + it.rel_position.y },
-    rotation: it.rotation,
-    recipe_id: it.recipe_id,
+  const newDevices: PlacedDevice[] = body.devices.map((d) => ({
+    ...d,
+    position: { x: anchor.x + d.position.x, y: anchor.y + d.position.y },
   }));
-  const newLinks = payload.links.map((l) => ({
+  const newLinks = body.links.map((l) => ({
     layer: l.layer,
     tier_id: l.tier_id,
-    path: l.rel_path.map((c) => ({ x: anchor.x + c.x, y: anchor.y + c.y })),
+    path: l.path.map((c) => ({ x: anchor.x + c.x, y: anchor.y + c.y })),
   }));
   const colliding = clusterCollisions(newDevices, newLinks, plot, lookup, occupancy);
   return {
+    bodyDevices: body.devices,
+    bodyLinks: body.links,
+    transform: { x: anchor.x * CELL_PX, y: anchor.y * CELL_PX },
     devices: newDevices,
     links: newLinks,
     collides: colliding.size > 0,
