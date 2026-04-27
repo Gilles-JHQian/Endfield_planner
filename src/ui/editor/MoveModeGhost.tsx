@@ -12,6 +12,7 @@
  *  would fall inside the supply zone (white wash), so owners can see what
  *  the move covers, not just where the box lands.
  */
+import { memo } from 'react';
 import { Group, Rect } from 'react-konva';
 import { footprintCells, rotatedBoundingBox } from '@core/domain/geometry.ts';
 import { previewPoleLinkZone, previewSupplyZone } from '@core/domain/power-coverage.ts';
@@ -45,7 +46,11 @@ const COLLISION_STROKE = '#e85d4a';
 const SOLID_LINK = '#ff9a3d';
 const FLUID_LINK = '#4ec9d3';
 
-export function MoveModeGhost({ ghost, lookup, existingDevices }: Props) {
+export const MoveModeGhost = memo(function MoveModeGhost({
+  ghost,
+  lookup,
+  existingDevices,
+}: Props) {
   return (
     <Group listening={false} opacity={0.85}>
       {/* P4 v7.8: AoE preview for any ghost device with `power_aoe`. Drawn
@@ -148,4 +153,4 @@ export function MoveModeGhost({ ghost, lookup, existingDevices }: Props) {
       })}
     </Group>
   );
-}
+});
