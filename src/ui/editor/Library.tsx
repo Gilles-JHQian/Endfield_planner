@@ -11,6 +11,7 @@ import { useI18n } from '@i18n/index.tsx';
 import { Card } from '@ui/components/index.ts';
 import type { Device } from '@core/data-loader/types.ts';
 import type { ClipboardPayload } from '@core/persistence/index.ts';
+import { DeviceThumb } from './DeviceThumb.tsx';
 import type { LibraryTab } from './Rail.tsx';
 
 interface Props {
@@ -112,12 +113,7 @@ export function Library({
                       backgroundSize: '8px 8px',
                     }}
                   >
-                    <span
-                      className={`font-display text-[18px] uppercase ${layer === 'fluid' ? 'text-teal' : 'text-amber'}`}
-                      aria-hidden
-                    >
-                      {d.id.split('-')[0]?.[0]?.toUpperCase() ?? '?'}
-                    </span>
+                    <DeviceThumb device={d} />
                   </div>
                   <div>
                     <div className="font-cn text-[12px] leading-tight text-fg">
