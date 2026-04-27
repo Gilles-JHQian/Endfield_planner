@@ -147,6 +147,17 @@ export interface BeltRouteOpts {
    *  must arrive in). The last step (path[N-1] - path[N-2]) must match this
    *  vector or the planner reports a collision at `to`. (P4 v6 §5.1 F3.) */
   readonly lastStepDirection?: { dx: number; dy: number };
+  /** P4 v7.4 — true when the auto-placed cross-bridge for THIS layer would
+   *  also block the OTHER layer (pipe-cross-bridge does; belt-cross-bridge
+   *  does not — REQUIREMENT.md §4.5.2). When true and a candidate auto-
+   *  bridge cell is in `otherLayerOccupants`, the planner reports a
+   *  collision instead of allowing the bridge — owners shouldn't be able
+   *  to ghost-place a fluid pipe through a solid belt. */
+  readonly crossBridgeBlocksOtherLayer?: boolean;
+  /** P4 v7.4 — cells occupied on the OTHER layer (devices that block the
+   *  other layer + that layer's link path cells). Consulted only when
+   *  `crossBridgeBlocksOtherLayer` is true. */
+  readonly otherLayerOccupants?: ReadonlySet<string>;
 }
 
 export interface BeltRouteResult {
@@ -299,7 +310,16 @@ export function routeForBelt(from: Cell, to: Cell, opts: BeltRouteOpts): BeltRou
     // Otherwise it's a perpendicular crossing. Allowed iff there's already a
     // cross-bridge here, or we'll auto-place one.
     if (!opts.existingBridges.has(k)) {
-      bridgesToAutoPlace.push(c);
+      // P4 v7.4: if the auto-placed bridge would also block the OTHER layer
+      // (pipe-cross-bridge does; belt-cross-bridge does not) and that other
+      // layer is occupied at this cell, the bridge can't legally be placed
+      // → collision instead of auto-bridge. Catches "pipe over solid belt"
+      // at the ghost stage before commit.
+      if (opts.crossBridgeBlocksOtherLayer && opts.otherLayerOccupants?.has(k)) {
+        collisions.push(c);
+      } else {
+        bridgesToAutoPlace.push(c);
+      }
     }
   }
 

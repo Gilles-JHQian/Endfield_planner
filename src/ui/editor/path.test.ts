@@ -198,6 +198,47 @@ describe('routeForBelt', () => {
     expect(r.bridgesToAutoPlace).toEqual([]);
   });
 
+  // P4 v7.4 — pipe (fluid) auto-bridge over a solid belt cell should be a
+  // collision instead of an auto-bridge, because the pipe-cross-bridge
+  // blocks both layers and would conflict with the existing solid belt.
+  it('rejects fluid auto-bridge when other layer is occupied (P4 v7.4)', () => {
+    // Existing same-layer (fluid) link going horizontally at (3, 5).
+    const links = new Map<string, ReadonlySet<LinkOrient>>([['3,5', new Set(['h'])]]);
+    // Solid layer is occupied at (3, 5) — there's a solid belt there.
+    const otherLayer = new Set(['3,5']);
+    const r = routeForBelt(
+      { x: 3, y: 0 },
+      { x: 3, y: 10 },
+      {
+        ...emptyOpts(),
+        sameLayerLinks: links,
+        crossBridgeBlocksOtherLayer: true,
+        otherLayerOccupants: otherLayer,
+      },
+    );
+    expect(r.collisions).toContainEqual({ x: 3, y: 5 });
+    expect(r.bridgesToAutoPlace).toEqual([]);
+  });
+
+  // The reverse — solid auto-bridge over a fluid pipe — should still pass
+  // (belt-cross-bridge has layerOccupancy='solid' only, REQUIREMENT.md §4.5.2).
+  it('allows solid auto-bridge over a fluid pipe (asymmetric)', () => {
+    const links = new Map<string, ReadonlySet<LinkOrient>>([['3,5', new Set(['h'])]]);
+    const otherLayer = new Set(['3,5']); // fluid pipe at (3,5)
+    const r = routeForBelt(
+      { x: 3, y: 0 },
+      { x: 3, y: 10 },
+      {
+        ...emptyOpts(),
+        sameLayerLinks: links,
+        crossBridgeBlocksOtherLayer: false, // belt-cross-bridge doesn't block other layer
+        otherLayerOccupants: otherLayer,
+      },
+    );
+    expect(r.collisions).toEqual([]);
+    expect(r.bridgesToAutoPlace).toContainEqual({ x: 3, y: 5 });
+  });
+
   it('flags parallel overlap (same axis as existing) as collision', () => {
     // Existing horizontal belt at (3, 0). New segment also runs horizontally through it.
     const links = new Map<string, ReadonlySet<LinkOrient>>([['3,0', new Set(['h'])]]);
