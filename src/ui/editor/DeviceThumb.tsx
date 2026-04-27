@@ -16,6 +16,12 @@ import { abbreviateCnName } from './device-label.ts';
 
 const THUMB_PX = 80;
 const INSET = 6;
+// P4 v7.6: thumbs share a fixed 6×6 reference grid so a 1×1 device renders
+// SMALL and an 8×8 device renders LARGE. Devices with max(w, h) ≤ 6 keep
+// the baseline cell size; bigger ones shrink so the long edge fills the
+// available space exactly. Owners can now eyeball relative footprints from
+// the library card grid.
+const BASELINE_CELLS = 6;
 
 const PORT_KIND_COLOR: Record<PortKind, string> = {
   solid: '#ff9a3d',
@@ -29,7 +35,7 @@ interface Props {
 
 export function DeviceThumb({ device }: Props) {
   const { width: w, height: h } = device.footprint;
-  const cellPx = Math.max(6, Math.floor((THUMB_PX - INSET * 2) / Math.max(w, h)));
+  const cellPx = (THUMB_PX - INSET * 2) / Math.max(BASELINE_CELLS, w, h);
   const fpW = w * cellPx;
   const fpH = h * cellPx;
   const offX = (THUMB_PX - fpW) / 2;
