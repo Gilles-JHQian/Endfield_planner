@@ -11,7 +11,7 @@
 import { footprintCells, portsInWorldFrame } from '@core/domain/geometry.ts';
 import type { Cell, Layer, Project } from '@core/domain/types.ts';
 import type { DataBundle, Device } from '@core/data-loader/types.ts';
-import { SOLID_BRIDGE_IDS, FLUID_BRIDGE_IDS } from '@core/drc/bridges.ts';
+import { SOLID_BRIDGE_IDS, FLUID_BRIDGE_IDS, layerOccupancyOf } from '@core/drc/bridges.ts';
 import {
   buildLinkOrientations,
   routeForBelt,
@@ -26,6 +26,13 @@ export interface ProjectRouteContext {
   readonly sameLayerLinks: ReadonlyMap<string, ReadonlySet<'h' | 'v' | 'corner'>>;
   readonly existingBridges: ReadonlySet<string>;
   readonly bounds: { width: number; height: number };
+  /** P4 v7.4 — true if the auto-placed cross-bridge for this layer also
+   *  blocks the OTHER layer (pipe-cross-bridge: yes; belt-cross-bridge: no). */
+  readonly crossBridgeBlocksOtherLayer: boolean;
+  /** P4 v7.4 — cells occupied on the OTHER layer (devices that block it +
+   *  same-other-layer link cells). Consulted by the planner only when
+   *  `crossBridgeBlocksOtherLayer` is true. */
+  readonly otherLayerOccupants: ReadonlySet<string>;
 }
 
 export function buildRouteContext(
@@ -59,11 +66,42 @@ export function buildRouteContext(
   }
   const links = layer === 'solid' ? project.solid_links : project.fluid_links;
   const sameLayerLinks = buildLinkOrientations(links);
+
+  // P4 v7.4 — for the routing layer's cross-bridge, does it also block the
+  // OTHER layer? Pipe-cross-bridge has layerOccupancy='both'; belt-cross-
+  // bridge has 'solid' only. We use this + the other layer's occupants
+  // (devices blocking that layer + that layer's link cells) so the planner
+  // can flag pipe-over-belt auto-bridges as collisions before commit.
+  const crossBridgeDevice = lookup(crossBridgeId);
+  const crossBridgeBlocksOtherLayer = crossBridgeDevice
+    ? layerOccupancyOf(crossBridgeDevice) === 'both'
+    : false;
+  const otherLayer: Layer = layer === 'solid' ? 'fluid' : 'solid';
+  const otherLayerOccupants = new Set<string>();
+  if (crossBridgeBlocksOtherLayer) {
+    for (const placed of project.devices) {
+      const dev = lookup(placed.device_id);
+      if (!dev) continue;
+      const occ = layerOccupancyOf(dev);
+      const blocksOther =
+        occ === 'both' || (otherLayer === 'solid' ? occ === 'solid' : occ === 'fluid');
+      if (!blocksOther) continue;
+      for (const c of footprintCells(dev, placed)) otherLayerOccupants.add(cellKey(c));
+    }
+    const otherLinks =
+      otherLayer === 'solid' ? project.solid_links : project.fluid_links;
+    for (const l of otherLinks) {
+      for (const c of l.path) otherLayerOccupants.add(cellKey(c));
+    }
+  }
+
   return {
     deviceWalls,
     sameLayerLinks,
     existingBridges,
     bounds: project.plot,
+    crossBridgeBlocksOtherLayer,
+    otherLayerOccupants,
   };
 }
 
@@ -106,6 +144,8 @@ export function planSegments(
       prevHeading,
       ...(i === 0 && firstStepDirection ? { firstStepDirection } : {}),
       ...(isLastSegment && lastStepDirection ? { lastStepDirection } : {}),
+      crossBridgeBlocksOtherLayer: ctx.crossBridgeBlocksOtherLayer,
+      otherLayerOccupants: ctx.otherLayerOccupants,
     };
     const seg = routeForBelt(waypoints[i]!, waypoints[i + 1]!, opts);
     segments.push(seg);

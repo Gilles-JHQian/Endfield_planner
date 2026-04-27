@@ -389,7 +389,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
       const meta = e.ctrlKey || e.metaKey;
       if (meta) return;
-      if (e.key === 'm' || e.key === 'M') {
+      // P4 v7.4: M (game default) OR X (more reachable on the keyboard)
+      // toggles move mode. Both behave identically.
+      if (e.key === 'm' || e.key === 'M' || e.key === 'x' || e.key === 'X') {
         e.preventDefault();
         if (moveMode) {
           cancelMoveMode();
@@ -1478,9 +1480,16 @@ function computeMoveGhost(
     path: l.path.map(rotateAndTranslate),
   }));
 
-  // Collision check: out-of-plot OR cell already occupied (per layer the
-  // ghost device blocks). Snapshot has been removed from the project so we
-  // don't false-positive against ourselves.
+  // P4 v7.4 collision check. Snapshot has been removed from the project so
+  // we don't false-positive against ourselves. Three classes of collision:
+  //  1. Ghost device cells that fall out of the plot.
+  //  2. Ghost device cells that overlap an existing device on a layer the
+  //     new device blocks (the v7.3 check).
+  //  3. Ghost device cells that overlap an existing same-layer link (belt
+  //     under device — the v7-7 place-on-belt rule isn't applied during
+  //     move; owners can manually re-route after).
+  //  4. Ghost link path cells that overlap an existing same-layer link OR
+  //     enter an existing device's footprint on the link's layer.
   const occ = buildOccupancy(project, lookup);
   const colliding = new Set<string>();
   for (const d of newDevices) {
@@ -1499,6 +1508,20 @@ function computeMoveGhost(
       const k = `${c.x.toString()},${c.y.toString()}`;
       if (checkSolid && occ.deviceSolid.has(k)) colliding.add(k);
       if (checkFluid && occ.deviceFluid.has(k)) colliding.add(k);
+      // v7.4: device-on-belt blocks the move (no auto-split during move).
+      if (checkSolid && occ.solid.has(k)) colliding.add(k);
+      if (checkFluid && occ.fluid.has(k)) colliding.add(k);
+    }
+  }
+  for (const l of newLinks) {
+    for (const c of l.path) {
+      const k = `${c.x.toString()},${c.y.toString()}`;
+      // Belt-into-device on the link's layer.
+      if (l.layer === 'solid' && occ.deviceSolid.has(k)) colliding.add(k);
+      if (l.layer === 'fluid' && occ.deviceFluid.has(k)) colliding.add(k);
+      // Belt-on-belt same-layer overlap.
+      if (l.layer === 'solid' && occ.solid.has(k)) colliding.add(k);
+      if (l.layer === 'fluid' && occ.fluid.has(k)) colliding.add(k);
     }
   }
   return {
