@@ -1,10 +1,14 @@
 /** Renders every PlacedDevice as a Konva Group inside the canvas content
- *  layer. Footprint outline + display-font initial glyph + recipe-bound
+ *  layer. Footprint outline + truncated CN display name + recipe-bound
  *  amber dot in the corner.
  *
  *  Color follows the device's "primary layer":
  *  - has_fluid_interface → teal accent
  *  - otherwise → amber accent
+ *
+ *  P4 v7.6: the on-device label switched from the device-id's first letter
+ *  to the first 3 characters of `display_name_zh_hans` (with `…` when the
+ *  full name is longer). See `device-label.ts`.
  */
 import { Group, Line, Rect, Text } from 'react-konva';
 import { footprintCells, portsInWorldFrame, rotatedBoundingBox } from '@core/domain/geometry.ts';
@@ -12,6 +16,7 @@ import type { PlacedDevice } from '@core/domain/types.ts';
 import type { Device, PortKind } from '@core/data-loader/types.ts';
 import type { WorldPort } from '@core/domain/geometry.ts';
 import { CELL_PX } from './use-camera.ts';
+import { abbreviateCnName } from './device-label.ts';
 
 const PORT_KIND_COLOR: Record<PortKind, string> = {
   solid: '#ff9a3d',
@@ -88,21 +93,26 @@ function DeviceShape({
   const h = bbox.height * CELL_PX;
   const isFluid = device.has_fluid_interface;
   const accent = isFluid ? '#4ec9d3' : '#ff9a3d';
-  const initial = device.id.split('-')[0]?.[0]?.toUpperCase() ?? '?';
+  // P4 v7.6: 3-char abbreviation of the zh-Hans name; font size scales with
+  // the smaller footprint dimension so the label fits inside even 1×1 cells.
+  const label = abbreviateCnName(device.display_name_zh_hans);
+  const fontSize = Math.max(10, Math.min(w / 4, h / 2));
 
   return (
     <Group x={x} y={y}>
       {/* Body — semi-opaque surface-2 with hairline accent border. */}
       <Rect width={w} height={h} fill="#181d23" stroke={accent} strokeWidth={1} opacity={0.95} />
-      {/* Inner grid pattern marker per design — single dotted center indicator. */}
+      {/* Display-name label — truncated CN name centered inside the footprint. */}
       <Text
         x={0}
-        y={h / 2 - 9}
+        y={0}
         width={w}
+        height={h}
         align="center"
-        text={initial}
-        fontFamily="Rajdhani, Barlow Condensed, sans-serif"
-        fontSize={Math.max(12, Math.min(w, h) / 2)}
+        verticalAlign="middle"
+        text={label}
+        fontFamily="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif"
+        fontSize={fontSize}
         fontStyle="bold"
         fill={accent}
         listening={false}

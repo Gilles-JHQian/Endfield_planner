@@ -5,12 +5,23 @@
  *
  *  SVG (not Konva) so the component renders cleanly in jsdom test envs
  *  without pulling in the canvas npm dependency.
+ *
+ *  P4 v7.6: also renders the same 3-char zh-Hans abbreviation as the
+ *  on-canvas label (see `device-label.ts`), so library previews match
+ *  the placed device.
  */
 import { portsInWorldFrame } from '@core/domain/geometry.ts';
 import type { Device, PortKind } from '@core/data-loader/types.ts';
+import { abbreviateCnName } from './device-label.ts';
 
 const THUMB_PX = 80;
 const INSET = 6;
+// P4 v7.6: thumbs share a fixed 6×6 reference grid so a 1×1 device renders
+// SMALL and an 8×8 device renders LARGE. Devices with max(w, h) ≤ 6 keep
+// the baseline cell size; bigger ones shrink so the long edge fills the
+// available space exactly. Owners can now eyeball relative footprints from
+// the library card grid.
+const BASELINE_CELLS = 6;
 
 const PORT_KIND_COLOR: Record<PortKind, string> = {
   solid: '#ff9a3d',
@@ -24,13 +35,20 @@ interface Props {
 
 export function DeviceThumb({ device }: Props) {
   const { width: w, height: h } = device.footprint;
-  const cellPx = Math.max(6, Math.floor((THUMB_PX - INSET * 2) / Math.max(w, h)));
+  const cellPx = (THUMB_PX - INSET * 2) / Math.max(BASELINE_CELLS, w, h);
   const fpW = w * cellPx;
   const fpH = h * cellPx;
   const offX = (THUMB_PX - fpW) / 2;
   const offY = (THUMB_PX - fpH) / 2;
   const accent = device.has_fluid_interface ? '#4ec9d3' : '#ff9a3d';
   const ports = portsInWorldFrame(device, { position: { x: 0, y: 0 }, rotation: 0 });
+  // P4 v7.6: 3-char CN abbreviation centered inside the footprint, mirroring
+  // the canvas DeviceLayer label. Font size scales with the smaller footprint
+  // dimension; below ~10px we drop the label entirely to avoid noise on tiny
+  // 1×1 thumbs.
+  const label = abbreviateCnName(device.display_name_zh_hans);
+  const labelFontSize = Math.min(fpW / 4, fpH / 2);
+  const showLabel = labelFontSize >= 8;
 
   return (
     <svg
@@ -41,6 +59,20 @@ export function DeviceThumb({ device }: Props) {
     >
       <g transform={`translate(${offX.toString()}, ${offY.toString()})`}>
         <rect width={fpW} height={fpH} fill="#181d23" stroke={accent} strokeWidth={1} />
+        {showLabel && (
+          <text
+            x={fpW / 2}
+            y={fpH / 2}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontFamily="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif"
+            fontSize={labelFontSize}
+            fontWeight="bold"
+            fill={accent}
+          >
+            {label}
+          </text>
+        )}
         {ports.map((p, i) => (
           <PortGlyph
             key={i.toString()}
