@@ -497,19 +497,26 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           };
         })()
       : null;
-  // P4 v7.3: cursor-following ghost for move mode. Re-computed every render
-  // (O(snapshot.devices × footprint + project.devices × footprint)).
-  const moveGhost =
-    moveMode && cursor
-      ? computeMoveGhost(moveMode, cursor, store.project.plot, lookup, occupancy)
-      : null;
+  // P4 v7.3: cursor-following ghost for move mode. P4 v7.9 wraps in useMemo
+  // keyed on cursor.x/cursor.y (NOT cursor object identity) so any unrelated
+  // EditorPage re-render that doesn't change the cell skips the recompute.
+  const moveGhost = useMemo(
+    () =>
+      moveMode && cursor
+        ? computeMoveGhost(moveMode, cursor, store.project.plot, lookup, occupancy)
+        : null,
+    [moveMode, cursor?.x, cursor?.y, store.project.plot, lookup, occupancy],
+  );
   // P4 v7.7: paste mode renders the same multi-device cluster ghost so the
   // owner can see the placement footprint before clicking. Reuses the move-
   // ghost shape + MoveModeGhost renderer.
-  const pasteGhost =
-    pasteSource && cursor && !moveMode
-      ? computePasteGhost(pasteSource, cursor, store.project.plot, lookup, occupancy)
-      : null;
+  const pasteGhost = useMemo(
+    () =>
+      pasteSource && cursor && !moveMode
+        ? computePasteGhost(pasteSource, cursor, store.project.plot, lookup, occupancy)
+        : null,
+    [pasteSource, moveMode, cursor?.x, cursor?.y, store.project.plot, lookup, occupancy],
+  );
 
   /** P4 v6 right-click: device or belt under cell goes into the highlight set
    *  (`boxSelected` for devices, `selectedLinkIds` for belts). Does NOT touch
