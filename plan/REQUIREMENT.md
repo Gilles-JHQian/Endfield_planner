@@ -689,11 +689,11 @@ Items the coder agent should **implement TODO hooks for, but not block on**. Eac
 
 ### 10.1 Device port positions
 
-**Status:** Unresolved for all 69 devices. `end.wiki` does not publish port positions as data.
+**Status:** Partially resolved. `end.wiki` does not publish port positions as data, but P4 v7.6 lands a default N-input / S-output template for every device in `basic_production` (7) + `synthesis` (9) via `scripts/seed-default-ports.ts`. The remaining categories (`miner`, `storage`, `power`, `planting`, `utility`, `combat`) still ship with empty `io_ports`.
 
-**Default:** scraper produces devices with empty `io_ports`. Until populated, DRC treats any edge cell as a potential port.
+**Default:** the 16 seeded devices route belts via top → device → bottom; the long tail still treats any edge cell as a potential port.
 
-**Resolution path:** owner uses the auxiliary device editor (§5.4) to define ports for the top ~20 devices during Phase 2. The long tail (combat devices, rare machines) can be deferred indefinitely.
+**Resolution path:** owner uses the auxiliary device editor (§5.4) to fine-tune the seeded devices that need fluid / side ports, and to fill the remaining categories. **Do NOT re-run `seed:default-ports` after fine-tuning** — it overwrites `io_ports` for every device in the target categories.
 
 ### 10.2 Pipe-layer components that block belts — complete classification
 
@@ -850,7 +850,16 @@ A feature is "done" when:
 
 ## Changelog
 
-### v7.5 — belt self-cross + chained splits + RMB tool-mode unification (this document)
+### v7.6 — device-name labels + thumb normalization + default I/O ports (this document)
+
+Three small visual / data improvements on top of v7.5, plus a cross-cutting Node 25 compat fix that the rest of the bundle depends on.
+
+- **CN-name abbreviation on devices.** The on-canvas label switched from the device-id's first letter to the first 3 characters of `display_name_zh_hans` (with `…` when the full name is longer). The same abbreviation now also renders inside the library card SVG so previews match what the device looks like once placed. Font size scales with the smaller footprint dimension; library thumbs drop the label entirely below ~8 px to avoid noise. New `src/ui/editor/device-label.ts` exports the shared `abbreviateCnName` helper (Array.from-based so SMP codepoints count as one char).
+- **Library thumbnails normalized to a 6×6 baseline.** The previous cellPx formula maxed out at the available thumbnail space, so a 1×1 device and an 8×8 device looked identical. Switched to a fixed 6-cell reference: max(w, h) ≤ 6 keeps the baseline cell size (small devices look small); bigger devices shrink the cell so their long edge fills the thumb. Owners can now eyeball relative footprints from the library grid.
+- **Default N-input / S-output ports for `basic_production` + `synthesis`.** New `scripts/seed-default-ports.ts` (run via `pnpm seed:default-ports`) writes a uniform "top face = N solid inputs, bottom face = N solid outputs" template onto every device in those two categories — 16 devices total, 15 of which had empty `io_ports` (`component-mc-1` was already on this template). Schema-validates the result before any write; supports `--dry-run` to preview the diff and `--version` for future bundles. §10.1 updated. Owners fine-tune the few devices needing fluid / side ports via the device editor; do NOT re-run the seed afterwards.
+- **Node 25 localStorage guard.** Node 25 ships an experimental built-in `localStorage` that gets registered as an empty object when the runtime starts without a valid `--localstorage-file` path; the previous `typeof localStorage === 'undefined'` guard passed (typeof returns 'object') but `.getItem` was undefined, breaking the core test suite for anyone on Node ≥ 25. Replaced with an `lsAvailable()` helper that checks for the actual methods. Affects `src/core/persistence/clipboard.ts` + `src/core/persistence/local-storage.ts`.
+
+### v7.5 — belt self-cross + chained splits + RMB tool-mode unification
 
 - **Self-crossing belts now place an auto-bridge.** `planSegments` accumulates the new path's own per-cell orientations as it walks the waypoints; subsequent segments see prior segments as if they were existing same-layer links. A perpendicular self-crossing → `bridgesToAutoPlace` includes the cell, identically to crossing an existing belt. Parallel/corner self-overlap still rejects as before.
   - **Joint-cell follow-up.** The first cut of the above accumulated EVERY cell of each segment, including the joint waypoint between consecutive segments. That made the next segment's first cell look like a self-crossing — straight extensions hit parallel collision (red), corners spawned spurious auto-bridges. Fix: skip the segment's last cell when accumulating (the full path is still used to compute orientations). Real self-crossings still register because non-joint cells are accumulated normally.
