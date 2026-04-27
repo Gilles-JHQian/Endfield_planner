@@ -17,6 +17,7 @@ import {
   routeForBelt,
   type BeltRouteOpts,
   type BeltRouteResult,
+  type LinkOrient,
 } from './path.ts';
 
 const cellKey = (c: Cell): string => `${c.x.toString()},${c.y.toString()}`;
@@ -134,11 +135,19 @@ export function planSegments(
   let prevHeading = initialHeading;
   let endHeading = initialHeading;
 
+  // P4 v7.5 — track the new belt's own accumulated path orientations so the
+  // self-cross case (path crosses a previously-planned segment of the SAME
+  // draft) gets an auto-bridge just like crossing an existing link. We start
+  // with a clone of ctx.sameLayerLinks (the project's existing links) and
+  // grow it as each segment is planned.
+  const combinedSameLayerLinks = new Map<string, Set<LinkOrient>>();
+  for (const [k, set] of ctx.sameLayerLinks) combinedSameLayerLinks.set(k, new Set(set));
+
   for (let i = 0; i < waypoints.length - 1; i++) {
     const isLastSegment = i === waypoints.length - 2;
     const opts: BeltRouteOpts = {
       deviceWalls: ctx.deviceWalls,
-      sameLayerLinks: ctx.sameLayerLinks,
+      sameLayerLinks: combinedSameLayerLinks,
       existingBridges: ctx.existingBridges,
       bounds: ctx.bounds,
       prevHeading,
@@ -153,6 +162,19 @@ export function planSegments(
     else path.push(...seg.path.slice(1)); // skip joint duplicate
     bridgesToAutoPlace.push(...seg.bridgesToAutoPlace);
     collisions.push(...seg.collisions);
+    // Accumulate this segment's cell orientations into the shared map so the
+    // NEXT segment's routeForBelt sees them as if they were existing links —
+    // self-crossing now triggers auto-bridge identically to crossing other
+    // belts.
+    const segOrient = buildLinkOrientations([{ path: seg.path }]);
+    for (const [k, set] of segOrient) {
+      let combined = combinedSameLayerLinks.get(k);
+      if (!combined) {
+        combined = new Set();
+        combinedSameLayerLinks.set(k, combined);
+      }
+      for (const o of set) combined.add(o);
+    }
     if (seg.path.length >= 2) {
       const last = seg.path[seg.path.length - 1]!;
       const prev = seg.path[seg.path.length - 2]!;

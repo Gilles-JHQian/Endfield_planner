@@ -72,6 +72,11 @@ export type ProjectAction =
       at_cell: Cell;
       left_dst: PortRef;
       right_src: PortRef;
+      /** P4 v7.5: pin the right-half's id so a sibling split_link in the
+       *  same applyMany batch can forward-reference it. Used when a single
+       *  existing link is crossed by the new belt at multiple cells — each
+       *  subsequent split operates on the previous split's right half. */
+      right_id?: string;
     }
   | {
       /** P4 v7.1: retarget a link's src or dst PortRef without splitting.
@@ -238,6 +243,7 @@ function applyAction(
         at_cell: action.at_cell,
         left_dst: action.left_dst,
         right_src: action.right_src,
+        ...(action.right_id ? { ids: { right: action.right_id } } : {}),
       });
       if (!r.ok) return r;
       return { ok: true, value: { project: r.value.project } };

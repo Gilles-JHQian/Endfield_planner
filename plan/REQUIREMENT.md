@@ -850,7 +850,13 @@ A feature is "done" when:
 
 ## Changelog
 
-### v7.4 — move-mode polish + cross-layer auto-bridge guard (this document)
+### v7.5 — belt self-cross + chained splits + RMB tool-mode unification (this document)
+
+- **Self-crossing belts now place an auto-bridge.** `planSegments` accumulates the new path's own per-cell orientations as it walks the waypoints; subsequent segments see prior segments as if they were existing same-layer links. A perpendicular self-crossing → `bridgesToAutoPlace` includes the cell, identically to crossing an existing belt. Parallel/corner self-overlap still rejects as before.
+- **Multiple crossings of the same existing belt now commit cleanly.** v7 emitted one `split_link` action per crossing, all targeting the original link id. The first split removed the original; the second silently rolled back the whole batch (`not_found`). v7.5 groups bridge cells by existing-link, sorts by path index, and chains the splits — each non-final split pins its right-half id (new optional `right_id` on the action / `ids` on `splitLink`) so the next split in the chain targets the previous right half. `splitLink` itself was already idempotent on `ids`; only the action plumbing + the commit-side chaining was new.
+- **Right-click in any tool mode (place/belt/pipe) returns to select.** v7 had right-click in non-drafting belt/pipe mode silently doing the right-click highlight; users found this confusing. v7.5 unifies: right-click (single OR drag) in any tool mode = exit to select. Box-select is only available in the select tool.
+
+### v7.4 — move-mode polish + cross-layer auto-bridge guard
 
 Three small follow-ups on top of v7.3:
 

@@ -684,15 +684,20 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       setPasteSource(null);
       return;
     }
-    // P4 v7: right-click in PLACE mode cancels the device-placement ghost,
-    // symmetric with the v6 belt/pipe-tool right-click cancel.
+    // P4 v7.5: right-click in any TOOL mode (place/belt/pipe) returns to
+    // select instead of doing the highlight selection. Owners reported the
+    // overlap (right-click cancels draft, but right-click in non-drafting
+    // belt mode silently highlighted a belt) confused the mental model:
+    // right-click in a tool = "exit this tool", period. Box-select is only
+    // available in the select tool.
     if (toolApi.tool.kind === 'place') {
       toolApi.setSelect();
       setPickedDevice(null);
       return;
     }
-    if (linkDraft) {
-      setLinkDraft(null);
+    if (toolApi.tool.kind === 'belt' || toolApi.tool.kind === 'pipe') {
+      if (linkDraft) setLinkDraft(null);
+      toolApi.setSelect();
       return;
     }
     const hitDevice = findDeviceAtCell(store.project.devices, lookup, cell);
@@ -725,15 +730,16 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       cancelMoveMode();
       return;
     }
-    // P4 v7: right-mouse drag in PLACE mode also cancels (slipping a drag
-    // while trying to abort the placement should still abort).
+    // P4 v7.5: right-mouse drag in any TOOL mode = exit to select (no box-
+    // select). Symmetric with handleCellRightClick's tool-mode behavior.
     if (toolApi.tool.kind === 'place') {
       toolApi.setSelect();
       setPickedDevice(null);
       return;
     }
-    if (linkDraft) {
-      setLinkDraft(null);
+    if (toolApi.tool.kind === 'belt' || toolApi.tool.kind === 'pipe') {
+      if (linkDraft) setLinkDraft(null);
+      toolApi.setSelect();
       return;
     }
     const inside = (c: Cell): boolean =>
@@ -1011,6 +1017,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     }
 
     // Step 3: split existing links covered by each new bridge.
+    // P4 v7.5: when the SAME existing link is crossed at multiple cells,
+    // emit chained splits — each operates on the previous split's right
+    // half (forward-referenced via the pinned right_id on split_link).
+    // Pre-group cells by existing-link id, sort by path-index order so the
+    // chain walks the link from start to end.
+    const cellsByExistingLink = new Map<
+      string,
+      { existing: { id: string; path: readonly Cell[] }; cells: { cell: Cell; bridgeId: string; idx: number }[] }
+    >();
     for (const [k, bridgeId] of bridgeIdByCell) {
       const [sx, sy] = k.split(',');
       const cell = { x: Number.parseInt(sx!, 10), y: Number.parseInt(sy!, 10) };
@@ -1018,15 +1033,35 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       if (!existing) continue;
       const idx = existing.path.findIndex((c) => c.x === cell.x && c.y === cell.y);
       if (idx <= 0 || idx >= existing.path.length - 1) continue; // can't split at endpoints
-      const inDir = signDir(existing.path[idx]!, existing.path[idx - 1]!);
-      const outDir = signDir(existing.path[idx + 1]!, existing.path[idx]!);
-      actions.push({
-        type: 'split_link',
-        link_id: existing.id,
-        at_cell: cell,
-        left_dst: { device_instance_id: bridgeId, port_index: portIndexForArrival(inDir) },
-        right_src: { device_instance_id: bridgeId, port_index: portIndexForExit(outDir) },
-      });
+      let bucket = cellsByExistingLink.get(existing.id);
+      if (!bucket) {
+        bucket = { existing, cells: [] };
+        cellsByExistingLink.set(existing.id, bucket);
+      }
+      bucket.cells.push({ cell, bridgeId, idx });
+    }
+    for (const { existing, cells } of cellsByExistingLink.values()) {
+      cells.sort((a, b) => a.idx - b.idx);
+      let currentLinkId = existing.id;
+      for (let i = 0; i < cells.length; i++) {
+        const { cell, bridgeId, idx } = cells[i]!;
+        const inDir = signDir(existing.path[idx]!, existing.path[idx - 1]!);
+        const outDir = signDir(existing.path[idx + 1]!, existing.path[idx]!);
+        const isLast = i === cells.length - 1;
+        // For all-but-last splits, pin the right-half's id so the next
+        // split in the chain can target it. The last split lets the edit
+        // generate a fresh id.
+        const rightId = isLast ? undefined : generateInstanceId('lnk');
+        actions.push({
+          type: 'split_link',
+          link_id: currentLinkId,
+          at_cell: cell,
+          left_dst: { device_instance_id: bridgeId, port_index: portIndexForArrival(inDir) },
+          right_src: { device_instance_id: bridgeId, port_index: portIndexForExit(outDir) },
+          ...(rightId ? { right_id: rightId } : {}),
+        });
+        if (rightId) currentLinkId = rightId;
+      }
     }
 
     // Step 4: emit the new link as one or more segments split at bridge cells.
