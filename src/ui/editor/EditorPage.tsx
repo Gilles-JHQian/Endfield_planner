@@ -1198,6 +1198,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                 selectedInstanceId={selectedInstanceId}
                 boxSelectedIds={boxSelected}
                 coveredInstanceIds={powerCoverage.coveredInstanceIds}
+                zoom={zoom}
               />
               {viewMode === 'power' && (
                 <PowerOverlay devices={store.project.devices} lookup={lookup} />
