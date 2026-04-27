@@ -641,8 +641,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   }
 
   /** Commit the snapshot at the cursor's current position + rotation if no
-   *  collisions. No-op (silent) if the ghost is red. */
-  function commitMoveMode(): void {
+   *  collisions. No-op (silent) if the ghost is red.
+   *
+   *  P4 v7.8: `keepMode = true` (Ctrl/Cmd held during the click) leaves the
+   *  moveMode state intact so the next click can drop another clone at a
+   *  new cursor cell. Symmetric with the place / paste Ctrl+click clone
+   *  semantics from v7.7. */
+  function commitMoveMode(keepMode: boolean): void {
     if (!moveMode || !cursor) return;
     const ghost = computeMoveGhost(moveMode, cursor, store.project, lookup);
     if (ghost.collides) return;
@@ -677,7 +682,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       });
     }
     store.applyMany(actions);
-    setMoveMode(null);
+    if (!keepMode) setMoveMode(null);
   }
 
   function handleCellRightClick(cell: Cell): void {
@@ -770,16 +775,16 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   }
 
   function handleCellClick(cell: Cell, evt: MouseEvent): void {
+    // P4 v7.7: Ctrl/Cmd + left-click in a placement mode = "drop a copy and
+    // STAY in the mode" (clone gesture). Plain left-click drops one and
+    // exits back to select. P4 v7.8 extends this to move mode too.
+    const cloneModifier = evt.ctrlKey || evt.metaKey;
     // P4 v7.3 move mode: left-click commits the snapshot at the cursor's
     // current position + rotation (silent no-op on collision).
     if (moveMode) {
-      commitMoveMode();
+      commitMoveMode(cloneModifier);
       return;
     }
-    // P4 v7.7: Ctrl/Cmd + left-click in a placement mode = "drop a copy and
-    // STAY in the mode" (clone gesture). Plain left-click drops one and
-    // exits back to select. Move mode is unchanged (always commit + exit).
-    const cloneModifier = evt.ctrlKey || evt.metaKey;
     // P4 v7 paste mode: a clipboard slot was picked from the Library tab.
     if (pasteSource) {
       // P4 v7.7: block paste when the cluster ghost is red.
