@@ -15,6 +15,7 @@ import {
   footprintCells,
   portsInWorldFrame,
   rotatedBoundingBox,
+  type OccupancyMap,
 } from '@core/domain/index.ts';
 import { layerOccupancyOf } from '@core/drc/bridges.ts';
 import type { DataBundle, Device } from '@core/data-loader/types.ts';
@@ -468,10 +469,20 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     else toolApi.setSelect();
   }
 
+  // P4 v7.8: project occupancy is rebuilt only when the project actually
+  // changes (commits / undo / redo / move-mode entry-removal). Cursor moves
+  // no longer trigger an O(devices + link cells) full rebuild — they only
+  // hash-check the cached map. Major win on dense layouts during move /
+  // paste / place hover.
+  const occupancy = useMemo<OccupancyMap>(
+    () => buildOccupancy(store.project, lookup),
+    [store.project, lookup],
+  );
+
   // Ghost preview for the place tool — derived inline. Recomputes on every
   // render but each call is O(footprint cells), well under the 16ms budget.
   // The React 19 compiler memoizes Konva re-renders to the overlay layer.
-  const ghost = computeGhost(toolApi.tool, cursor, store.project, lookup);
+  const ghost = computeGhost(toolApi.tool, cursor, store.project, occupancy);
   const draftPath = computeDraftPath(linkDraft, cursor, store.project, lookup);
   // P4 v6 READY-state cursor preview: belt/pipe tool active, no draft yet,
   // cursor in plot. Enlarges and tints if the cursor sits on an output port.
@@ -489,13 +500,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // P4 v7.3: cursor-following ghost for move mode. Re-computed every render
   // (O(snapshot.devices × footprint + project.devices × footprint)).
   const moveGhost =
-    moveMode && cursor ? computeMoveGhost(moveMode, cursor, store.project, lookup) : null;
+    moveMode && cursor
+      ? computeMoveGhost(moveMode, cursor, store.project.plot, lookup, occupancy)
+      : null;
   // P4 v7.7: paste mode renders the same multi-device cluster ghost so the
   // owner can see the placement footprint before clicking. Reuses the move-
   // ghost shape + MoveModeGhost renderer.
   const pasteGhost =
     pasteSource && cursor && !moveMode
-      ? computePasteGhost(pasteSource, cursor, store.project, lookup)
+      ? computePasteGhost(pasteSource, cursor, store.project.plot, lookup, occupancy)
       : null;
 
   /** P4 v6 right-click: device or belt under cell goes into the highlight set
@@ -652,7 +665,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
    *  semantics from v7.7. */
   function commitMoveMode(keepMode: boolean): void {
     if (!moveMode || !cursor) return;
-    const ghost = computeMoveGhost(moveMode, cursor, store.project, lookup);
+    const ghost = computeMoveGhost(moveMode, cursor, store.project.plot, lookup, occupancy);
     if (ghost.collides) return;
     const itemIdMap = new Map<string, string>();
     for (const d of moveMode.devices) {
@@ -791,7 +804,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     // P4 v7 paste mode: a clipboard slot was picked from the Library tab.
     if (pasteSource) {
       // P4 v7.7: block paste when the cluster ghost is red.
-      const ghost = computePasteGhost(pasteSource, cell, store.project, lookup);
+      const ghost = computePasteGhost(pasteSource, cell, store.project.plot, lookup, occupancy);
       if (ghost.collides) return;
       pastePayloadAtCursor(pasteSource, cell);
       if (!cloneModifier) setPasteSource(null);
@@ -1299,7 +1312,7 @@ function computeGhost(
   tool: ReturnType<typeof useTool>['tool'],
   cursor: Cell | null,
   project: ReturnType<typeof useProject>['project'],
-  lookup: (id: string) => Device | undefined,
+  occupancy: OccupancyMap,
 ): GhostState | null {
   if (tool.kind !== 'place' || !cursor) return null;
   const { device, rotation } = tool;
@@ -1313,8 +1326,9 @@ function computeGhost(
   }
   // P4 v7: only check layers the new device actually occupies. A solid
   // bridge ghosted over an existing fluid pipe should NOT collide — the
-  // bridge only sits on the solid layer.
-  const occ = buildOccupancy(project, lookup);
+  // bridge only sits on the solid layer. P4 v7.8: caller passes a memoized
+  // occupancy map so cursor moves don't trigger an O(devices+links) rebuild.
+  const occ = occupancy;
   const layers = layerOccupancyOf(device);
   const checkSolid = layers === 'solid' || layers === 'both';
   const checkFluid = layers === 'fluid' || layers === 'both';
@@ -1524,8 +1538,9 @@ function computeMoveGhost(
     rotationSteps: 0 | 1 | 2 | 3;
   },
   cursor: Cell,
-  project: { plot: { width: number; height: number } } & Parameters<typeof buildOccupancy>[0],
+  plot: { width: number; height: number },
   lookup: (id: string) => Device | undefined,
+  occupancy: OccupancyMap,
 ): MoveGhost {
   const dx = cursor.x - state.pivot.x;
   const dy = cursor.y - state.pivot.y;
@@ -1558,7 +1573,7 @@ function computeMoveGhost(
     path: l.path.map(rotateAndTranslate),
   }));
 
-  const colliding = clusterCollisions(newDevices, newLinks, project, lookup);
+  const colliding = clusterCollisions(newDevices, newLinks, plot, lookup, occupancy);
   return {
     devices: newDevices,
     links: newLinks,
@@ -1579,19 +1594,22 @@ function computeMoveGhost(
  *       under device — no auto-split during cluster placement).
  *    4. Ghost link path cells that overlap an existing same-layer link OR
  *       enter an existing device's footprint on the link's layer.
+ *
+ *  P4 v7.8: caller passes a memoized OccupancyMap so we don't pay
+ *  buildOccupancy per cursor move.
  */
 function clusterCollisions(
   devices: readonly PlacedDevice[],
   links: readonly { layer: Layer; path: readonly Cell[] }[],
-  project: { plot: { width: number; height: number } } & Parameters<typeof buildOccupancy>[0],
+  plot: { width: number; height: number },
   lookup: (id: string) => Device | undefined,
+  occ: OccupancyMap,
 ): Set<string> {
-  const occ = buildOccupancy(project, lookup);
   const colliding = new Set<string>();
   for (const d of devices) {
     const dev = lookup(d.device_id);
     if (!dev) continue;
-    if (!fitsInPlot(dev, d, project.plot)) {
+    if (!fitsInPlot(dev, d, plot)) {
       for (const c of footprintCells(dev, d)) {
         colliding.add(`${c.x.toString()},${c.y.toString()}`);
       }
@@ -1664,8 +1682,9 @@ function clipboardCenterAnchor(
 function computePasteGhost(
   payload: ClipboardPayload,
   cursor: Cell,
-  project: { plot: { width: number; height: number } } & Parameters<typeof buildOccupancy>[0],
+  plot: { width: number; height: number },
   lookup: (id: string) => Device | undefined,
+  occupancy: OccupancyMap,
 ): MoveGhost {
   const anchor = clipboardCenterAnchor(payload, cursor, lookup);
   const newDevices: PlacedDevice[] = payload.items.map((it, i) => ({
@@ -1680,7 +1699,7 @@ function computePasteGhost(
     tier_id: l.tier_id,
     path: l.rel_path.map((c) => ({ x: anchor.x + c.x, y: anchor.y + c.y })),
   }));
-  const colliding = clusterCollisions(newDevices, newLinks, project, lookup);
+  const colliding = clusterCollisions(newDevices, newLinks, plot, lookup, occupancy);
   return {
     devices: newDevices,
     links: newLinks,
