@@ -339,6 +339,11 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+    // pastePayloadAtCursor / toolApi.tool.kind intentionally omitted: the
+    // handler reads the latest closure values via the function instance, and
+    // these change every render, which would re-attach the listener for no
+    // benefit. Same pattern as v5/v6 keyboard effects.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boxSelected, store, selectedInstanceId, selectedLinkIds, cursor, lookup]);
 
   // P4 v7: Esc cancels paste mode.
@@ -1077,7 +1082,7 @@ function computeDraftPath(
   if (planned.collisions.length === 0 && planned.path.length >= 2) {
     const arrival = signDir(planned.path[planned.path.length - 1]!, planned.path[planned.path.length - 2]!);
     const matched = findInputPortAtCell(lastCell, draft.layer, project, lookup, arrival);
-    const anyInput = matched ? matched : findInputPortAtCell(lastCell, draft.layer, project, lookup);
+    const anyInput = matched ?? findInputPortAtCell(lastCell, draft.layer, project, lookup);
     if (anyInput && !matched) {
       planned = { ...planned, collisions: [lastCell] };
     }
