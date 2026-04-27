@@ -164,16 +164,26 @@ export function planSegments(
     collisions.push(...seg.collisions);
     // Accumulate this segment's cell orientations into the shared map so the
     // NEXT segment's routeForBelt sees them as if they were existing links —
-    // self-crossing now triggers auto-bridge identically to crossing other
-    // belts.
-    const segOrient = buildLinkOrientations([{ path: seg.path }]);
-    for (const [k, set] of segOrient) {
-      let combined = combinedSameLayerLinks.get(k);
-      if (!combined) {
-        combined = new Set();
-        combinedSameLayerLinks.set(k, combined);
+    // self-crossing then triggers auto-bridge identically to crossing other
+    // belts. SKIP this segment's LAST cell (= next segment's first cell);
+    // that's the waypoint joint, not a real second crossing — adding it
+    // would cause the next segment's first cell to register as a self-cross
+    // at the joint (extending → parallel collision; turning → spurious
+    // auto-bridge). We use the full path for orient computation but drop
+    // the last-cell entry from the accumulation. P4 v7.5 fix.
+    if (seg.path.length >= 2) {
+      const segOrient = buildLinkOrientations([{ path: seg.path }]);
+      const last = seg.path[seg.path.length - 1]!;
+      const lastKey = `${last.x.toString()},${last.y.toString()}`;
+      for (const [k, set] of segOrient) {
+        if (k === lastKey) continue;
+        let combined = combinedSameLayerLinks.get(k);
+        if (!combined) {
+          combined = new Set();
+          combinedSameLayerLinks.set(k, combined);
+        }
+        for (const o of set) combined.add(o);
       }
-      for (const o of set) combined.add(o);
     }
     if (seg.path.length >= 2) {
       const last = seg.path[seg.path.length - 1]!;
