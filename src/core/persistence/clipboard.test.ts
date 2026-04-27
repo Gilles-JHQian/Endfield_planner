@@ -66,7 +66,7 @@ describe('clipboard', () => {
     expect(payload.links[0]!.rel_path[1]).toEqual({ x: 1, y: 0 });
   });
 
-  it('buildPayload drops links whose endpoint references a device outside the selection', () => {
+  it('buildPayload includes links with one endpoint outside selection — dst remains undefined (P4 v7.3)', () => {
     const link = {
       layer: 'solid' as Layer,
       tier_id: 'belt-1',
@@ -75,19 +75,22 @@ describe('clipboard', () => {
       dst: { device_instance_id: 'OUTSIDE', port_index: 0 },
     };
     const payload = buildPayload([placed('a', 5, 7)], [link])!;
-    expect(payload.links).toHaveLength(0);
+    expect(payload.links).toHaveLength(1);
+    expect(payload.links[0]!.src_item_index).toBe(0);
+    expect(payload.links[0]!.dst_item_index).toBeUndefined();
   });
 
-  it('buildPayload drops links missing src or dst', () => {
+  it('buildPayload includes links with no endpoints (force-committed) (P4 v7.3)', () => {
     const link = {
       layer: 'solid' as Layer,
       tier_id: 'belt-1',
       path: [{ x: 5, y: 7 }],
-      src: { device_instance_id: 'a', port_index: 0 },
-      // no dst
+      // no src, no dst
     };
     const payload = buildPayload([placed('a', 5, 7)], [link])!;
-    expect(payload.links).toHaveLength(0);
+    expect(payload.links).toHaveLength(1);
+    expect(payload.links[0]!.src_item_index).toBeUndefined();
+    expect(payload.links[0]!.dst_item_index).toBeUndefined();
   });
 
   // P4 v7 — rolling history.
