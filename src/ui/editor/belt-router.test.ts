@@ -147,6 +147,38 @@ describe('hasMultipleOutputPortsAtCell (P4 v7)', () => {
 });
 
 describe('planSegments self-cross detection (P4 v7.5)', () => {
+  // Regression for the v7.5 joint-cell bug — extension → parallel collision,
+  // corner → spurious bridge. After the fix neither should fire at the joint.
+  it('does NOT flag the waypoint joint between two collinear segments (extension)', () => {
+    const ctx = buildRouteContext(project([]), 'solid', lookup);
+    // 3 waypoints in a straight line: [W1=(5,5), W2=(10,5), C=(15,5)].
+    const result = planSegments(
+      [
+        { x: 5, y: 5 },
+        { x: 10, y: 5 },
+        { x: 15, y: 5 },
+      ],
+      ctx,
+    );
+    expect(result.collisions).toEqual([]);
+    expect(result.bridgesToAutoPlace).toEqual([]);
+  });
+
+  it('does NOT auto-bridge at a corner waypoint joint', () => {
+    const ctx = buildRouteContext(project([]), 'solid', lookup);
+    // L-shape via 3 waypoints: east then north.
+    const result = planSegments(
+      [
+        { x: 5, y: 5 },
+        { x: 10, y: 5 },
+        { x: 10, y: 0 },
+      ],
+      ctx,
+    );
+    expect(result.collisions).toEqual([]);
+    expect(result.bridgesToAutoPlace).toEqual([]);
+  });
+
   it('emits an auto-bridge when a later segment crosses an earlier segment perpendicular', () => {
     // U-shape that doubles back through the start row:
     // (5,0) → east → (10,0) [first segment]
