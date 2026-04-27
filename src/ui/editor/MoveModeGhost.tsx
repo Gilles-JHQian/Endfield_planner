@@ -3,13 +3,19 @@
  *  port markers (matching the placement ghost / DeviceLayer style). Cells in
  *  the colliding-set are tinted red so owners can see exactly which cells
  *  block the placement; otherwise the whole ghost reads green.
+ *
+ *  P4 v7.8: power-diffuser / repeater devices in the snapshot also render
+ *  their candidate AoE as a dashed box so owners can see what supply zone
+ *  the new placement would create — symmetric with the place-tool ghost.
  */
 import { Group, Rect } from 'react-konva';
 import { footprintCells, rotatedBoundingBox } from '@core/domain/geometry.ts';
+import { previewPoleLinkZone, previewSupplyZone } from '@core/domain/power-coverage.ts';
 import type { Cell, Layer, PlacedDevice } from '@core/domain/types.ts';
 import type { Device } from '@core/data-loader/types.ts';
 import { CELL_PX } from './use-camera.ts';
 import { PortMarkers } from './DeviceLayer.tsx';
+import { AoeBox } from './GhostPreview.tsx';
 
 interface MoveGhostShape {
   devices: PlacedDevice[];
@@ -33,6 +39,18 @@ const FLUID_LINK = '#4ec9d3';
 export function MoveModeGhost({ ghost, lookup }: Props) {
   return (
     <Group listening={false} opacity={0.85}>
+      {/* P4 v7.8: AoE preview for any ghost device with `power_aoe`. Drawn
+       *  underneath the device rects so the dashed box doesn't obscure the
+       *  device outline at the corners. */}
+      {ghost.devices.map((d) => {
+        const dev = lookup(d.device_id);
+        if (!dev?.power_aoe) return null;
+        const zone =
+          previewSupplyZone(dev, d.position, d.rotation) ??
+          previewPoleLinkZone(dev, d.position, d.rotation);
+        if (!zone) return null;
+        return <AoeBox key={`aoe-${d.instance_id}`} zone={zone} kind={dev.power_aoe.purpose} />;
+      })}
       {ghost.devices.map((d) => {
         const dev = lookup(d.device_id);
         if (!dev) return null;

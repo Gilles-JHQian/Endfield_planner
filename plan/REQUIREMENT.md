@@ -850,7 +850,17 @@ A feature is "done" when:
 
 ## Changelog
 
-### v7.7 — operation polish + label truncation + clipboard ghost (this document)
+### v7.8 — bug fixes + move-mode perf (this document)
+
+Five small fixes + one perf win on top of v7.7.
+
+- **Power-diffuser AoE renders during move mode.** v7.3's MoveModeGhost only drew the device rect + port markers; owners moving a 供电桩 / 中继器 couldn't see what the new position would cover. Now reuses `previewSupplyZone` / `previewPoleLinkZone` and the AoeBox component (exported from GhostPreview) to draw a dashed AoE underneath each ghost device with `power_aoe`. Paste-mode ghost benefits automatically — same renderer.
+- **Only `loader-1` + `unloader-1` skip the on-canvas label, not all `storage`.** v7.7 over-narrowed by skipping the entire `storage` category. Storage devices like 协议储存箱 / 储液罐 / 仓库存取线段 / 暗管入口/出口 regain their text; only the two warehouse I/O ports (仓库存货口 / 仓库取货口) remain text-free per owner spec. Suppression is now a category set + a device-id set.
+- **Ctrl / Cmd + click in move mode clones without exiting.** v7.7 wired this for place tool + paste mode but explicitly left move mode alone. Owner asked to extend; `commitMoveMode` takes a `keepMode` flag; `setMoveMode(null)` only fires when false. The snapshot data persists across clones; each click writes the project with fresh instance ids.
+- **Clipboard paste anchors the cluster's center on the cursor (not its top-left).** New `clipboardCenterAnchor` helper computes the bbox over (rotated) device footprints + link path cells, returns `cursor - floor(bbox / 2)`. Both `computePasteGhost` (rendering) and `pastePayloadAtCursor` (commit) go through the helper so preview matches what lands.
+- **Move / paste / place ghost no longer rebuilds the occupancy map per cursor move.** Owner reported move mode lagged on dense layouts. `buildOccupancy(project, lookup)` ran on every render — O(devices × footprint + links × path). Project doesn't actually change during move/paste/place hover, so we memoize once per `[project, lookup]` change at EditorPage and thread the cached `OccupancyMap` through `computeGhost` / `computeMoveGhost` / `computePasteGhost` / `clusterCollisions`. Cursor moves are now hash-lookups only.
+
+### v7.7 — operation polish + label truncation + clipboard ghost
 
 Operation-logic, visual, and clipboard polish on top of v7.6.
 

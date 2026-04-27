@@ -17,7 +17,7 @@ import type { Device } from '@core/data-loader/types.ts';
 
 export type DeviceLookup = (device_id: string) => Device | undefined;
 
-interface OccupancyMap {
+export interface OccupancyMap {
   /** Same-layer link cells (existing belts). */
   solid: Set<string>;
   /** Same-layer link cells (existing pipes). */

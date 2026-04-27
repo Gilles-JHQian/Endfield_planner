@@ -89,7 +89,13 @@ export function GhostPreview({ device, cell, rotation, status, existingDevices, 
   );
 }
 
-function AoeBox({ zone, kind }: { zone: SupplyZone; kind: 'device_supply' | 'pole_link' | null }) {
+export function AoeBox({
+  zone,
+  kind,
+}: {
+  zone: SupplyZone;
+  kind: 'device_supply' | 'pole_link' | null;
+}) {
   const x = zone.minX * CELL_PX;
   const y = zone.minY * CELL_PX;
   const w = (zone.maxX - zone.minX + 1) * CELL_PX;
