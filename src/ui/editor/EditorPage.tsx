@@ -710,14 +710,40 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     // P4 v7: when the start cell hosts ≥ 2 output ports, leave firstStepDirection
     // unconstrained (let the user's chosen direction pick the port). The
     // actual src PortRef is then resolved from `planned.path`'s first step
-    // post-routing.
+    // post-routing. P4 v7.2: SAME pattern on the dst side — for mergers /
+    // splitters with multiple input ports at the same cell, pick the port
+    // whose face matches the actual planned arrival direction (was: first
+    // matching port, which broke E/S inputs on a merger because the planner's
+    // lastStepDirection lock got pinned to the N input's required arrival).
     const startMulti = hasMultipleOutputPortsAtCell(waypoints[0]!, layer, store.project, lookup);
     const startSingle = startMulti
       ? null
       : findOutputPortAtCell(waypoints[0]!, layer, store.project, lookup);
-    const lastInput = portHit
-      ? findInputPortAtCell(waypoints[waypoints.length - 1]!, layer, store.project, lookup)
-      : null;
+
+    // First plan WITHOUT the dst-side lock so we can read the actual arrival
+    // direction off the resulting path — needed to resolve the right port on
+    // multi-input devices.
+    const initialPlan = planSegments(waypoints, ctx, null, startSingle?.face_direction);
+    if (initialPlan.collisions.length > 0) return;
+    const lastArrival =
+      initialPlan.path.length >= 2
+        ? signDir(
+            initialPlan.path[initialPlan.path.length - 1]!,
+            initialPlan.path[initialPlan.path.length - 2]!,
+          )
+        : undefined;
+    const lastInput =
+      portHit && lastArrival
+        ? findInputPortAtCell(
+            waypoints[waypoints.length - 1]!,
+            layer,
+            store.project,
+            lookup,
+            lastArrival,
+          )
+        : null;
+
+    // Replan with both locks — for safety; should produce the same path.
     const planned = planSegments(
       waypoints,
       ctx,
@@ -738,9 +764,14 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     const srcRef = startPort
       ? { device_instance_id: startPort.device_instance_id, port_index: startPort.port_index }
       : undefined;
-    const dstRef = portHit
-      ? { device_instance_id: portHit.device_instance_id, port_index: portHit.port_index }
-      : undefined;
+    // Prefer the direction-resolved port. Fall back to portHit if lookup
+    // failed (shouldn't happen in normal flow because handleLinkClick
+    // already validated arrival).
+    const dstRef = lastInput
+      ? { device_instance_id: lastInput.device_instance_id, port_index: lastInput.port_index }
+      : portHit
+        ? { device_instance_id: portHit.device_instance_id, port_index: portHit.port_index }
+        : undefined;
 
     // P4 v6 auto-bridge truncation. For each cross-bridge the planner wants
     // to auto-place:
