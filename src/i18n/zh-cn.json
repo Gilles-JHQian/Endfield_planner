@@ -58,6 +58,9 @@
   "library.title": "设备库",
   "library.search": "搜索…",
   "library.empty": "无设备",
+  "library.clipboard": "剪贴板",
+  "library.clipboardEmpty": "尚未复制任何内容",
+  "library.clipboardSlot": "{{devices}} 个设备 / {{links}} 条传送带",
 
   "inspector.title": "检视器",
   "inspector.empty": "未选中设备",

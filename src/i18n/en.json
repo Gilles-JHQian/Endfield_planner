@@ -58,6 +58,9 @@
   "library.title": "Device Library",
   "library.search": "search…",
   "library.empty": "no devices",
+  "library.clipboard": "Clipboard",
+  "library.clipboardEmpty": "No clipboard entries yet",
+  "library.clipboardSlot": "{{devices}} devices / {{links}} belts",
 
   "inspector.title": "Inspector",
   "inspector.empty": "Nothing selected",

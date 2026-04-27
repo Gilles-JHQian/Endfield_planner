@@ -17,11 +17,11 @@ import {
   rotatedBoundingBox,
 } from '@core/domain/index.ts';
 import { layerOccupancyOf } from '@core/drc/bridges.ts';
-import type { DataBundle, Device, DeviceCategory } from '@core/data-loader/types.ts';
+import type { DataBundle, Device } from '@core/data-loader/types.ts';
 import { Canvas } from './Canvas.tsx';
 import { LayerToggle } from './LayerToggle.tsx';
 import { StatusBar } from './StatusBar.tsx';
-import { Rail } from './Rail.tsx';
+import { Rail, type LibraryTab } from './Rail.tsx';
 import { Library } from './Library.tsx';
 import { Toolbar } from './Toolbar.tsx';
 import { DeviceLayer, findDeviceAtCell } from './DeviceLayer.tsx';
@@ -56,8 +56,11 @@ import {
   flushSave,
   importProject,
   loadCurrent,
+  promoteToTopOfHistory,
   readClipboard,
+  readClipboardHistory,
   scheduleSave,
+  type ClipboardPayload,
 } from '@core/persistence/index.ts';
 import { useDrc } from './use-drc.ts';
 import { useViewMode } from './use-view-mode.ts';
@@ -110,7 +113,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [viewMode, setViewMode] = useViewMode();
-  const [category, setCategory] = useState<DeviceCategory>('basic_production');
+  const [category, setCategory] = useState<LibraryTab>('basic_production');
   const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
   // Inspector pin: the device shown in the right-column inspector panel.
   // P4 v6: ONLY left-click on a device in the select tool drives this; right-
@@ -125,6 +128,18 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // belts/pipes. Right-click on a link cell adds {id}; right-mouse drag
   // includes any link whose path is fully inside the rectangle.
   const [selectedLinkIds, setSelectedLinkIds] = useState<ReadonlySet<string>>(new Set());
+  // P4 v7: when non-null, the next left-click pastes this payload at the
+  // cursor (place-mode-style). Set by clicking a slot in the clipboard tab;
+  // cleared by right-click / Esc / successful paste.
+  const [pasteSource, setPasteSource] = useState<ClipboardPayload | null>(null);
+  // Tick that nudges the Library to re-render when clipboard history changes
+  // (history is module-level state, not React state).
+  const [clipboardTick, setClipboardTick] = useState(0);
+  const clipboardHistory = useMemo(
+    () => readClipboardHistory(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [clipboardTick],
+  );
   // Multi-segment belt/pipe draft. Each click adds a waypoint; the segment
   // between consecutive waypoints is BFS-routed around devices. Drafting
   // commits when the user clicks an input port of the matching layer or
@@ -263,8 +278,14 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         if (boxSelected.size === 0) return;
         e.preventDefault();
         const devices = store.project.devices.filter((d) => boxSelected.has(d.instance_id));
-        const payload = buildPayload(devices);
-        if (payload) copyToClipboard(payload);
+        // P4 v7: include all links (both layers) whose endpoints both reference
+        // a device in the selection. buildPayload filters internally.
+        const allLinks = [...store.project.solid_links, ...store.project.fluid_links];
+        const payload = buildPayload(devices, allLinks);
+        if (payload) {
+          copyToClipboard(payload);
+          setClipboardTick((n) => n + 1);
+        }
         return;
       }
       if (meta && (e.key === 'v' || e.key === 'V')) {
@@ -272,22 +293,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         const payload = readClipboard();
         if (!payload) return;
         e.preventDefault();
-        const placeActions: ProjectAction[] = [];
-        for (const item of payload.items) {
-          const dev = lookup(item.device_id);
-          if (!dev) continue;
-          placeActions.push({
-            type: 'place_device',
-            device: dev,
-            position: { x: cursor.x + item.rel_position.x, y: cursor.y + item.rel_position.y },
-            rotation: item.rotation,
-          });
-        }
-        if (placeActions.length === 0) return;
-        const result = store.applyMany(placeActions);
-        if (result.ok) {
-          setBoxSelected(new Set(result.value.placed.map((p) => p.instance_id)));
-        }
+        pastePayloadAtCursor(payload, cursor);
         return;
       }
       if (e.key === 'f' || e.key === 'F' || e.key === 'Delete') {
@@ -334,6 +340,18 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [boxSelected, store, selectedInstanceId, selectedLinkIds, cursor, lookup]);
+
+  // P4 v7: Esc cancels paste mode.
+  useEffect(() => {
+    if (!pasteSource) return;
+    const onKey = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'Escape') setPasteSource(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pasteSource]);
 
   // Belt/pipe draft keybindings. Esc cancels the whole draft; Backspace pops
   // the last waypoint (so owners can correct a mis-click without restarting).
@@ -408,6 +426,39 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
    *  In PLACING state (linkDraft active), right-click cancels the draft
    *  back to READY instead — owners can abort a mis-started path without
    *  reaching for Esc. */
+  /** P4 v7: paste a clipboard payload at the cursor cell. Pre-generates
+   *  instance ids for the new devices so the link `add_link` actions in the
+   *  same applyMany batch can forward-reference them via PortRef. */
+  function pastePayloadAtCursor(payload: ClipboardPayload, anchor: Cell): void {
+    const itemIds = payload.items.map(() => generateInstanceId('d'));
+    const placeActions: ProjectAction[] = [];
+    for (let i = 0; i < payload.items.length; i++) {
+      const item = payload.items[i]!;
+      const dev = lookup(item.device_id);
+      if (!dev) continue;
+      placeActions.push({
+        type: 'place_device',
+        device: dev,
+        position: { x: anchor.x + item.rel_position.x, y: anchor.y + item.rel_position.y },
+        rotation: item.rotation,
+        instance_id: itemIds[i]!,
+      });
+    }
+    if (placeActions.length === 0) return;
+    const linkActions: ProjectAction[] = payload.links.map((l) => ({
+      type: 'add_link' as const,
+      layer: l.layer,
+      tier_id: l.tier_id,
+      path: l.rel_path.map((c) => ({ x: anchor.x + c.x, y: anchor.y + c.y })),
+      src: { device_instance_id: itemIds[l.src_item_index]!, port_index: l.src_port_index },
+      dst: { device_instance_id: itemIds[l.dst_item_index]!, port_index: l.dst_port_index },
+    }));
+    const result = store.applyMany([...placeActions, ...linkActions]);
+    if (result.ok) {
+      setBoxSelected(new Set(result.value.placed.map((p) => p.instance_id)));
+    }
+  }
+
   /** P4 v7: a cell is "highlighted" when it sits inside the footprint of a
    *  device in the boxSelected set. Used by Canvas to decide whether
    *  left-mousedown enters drag-move mode. */
@@ -436,6 +487,11 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   }
 
   function handleCellRightClick(cell: Cell): void {
+    // P4 v7: right-click clears paste mode if active.
+    if (pasteSource) {
+      setPasteSource(null);
+      return;
+    }
     // P4 v7: right-click in PLACE mode cancels the device-placement ghost,
     // symmetric with the v6 belt/pipe-tool right-click cancel.
     if (toolApi.tool.kind === 'place') {
@@ -503,6 +559,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   }
 
   function handleCellClick(cell: Cell, _evt: MouseEvent): void {
+    // P4 v7 paste mode: a clipboard slot was picked from the Library tab.
+    // Next left click pastes at cursor; mode persists until right-click /
+    // Esc / tool change.
+    if (pasteSource) {
+      pastePayloadAtCursor(pasteSource, cell);
+      return;
+    }
     if (toolApi.tool.kind === 'place') {
       // P4 v7: cursor anchored to the device's CENTER (not top-left). For a
       // 2×2 device, cursor at (5,5) → footprint (4,4)-(5,5). For 3×3:
@@ -791,6 +854,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           category={category}
           selectedDeviceId={pickedDevice?.id ?? null}
           onPick={handlePick}
+          clipboardHistory={clipboardHistory}
+          onPickClipboardSlot={(payload) => {
+            promoteToTopOfHistory(payload);
+            setClipboardTick((n) => n + 1);
+            setPasteSource(payload);
+            // Clear other tools so paste-mode is the only active interaction.
+            toolApi.setSelect();
+            setPickedDevice(null);
+          }}
         />
       </aside>
       <main aria-label="workspace" className="relative bg-canvas">
