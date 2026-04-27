@@ -10,6 +10,7 @@ import { useMemo } from 'react';
 import { useI18n } from '@i18n/index.tsx';
 import { KvRow, SectionHead, WarningStripe } from '@ui/components/index.ts';
 import { rotatedBoundingBox } from '@core/domain/geometry.ts';
+import { buildPortConnectivity, portKey } from '@core/domain/topology.ts';
 import type { PlacedDevice, Project } from '@core/domain/types.ts';
 import type { Device, Recipe } from '@core/data-loader/types.ts';
 import { RecipeSelector } from './RecipeSelector.tsx';
@@ -28,6 +29,8 @@ export function Inspector({ project, selectedInstanceId, lookup, recipes, onReci
     [project.devices, selectedInstanceId],
   );
   const device = placed ? (lookup(placed.device_id) ?? null) : null;
+  // P4 v7.1: port → link reverse index for the per-port connection rows.
+  const portConn = useMemo(() => buildPortConnectivity(project), [project]);
 
   if (!placed || !device) {
     return <ProjectSummary project={project} />;
@@ -37,6 +40,7 @@ export function Inspector({ project, selectedInstanceId, lookup, recipes, onReci
       placed={placed}
       device={device}
       recipes={recipes}
+      portToLink={portConn.portToLink}
       onRecipeChange={(rid) => onRecipeChange(placed.instance_id, rid)}
     />
   );
@@ -78,11 +82,13 @@ function DeviceInspector({
   placed,
   device,
   recipes,
+  portToLink,
   onRecipeChange,
 }: {
   placed: PlacedDevice;
   device: Device;
   recipes: readonly Recipe[];
+  portToLink: ReadonlyMap<string, string>;
   onRecipeChange: (recipe_id: string | null) => void;
 }) {
   const { t } = useI18n();
@@ -139,8 +145,39 @@ function DeviceInspector({
               {t('inspector.ports.empty')}
             </div>
           ) : (
-            <div className="py-2 font-tech-mono text-[11px] text-fg-soft">
-              {t('inspector.ports.count', { count: device.io_ports.length })}
+            <div className="py-2 font-tech-mono text-[10px] text-fg-soft">
+              <div className="mb-2 text-fg-faint">
+                {t('inspector.ports.count', { count: device.io_ports.length })}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {device.io_ports.map((p, i) => {
+                  const linkId = portToLink.get(
+                    portKey({ device_instance_id: placed.instance_id, port_index: i }),
+                  );
+                  const dirGlyph =
+                    p.direction_constraint === 'input'
+                      ? '◀'
+                      : p.direction_constraint === 'output'
+                        ? '▶'
+                        : p.direction_constraint === 'paired_opposite'
+                          ? '↔'
+                          : '◇';
+                  return (
+                    <div
+                      key={i.toString()}
+                      className="flex items-center gap-2 border-l-2 border-line-faint pl-2"
+                    >
+                      <span className="w-4 text-right text-fg-faint">{i.toString()}</span>
+                      <span className="w-3 text-fg-soft">{p.side}</span>
+                      <span className="w-3">{dirGlyph}</span>
+                      <span className="w-8 text-fg-faint">{p.kind.slice(0, 4)}</span>
+                      <span className={linkId ? 'text-amber' : 'text-fg-faint'}>
+                        {linkId ? linkId.slice(0, 12) : '—'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </Section>
