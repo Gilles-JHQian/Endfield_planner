@@ -853,6 +853,7 @@ A feature is "done" when:
 ### v7.5 — belt self-cross + chained splits + RMB tool-mode unification (this document)
 
 - **Self-crossing belts now place an auto-bridge.** `planSegments` accumulates the new path's own per-cell orientations as it walks the waypoints; subsequent segments see prior segments as if they were existing same-layer links. A perpendicular self-crossing → `bridgesToAutoPlace` includes the cell, identically to crossing an existing belt. Parallel/corner self-overlap still rejects as before.
+  - **Joint-cell follow-up.** The first cut of the above accumulated EVERY cell of each segment, including the joint waypoint between consecutive segments. That made the next segment's first cell look like a self-crossing — straight extensions hit parallel collision (red), corners spawned spurious auto-bridges. Fix: skip the segment's last cell when accumulating (the full path is still used to compute orientations). Real self-crossings still register because non-joint cells are accumulated normally.
 - **Multiple crossings of the same existing belt now commit cleanly.** v7 emitted one `split_link` action per crossing, all targeting the original link id. The first split removed the original; the second silently rolled back the whole batch (`not_found`). v7.5 groups bridge cells by existing-link, sorts by path index, and chains the splits — each non-final split pins its right-half id (new optional `right_id` on the action / `ids` on `splitLink`) so the next split in the chain targets the previous right half. `splitLink` itself was already idempotent on `ids`; only the action plumbing + the commit-side chaining was new.
 - **Right-click in any tool mode (place/belt/pipe) returns to select.** v7 had right-click in non-drafting belt/pipe mode silently doing the right-click highlight; users found this confusing. v7.5 unifies: right-click (single OR drag) in any tool mode = exit to select. Box-select is only available in the select tool.
 
@@ -881,6 +882,14 @@ overlap-on-drag bugs and naturally including attached belts.
   - **R** rotates 90° CW around the pivot (only inside move mode; the standalone R batch-rotate is removed).
 - **Clipboard with belts (broader rule).** Ctrl+C now includes any link in `selectedLinkIds` PLUS any link whose both endpoints reference a selected device. PortRefs to devices outside the selection are stored as `undefined` indices; paste creates the new link with that end dangling instead of dropping the link entirely.
 - **Drag-move removed.** The v7 left-mousedown-on-highlighted-cell drag is removed. Move mode is the only way to move multiple devices, which means owners can no longer accidentally stack devices onto belts (M-mode's real-time collision check catches it). Single-device tweaks are now: select → M → click target.
+
+### v7.2 — merger arrival-direction fix
+
+Single-bug patch on top of v7.1: when manually drawing a belt into a `belt-merger` (or any device with multiple input ports on the same cell), only the input port whose face was 90° CW from the W output side (i.e. N) would commit. The other inputs (E, S) showed a green ghost but the click was silently dropped.
+
+Root cause: `commitLink` resolved `lastInput` by calling `findInputPortAtCell` WITHOUT an arrival direction, which always returned the FIRST matching port — N for a merger. The planner's `lastStepDirection` lock then got pinned to N's required arrival; the actual belt direction (going west or going north) didn't match, the replan reported a collision, and the function returned silently.
+
+`handleLinkClick` already used arrival-aware port resolution since v7. Fix: in `commitLink`, plan once WITHOUT the dst lock to derive arrival from the resulting path, then resolve the input port using that arrival, then replan with the lock for safety. Symmetric with the v7 src-side resolution that already used `startDeparture`.
 
 ### v7.1 — bridge follow-ups
 
