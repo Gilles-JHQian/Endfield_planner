@@ -89,11 +89,7 @@ export function cellBlockedFor(
 /** Direct query for "does any device block this cell on this layer?". Used by
  *  the device place-time ghost to decide whether a candidate footprint cell
  *  collides with another device's per-layer occupancy. */
-export function cellBlockedByDevice(
-  cell: Cell,
-  layer: Layer,
-  occupancy: OccupancyMap,
-): boolean {
+export function cellBlockedByDevice(cell: Cell, layer: Layer, occupancy: OccupancyMap): boolean {
   const k = cellKey(cell);
   return layer === 'solid' ? occupancy.deviceSolid.has(k) : occupancy.deviceFluid.has(k);
 }

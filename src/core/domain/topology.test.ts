@@ -22,9 +22,7 @@ const MINER: Device = {
   power_draw: 10,
   requires_power: true,
   has_fluid_interface: false,
-  io_ports: [
-    { side: 'E', offset: 0, kind: 'solid', direction_constraint: 'output' },
-  ],
+  io_ports: [{ side: 'E', offset: 0, kind: 'solid', direction_constraint: 'output' }],
   tech_prereq: [],
   category: 'miner',
   recipes: ['r-iron'],
@@ -38,9 +36,7 @@ const FURNACE: Device = {
   power_draw: 50,
   requires_power: true,
   has_fluid_interface: false,
-  io_ports: [
-    { side: 'W', offset: 0, kind: 'solid', direction_constraint: 'input' },
-  ],
+  io_ports: [{ side: 'W', offset: 0, kind: 'solid', direction_constraint: 'input' }],
   tech_prereq: [],
   category: 'basic_production',
   recipes: ['r-iron'],
@@ -67,10 +63,13 @@ const RECIPE_MULTI: Recipe = {
   compatible_devices: ['miner'],
 };
 
-const lookup = (id: string): Device | undefined =>
-  ({ miner: MINER, furnace: FURNACE })[id];
+const lookup = (id: string): Device | undefined => ({ miner: MINER, furnace: FURNACE })[id];
 
-const placed = (instance_id: string, device_id: string, recipe_id: string | null = null): PlacedDevice => ({
+const placed = (
+  instance_id: string,
+  device_id: string,
+  recipe_id: string | null = null,
+): PlacedDevice => ({
   instance_id,
   device_id,
   position: { x: 0, y: 0 },
@@ -78,7 +77,11 @@ const placed = (instance_id: string, device_id: string, recipe_id: string | null
   recipe_id,
 });
 
-const link = (id: string, src?: { device_instance_id: string; port_index: number }, dst?: { device_instance_id: string; port_index: number }): SolidLink => ({
+const link = (
+  id: string,
+  src?: { device_instance_id: string; port_index: number },
+  dst?: { device_instance_id: string; port_index: number },
+): SolidLink => ({
   id,
   layer: 'solid',
   tier_id: 'belt-1',
@@ -98,7 +101,11 @@ describe('buildPortConnectivity', () => {
     const project = {
       ...createProject({ region: REGION, data_version: 'test' }),
       solid_links: [
-        link('L1', { device_instance_id: 'm', port_index: 0 }, { device_instance_id: 'f', port_index: 0 }),
+        link(
+          'L1',
+          { device_instance_id: 'm', port_index: 0 },
+          { device_instance_id: 'f', port_index: 0 },
+        ),
       ],
     };
     const conn = buildPortConnectivity(project);

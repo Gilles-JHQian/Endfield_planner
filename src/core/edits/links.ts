@@ -141,7 +141,10 @@ export function splitLink({
 
   const idx = original.path.findIndex((c) => c.x === at_cell.x && c.y === at_cell.y);
   if (idx < 0) {
-    return err('invalid_link', `Link ${link_id} does not cover cell (${at_cell.x.toString()}, ${at_cell.y.toString()}).`);
+    return err(
+      'invalid_link',
+      `Link ${link_id} does not cover cell (${at_cell.x.toString()}, ${at_cell.y.toString()}).`,
+    );
   }
   if (idx === 0 || idx === original.path.length - 1) {
     return err(
@@ -183,11 +186,7 @@ export function splitLink({
     return ok({
       project: {
         ...project,
-        solid_links: [
-          ...project.solid_links.filter((l) => l.id !== link_id),
-          left,
-          right,
-        ],
+        solid_links: [...project.solid_links.filter((l) => l.id !== link_id), left, right],
         updated_at,
       },
       left_id,
@@ -199,11 +198,7 @@ export function splitLink({
   return ok({
     project: {
       ...project,
-      fluid_links: [
-        ...project.fluid_links.filter((l) => l.id !== link_id),
-        left,
-        right,
-      ],
+      fluid_links: [...project.fluid_links.filter((l) => l.id !== link_id), left, right],
       updated_at,
     },
     left_id,
@@ -247,8 +242,7 @@ export function setLinkEndpoint({
   const beforeF = project.fluid_links;
   const solid_links = beforeS.map((l) => updateLink(l));
   const fluid_links = beforeF.map((l) => updateLink(l));
-  const found =
-    beforeS.some((l) => l.id === link_id) || beforeF.some((l) => l.id === link_id);
+  const found = beforeS.some((l) => l.id === link_id) || beforeF.some((l) => l.id === link_id);
   if (!found) return err('not_found', `No link with id=${link_id}.`);
   return ok({ ...project, solid_links, fluid_links, updated_at });
 }

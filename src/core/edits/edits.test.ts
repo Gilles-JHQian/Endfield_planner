@@ -104,12 +104,7 @@ describe('placeDevice', () => {
     // The fluid-passthrough is exercised separately by occupancy.test.ts and
     // by the editor's link router (which already routes pipes over solid
     // bridges).
-    const beltBridge: Device = mkDev(
-      'belt-cross-bridge',
-      { width: 1, height: 1 },
-      [],
-      [],
-    );
+    const beltBridge: Device = mkDev('belt-cross-bridge', { width: 1, height: 1 }, [], []);
     const lookupB = (id: string): Device | undefined => {
       if (id === beltBridge.id) return beltBridge;
       if (id === FURNACE.id) return FURNACE;

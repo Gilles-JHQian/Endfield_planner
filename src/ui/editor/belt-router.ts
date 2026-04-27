@@ -89,8 +89,7 @@ export function buildRouteContext(
       if (!blocksOther) continue;
       for (const c of footprintCells(dev, placed)) otherLayerOccupants.add(cellKey(c));
     }
-    const otherLinks =
-      otherLayer === 'solid' ? project.solid_links : project.fluid_links;
+    const otherLinks = otherLayer === 'solid' ? project.solid_links : project.fluid_links;
     for (const l of otherLinks) {
       for (const c of l.path) otherLayerOccupants.add(cellKey(c));
     }
@@ -229,7 +228,10 @@ export function findOutputPortAtCell(
       const matches =
         (layer === 'solid' && p.kind === 'solid') || (layer === 'fluid' && p.kind === 'fluid');
       if (!matches) continue;
-      if (departure && (p.face_direction.dx !== departure.dx || p.face_direction.dy !== departure.dy)) {
+      if (
+        departure &&
+        (p.face_direction.dx !== departure.dx || p.face_direction.dy !== departure.dy)
+      ) {
         continue;
       }
       return {

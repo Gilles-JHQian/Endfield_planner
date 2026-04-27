@@ -67,7 +67,13 @@ let history: ClipboardPayload[] = [];
  *  so paste preserves the visual layout. */
 export function buildPayload(
   devices: readonly PlacedDevice[],
-  links?: readonly { layer: Layer; tier_id: string; path: readonly Cell[]; src?: { device_instance_id: string; port_index: number }; dst?: { device_instance_id: string; port_index: number } }[],
+  links?: readonly {
+    layer: Layer;
+    tier_id: string;
+    path: readonly Cell[];
+    src?: { device_instance_id: string; port_index: number };
+    dst?: { device_instance_id: string; port_index: number };
+  }[],
 ): ClipboardPayload | null {
   if (devices.length === 0) return null;
   const idToIndex = new Map<string, number>();

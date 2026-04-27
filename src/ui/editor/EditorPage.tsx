@@ -411,7 +411,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           m
             ? {
                 ...m,
-                rotationSteps: (((m.rotationSteps + 1) % 4) as 0 | 1 | 2 | 3),
+                rotationSteps: ((m.rotationSteps + 1) % 4) as 0 | 1 | 2 | 3,
               }
             : m,
         );
@@ -887,7 +887,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     // → reject the click.
     let portAtClick: ReturnType<typeof findInputPortAtCell> = null;
     if (candidate.path.length >= 2) {
-      const arrival = signDir(candidate.path[candidate.path.length - 1]!, candidate.path[candidate.path.length - 2]!);
+      const arrival = signDir(
+        candidate.path[candidate.path.length - 1]!,
+        candidate.path[candidate.path.length - 2]!,
+      );
       portAtClick = findInputPortAtCell(cell, layer, store.project, lookup, arrival);
       const anyInput = portAtClick ?? findInputPortAtCell(cell, layer, store.project, lookup);
       if (anyInput && !portAtClick) return; // wrong-direction approach to a port cell
@@ -1024,7 +1027,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     // chain walks the link from start to end.
     const cellsByExistingLink = new Map<
       string,
-      { existing: { id: string; path: readonly Cell[] }; cells: { cell: Cell; bridgeId: string; idx: number }[] }
+      {
+        existing: { id: string; path: readonly Cell[] };
+        cells: { cell: Cell; bridgeId: string; idx: number }[];
+      }
     >();
     for (const [k, bridgeId] of bridgeIdByCell) {
       const [sx, sy] = k.split(',');
@@ -1088,7 +1094,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
             const nextBridgeKey = seg.exitToBridgeKey!;
             const id = bridgeIdByCell.get(nextBridgeKey)!;
             // seg.path[N-1] = bridge cell; seg.path[N-2] = last non-bridge cell.
-            const arriveDir = signDir(seg.path[seg.path.length - 1]!, seg.path[seg.path.length - 2]!);
+            const arriveDir = signDir(
+              seg.path[seg.path.length - 1]!,
+              seg.path[seg.path.length - 2]!,
+            );
             return { device_instance_id: id, port_index: portIndexForArrival(arriveDir) };
           })();
       actions.push({
@@ -1196,9 +1205,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                   onPort={beltCursorState.onPort}
                 />
               )}
-              {moveGhost && (
-                <MoveModeGhost ghost={moveGhost} lookup={lookup} />
-              )}
+              {moveGhost && <MoveModeGhost ghost={moveGhost} lookup={lookup} />}
               {highlight && (
                 <IssueHighlight cells={highlight.cells} severity={highlight.severity} />
               )}
@@ -1365,7 +1372,10 @@ function computeDraftPath(
   const lastCell = pts[pts.length - 1]!;
   let planned = planSegments(pts, ctx, null, firstStep);
   if (planned.collisions.length === 0 && planned.path.length >= 2) {
-    const arrival = signDir(planned.path[planned.path.length - 1]!, planned.path[planned.path.length - 2]!);
+    const arrival = signDir(
+      planned.path[planned.path.length - 1]!,
+      planned.path[planned.path.length - 2]!,
+    );
     const matched = findInputPortAtCell(lastCell, draft.layer, project, lookup, arrival);
     const anyInput = matched ?? findInputPortAtCell(lastCell, draft.layer, project, lookup);
     if (anyInput && !matched) {
@@ -1436,9 +1446,7 @@ function remapPortRef(
   idMap: ReadonlyMap<string, string>,
 ): { device_instance_id: string; port_index: number } {
   const newId = idMap.get(ref.device_instance_id);
-  return newId
-    ? { device_instance_id: newId, port_index: ref.port_index }
-    : ref;
+  return newId ? { device_instance_id: newId, port_index: ref.port_index } : ref;
 }
 
 /** P4 v7.3 — 90° CW rotation of a single cell around an integer pivot.
@@ -1505,7 +1513,7 @@ function computeMoveGhost(
       if (c.x < minX) minX = c.x;
       if (c.y < minY) minY = c.y;
     }
-    const newRotation = (((d.rotation + 90 * state.rotationSteps) % 360) as 0 | 90 | 180 | 270);
+    const newRotation = ((d.rotation + 90 * state.rotationSteps) % 360) as 0 | 90 | 180 | 270;
     return { ...d, position: { x: minX, y: minY }, rotation: newRotation };
   });
 
@@ -1570,7 +1578,13 @@ function computeMoveGhost(
 /** P4 v7.1: each affected belt yields ONE of three action descriptors that
  *  the caller bundles with the place_device action. */
 type PlaceOnBeltAction =
-  | { kind: 'split'; link_id: string; at_cell: Cell; input_port_index: number; output_port_index: number }
+  | {
+      kind: 'split';
+      link_id: string;
+      at_cell: Cell;
+      input_port_index: number;
+      output_port_index: number;
+    }
   | { kind: 'set_src'; link_id: string; output_port_index: number }
   | { kind: 'set_dst'; link_id: string; input_port_index: number };
 
@@ -1610,7 +1624,11 @@ function planPlaceOnBeltSplits(
   const out: PlaceOnBeltAction[] = [];
   const allLinks = [...project.solid_links, ...project.fluid_links];
 
-  const acceptsArrival = (p: typeof ports[number], arrival: { dx: number; dy: number }, layer: 'solid' | 'fluid'): boolean => {
+  const acceptsArrival = (
+    p: (typeof ports)[number],
+    arrival: { dx: number; dy: number },
+    layer: 'solid' | 'fluid',
+  ): boolean => {
     if (layer === 'solid' && p.kind !== 'solid') return false;
     if (layer === 'fluid' && p.kind !== 'fluid') return false;
     if (p.face_direction.dx !== -arrival.dx || p.face_direction.dy !== -arrival.dy) return false;
@@ -1620,7 +1638,11 @@ function planPlaceOnBeltSplits(
       p.direction_constraint === 'bidirectional'
     );
   };
-  const acceptsExit = (p: typeof ports[number], exit: { dx: number; dy: number }, layer: 'solid' | 'fluid'): boolean => {
+  const acceptsExit = (
+    p: (typeof ports)[number],
+    exit: { dx: number; dy: number },
+    layer: 'solid' | 'fluid',
+  ): boolean => {
     if (layer === 'solid' && p.kind !== 'solid') return false;
     if (layer === 'fluid' && p.kind !== 'fluid') return false;
     if (p.face_direction.dx !== exit.dx || p.face_direction.dy !== exit.dy) return false;
