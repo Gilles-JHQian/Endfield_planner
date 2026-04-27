@@ -504,6 +504,62 @@ describe('splitLink', () => {
     expect(right.src).toEqual({ device_instance_id: 'br', port_index: 1 });
   });
 
+  it('honors pinned ids via the `ids` option (P4 v7.5)', () => {
+    const path = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+    ];
+    const project = mkProjectWithLink(path);
+    const r = splitLink({
+      project,
+      link_id: 'L0',
+      at_cell: { x: 1, y: 0 },
+      left_dst: { device_instance_id: 'br', port_index: 0 },
+      right_src: { device_instance_id: 'br', port_index: 0 },
+      ids: { left: 'pinned-L', right: 'pinned-R' },
+    });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.left_id).toBe('pinned-L');
+    expect(r.value.right_id).toBe('pinned-R');
+  });
+
+  it('chains splits — second split targets the right-half of the first (P4 v7.5)', () => {
+    const path = [
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+      { x: 3, y: 0 },
+      { x: 4, y: 0 },
+    ];
+    let project = mkProjectWithLink(path);
+    // First split at (1, 0) → right half pinned to 'mid'.
+    const r1 = splitLink({
+      project,
+      link_id: 'L0',
+      at_cell: { x: 1, y: 0 },
+      left_dst: { device_instance_id: 'b1', port_index: 0 },
+      right_src: { device_instance_id: 'b1', port_index: 0 },
+      ids: { right: 'mid' },
+    });
+    expect(r1.ok).toBe(true);
+    if (!r1.ok) return;
+    project = r1.value.project;
+    // Second split at (3, 0) on the pinned right half.
+    const r2 = splitLink({
+      project,
+      link_id: 'mid',
+      at_cell: { x: 3, y: 0 },
+      left_dst: { device_instance_id: 'b2', port_index: 0 },
+      right_src: { device_instance_id: 'b2', port_index: 0 },
+    });
+    expect(r2.ok).toBe(true);
+    if (!r2.ok) return;
+    // 3 segments now: [0,1] / [1,2,3] / [3,4]
+    expect(r2.value.project.solid_links).toHaveLength(3);
+  });
+
   it('preserves original src/dst on the outer ends', () => {
     // Place a real device so the src PortRef passes addLink's validation.
     const placed = unwrap(
