@@ -89,10 +89,13 @@ const SCREEN_LABEL_GLYPH_RATIO = 1.05;
 // Don't render a label inside footprints narrower than this (in screen px) —
 // even a single CJK glyph would be unreadable.
 const SCREEN_LABEL_MIN_WIDTH_PX = 12;
-// Categories whose devices have iconic enough geometry to skip the label
-// (bridges read as cross / Y / arrow shapes; storage I/O ports are tiny
-// "load" / "unload" badges where text adds noise).
-const LABEL_SKIP_CATEGORIES: ReadonlySet<string> = new Set(['logistics', 'storage']);
+// Categories whose devices have iconic enough geometry to skip the label —
+// the bridges read as cross / Y / arrow shapes.
+const LABEL_SKIP_CATEGORIES: ReadonlySet<string> = new Set(['logistics']);
+// P4 v7.8: storage was over-broad in v7.7 — only the warehouse I/O ports
+// (仓库存货口 / 仓库取货口) are too small for text. Other storage devices
+// (协议储存箱, 储液罐, 仓库存取线*, 暗管入/出口) keep their labels.
+const LABEL_SKIP_DEVICE_IDS: ReadonlySet<string> = new Set(['loader-1', 'unloader-1']);
 
 function DeviceShape({
   placed,
@@ -121,7 +124,9 @@ function DeviceShape({
   // stage-level scale cancels out → constant on-screen height.
   const screenWidth = w * zoom;
   const showLabel =
-    !LABEL_SKIP_CATEGORIES.has(device.category) && screenWidth >= SCREEN_LABEL_MIN_WIDTH_PX;
+    !LABEL_SKIP_CATEGORIES.has(device.category) &&
+    !LABEL_SKIP_DEVICE_IDS.has(device.id) &&
+    screenWidth >= SCREEN_LABEL_MIN_WIDTH_PX;
   const maxChars = Math.floor(screenWidth / (SCREEN_LABEL_PX * SCREEN_LABEL_GLYPH_RATIO));
   const labelText =
     showLabel && maxChars >= 1 ? abbreviateCnName(device.display_name_zh_hans, maxChars) : '';
