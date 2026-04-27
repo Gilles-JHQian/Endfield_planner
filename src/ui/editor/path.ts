@@ -275,6 +275,12 @@ export function routeForBelt(from: Cell, to: Cell, opts: BeltRouteOpts): BeltRou
       collisions.push(c);
       continue;
     }
+    // P4 v7.1: device-interior grace area. At the FROM/TO cells (the new
+    // belt's endpoints), if the cell sits inside a device footprint, skip
+    // same-layer overlap checks entirely — the device's port system is
+    // responsible for connectivity at this cell, and multiple belts may
+    // legitimately converge there (e.g. 3 inputs on a merger).
+    if ((k === fromKey || k === toKey) && opts.deviceWalls.has(k)) continue;
     // Same-layer link overlap analysis.
     const existingOrients = opts.sameLayerLinks.get(k);
     if (!existingOrients || existingOrients.size === 0) continue;

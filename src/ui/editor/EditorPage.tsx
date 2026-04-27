@@ -597,14 +597,32 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           rotation: toolApi.tool.rotation,
           instance_id: newDeviceId,
         },
-        ...placePlan.map((p) => ({
-          type: 'split_link' as const,
-          link_id: p.link_id,
-          at_cell: p.at_cell,
-          left_dst: { device_instance_id: newDeviceId, port_index: p.input_port_index },
-          right_src: { device_instance_id: newDeviceId, port_index: p.output_port_index },
-        })),
       ];
+      for (const p of placePlan) {
+        if (p.kind === 'split') {
+          actions.push({
+            type: 'split_link',
+            link_id: p.link_id,
+            at_cell: p.at_cell,
+            left_dst: { device_instance_id: newDeviceId, port_index: p.input_port_index },
+            right_src: { device_instance_id: newDeviceId, port_index: p.output_port_index },
+          });
+        } else if (p.kind === 'set_src') {
+          actions.push({
+            type: 'set_link_endpoint',
+            link_id: p.link_id,
+            end: 'src',
+            ref: { device_instance_id: newDeviceId, port_index: p.output_port_index },
+          });
+        } else {
+          actions.push({
+            type: 'set_link_endpoint',
+            link_id: p.link_id,
+            end: 'dst',
+            ref: { device_instance_id: newDeviceId, port_index: p.input_port_index },
+          });
+        }
+      }
       const result = store.applyMany(actions);
       if (!result.ok) return;
     } else if (toolApi.tool.kind === 'select') {
@@ -782,6 +800,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     }
 
     // Step 4: emit the new link as one or more segments split at bridge cells.
+    // P4 v7.1: seg.path[0] / seg.path[N-1] now ARE the bridge cells when the
+    // segment borders one — direction must be computed from seg.path[1] (out
+    // of the entry bridge) and seg.path[N-2] (into the exit bridge).
     const segments = splitPathAtBridges(planned.path, bridgeIdByCell);
     for (let i = 0; i < segments.length; i++) {
       const seg = segments[i]!;
@@ -792,9 +813,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         : (() => {
             const prevBridgeKey = seg.entryFromBridgeKey!;
             const id = bridgeIdByCell.get(prevBridgeKey)!;
-            const [bx, by] = prevBridgeKey.split(',');
-            const bridgeCell = { x: Number.parseInt(bx!, 10), y: Number.parseInt(by!, 10) };
-            const exitDir = signDir(seg.path[0]!, bridgeCell);
+            // seg.path[0] = bridge cell; seg.path[1] = first non-bridge cell.
+            const exitDir = signDir(seg.path[1]!, seg.path[0]!);
             return { device_instance_id: id, port_index: portIndexForExit(exitDir) };
           })();
       const segDst = isLast
@@ -802,9 +822,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         : (() => {
             const nextBridgeKey = seg.exitToBridgeKey!;
             const id = bridgeIdByCell.get(nextBridgeKey)!;
-            const [bx, by] = nextBridgeKey.split(',');
-            const bridgeCell = { x: Number.parseInt(bx!, 10), y: Number.parseInt(by!, 10) };
-            const arriveDir = signDir(bridgeCell, seg.path[seg.path.length - 1]!);
+            // seg.path[N-1] = bridge cell; seg.path[N-2] = last non-bridge cell.
+            const arriveDir = signDir(seg.path[seg.path.length - 1]!, seg.path[seg.path.length - 2]!);
             return { device_instance_id: id, port_index: portIndexForArrival(arriveDir) };
           })();
       actions.push({
@@ -1138,43 +1157,70 @@ function signDir(to: Cell, from: Cell): { dx: number; dy: number } {
   return { dx: Math.sign(to.x - from.x), dy: Math.sign(to.y - from.y) };
 }
 
-interface PlaceOnBeltSplit {
-  link_id: string;
-  at_cell: Cell;
-  input_port_index: number;
-  output_port_index: number;
-}
+/** P4 v7.1: each affected belt yields ONE of three action descriptors that
+ *  the caller bundles with the place_device action. */
+type PlaceOnBeltAction =
+  | { kind: 'split'; link_id: string; at_cell: Cell; input_port_index: number; output_port_index: number }
+  | { kind: 'set_src'; link_id: string; output_port_index: number }
+  | { kind: 'set_dst'; link_id: string; input_port_index: number };
 
-/** P4 v7 place-on-belt: for each existing same-layer link whose path covers
- *  any cell of the candidate device's footprint, return the list of split
- *  actions needed to integrate the device with the existing belts.
+/** P4 v7 place-on-belt (revised in v7.1): for each existing same-layer link
+ *  whose path covers any cell of the candidate device's footprint, return
+ *  the action descriptors needed to integrate the device.
  *
- *  Rules (v7 simple version):
+ *  Rules:
  *  - The device's footprint may cover AT MOST ONE cell of any single belt.
- *    If a belt covers ≥ 2 cells of the footprint, return 'red'.
- *  - That cell must be an interior cell of the belt (both prev + next exist).
- *    Endpoint coverage → 'red' (the v7 splitLink edit can't drop endpoints).
- *  - The device must declare an INPUT port at that cell whose face matches
- *    the belt's arrival direction reversed, AND an OUTPUT port at that cell
- *    whose face matches the belt's exit direction. Otherwise → 'red'.
+ *    ≥ 2 → 'red'.
+ *  - For the overlap cell, port matching depends on whether the cell is the
+ *    belt's start, end, or interior:
+ *      • Interior (both prev + next): need a port that allows BELT ARRIVAL
+ *        on the enter side AND a port that allows BELT EXIT on the exit
+ *        side. Emit a `split`.
+ *      • Start (idx === 0, no prev): need a port that allows EXIT on the
+ *        belt's first-step direction. Emit a `set_src`.
+ *      • End (idx === N-1, no next): need a port that allows ARRIVAL on
+ *        the belt's last-step direction. Emit a `set_dst`.
+ *  - Port "allows arrival": face_direction = -arrival AND constraint is one
+ *    of {input, paired_opposite, bidirectional}.
+ *  - Port "allows exit": face_direction = exit AND constraint is one of
+ *    {output, paired_opposite, bidirectional}.
+ *  - No matching port → 'red'.
  *
- *  When all belts are legal, returns the list of (link_id, at_cell, input_port_index,
- *  output_port_index) splits the caller bundles with the place_device action.
  *  Returns [] when the footprint touches no belts (normal placement). */
 function planPlaceOnBeltSplits(
   project: ReturnType<typeof useProject>['project'],
   device: Device,
   topLeft: Cell,
   rotation: 0 | 90 | 180 | 270,
-): PlaceOnBeltSplit[] | 'red' {
+): PlaceOnBeltAction[] | 'red' {
   const placedStub = { position: topLeft, rotation };
   const footprint = footprintCells(device, placedStub);
   const footprintSet = new Set(footprint.map((c) => `${c.x.toString()},${c.y.toString()}`));
-  // Stub-instance world ports for direction matching. portsInWorldFrame
-  // only reads position + rotation off the placed argument.
   const ports = portsInWorldFrame(device, { position: topLeft, rotation });
-  const out: PlaceOnBeltSplit[] = [];
+  const out: PlaceOnBeltAction[] = [];
   const allLinks = [...project.solid_links, ...project.fluid_links];
+
+  const acceptsArrival = (p: typeof ports[number], arrival: { dx: number; dy: number }, layer: 'solid' | 'fluid'): boolean => {
+    if (layer === 'solid' && p.kind !== 'solid') return false;
+    if (layer === 'fluid' && p.kind !== 'fluid') return false;
+    if (p.face_direction.dx !== -arrival.dx || p.face_direction.dy !== -arrival.dy) return false;
+    return (
+      p.direction_constraint === 'input' ||
+      p.direction_constraint === 'paired_opposite' ||
+      p.direction_constraint === 'bidirectional'
+    );
+  };
+  const acceptsExit = (p: typeof ports[number], exit: { dx: number; dy: number }, layer: 'solid' | 'fluid'): boolean => {
+    if (layer === 'solid' && p.kind !== 'solid') return false;
+    if (layer === 'fluid' && p.kind !== 'fluid') return false;
+    if (p.face_direction.dx !== exit.dx || p.face_direction.dy !== exit.dy) return false;
+    return (
+      p.direction_constraint === 'output' ||
+      p.direction_constraint === 'paired_opposite' ||
+      p.direction_constraint === 'bidirectional'
+    );
+  };
+
   for (const link of allLinks) {
     const linkLayer = link.layer;
     const insideIndices: number[] = [];
@@ -1185,32 +1231,41 @@ function planPlaceOnBeltSplits(
     if (insideIndices.length === 0) continue;
     if (insideIndices.length > 1) return 'red';
     const idx = insideIndices[0]!;
-    if (idx === 0 || idx === link.path.length - 1) return 'red';
     const cell = link.path[idx]!;
-    const enterDir = signDir(cell, link.path[idx - 1]!);
-    const exitDir = signDir(link.path[idx + 1]!, cell);
-    // Find INPUT port at this cell whose face_direction = -enterDir.
-    const inputPort = ports.find((p) => {
-      if (p.cell.x !== cell.x || p.cell.y !== cell.y) return false;
-      if (p.direction_constraint !== 'input') return false;
-      if (linkLayer === 'solid' && p.kind !== 'solid') return false;
-      if (linkLayer === 'fluid' && p.kind !== 'fluid') return false;
-      return p.face_direction.dx === -enterDir.dx && p.face_direction.dy === -enterDir.dy;
-    });
-    const outputPort = ports.find((p) => {
-      if (p.cell.x !== cell.x || p.cell.y !== cell.y) return false;
-      if (p.direction_constraint !== 'output') return false;
-      if (linkLayer === 'solid' && p.kind !== 'solid') return false;
-      if (linkLayer === 'fluid' && p.kind !== 'fluid') return false;
-      return p.face_direction.dx === exitDir.dx && p.face_direction.dy === exitDir.dy;
-    });
-    if (!inputPort || !outputPort) return 'red';
-    out.push({
-      link_id: link.id,
-      at_cell: cell,
-      input_port_index: inputPort.port_index,
-      output_port_index: outputPort.port_index,
-    });
+    const hasPrev = idx > 0;
+    const hasNext = idx < link.path.length - 1;
+    const portsAtCell = ports.filter((p) => p.cell.x === cell.x && p.cell.y === cell.y);
+
+    if (hasPrev && hasNext) {
+      // Interior — split with input + output ports.
+      const enterDir = signDir(cell, link.path[idx - 1]!);
+      const exitDir = signDir(link.path[idx + 1]!, cell);
+      const inputPort = portsAtCell.find((p) => acceptsArrival(p, enterDir, linkLayer));
+      const outputPort = portsAtCell.find((p) => acceptsExit(p, exitDir, linkLayer));
+      if (!inputPort || !outputPort) return 'red';
+      out.push({
+        kind: 'split',
+        link_id: link.id,
+        at_cell: cell,
+        input_port_index: inputPort.port_index,
+        output_port_index: outputPort.port_index,
+      });
+    } else if (!hasPrev && hasNext) {
+      // Start of belt — only exit direction matters; retarget src.
+      const exitDir = signDir(link.path[idx + 1]!, cell);
+      const outputPort = portsAtCell.find((p) => acceptsExit(p, exitDir, linkLayer));
+      if (!outputPort) return 'red';
+      out.push({ kind: 'set_src', link_id: link.id, output_port_index: outputPort.port_index });
+    } else if (hasPrev && !hasNext) {
+      // End of belt — only arrival direction matters; retarget dst.
+      const enterDir = signDir(cell, link.path[idx - 1]!);
+      const inputPort = portsAtCell.find((p) => acceptsArrival(p, enterDir, linkLayer));
+      if (!inputPort) return 'red';
+      out.push({ kind: 'set_dst', link_id: link.id, input_port_index: inputPort.port_index });
+    } else {
+      // Single-cell belt — both endpoints at the same cell. Degenerate; skip.
+      return 'red';
+    }
   }
   return out;
 }
@@ -1299,10 +1354,12 @@ function portIndexForExit(dir: { dx: number; dy: number }): number {
   return PORT_INDEX_BY_SIDE.N;
 }
 
-/** Split `path` at every cell whose key is in `bridgeKeys`. The bridge cells
- *  themselves are dropped from the segments (the bridge device occupies them
- *  now). Each returned segment notes which bridge it borders on each side
- *  (or undefined for the outer ends). */
+/** Split `path` at every cell whose key is in `bridgeKeys`. P4 v7.1: each
+ *  bridge cell is KEPT in BOTH adjacent segments — the segment ENDING at
+ *  the bridge includes the bridge cell as its last point, and the segment
+ *  STARTING at the bridge includes it as its first point. This makes the
+ *  rendered belts visually meet the bridge instead of leaving a gap on
+ *  each side (the v7 behavior owners reported as broken). */
 interface PathSegment {
   readonly path: readonly Cell[];
   readonly entryFromBridgeKey?: string;
@@ -1318,21 +1375,23 @@ function splitPathAtBridges(
   for (const c of path) {
     const k = `${c.x.toString()},${c.y.toString()}`;
     if (bridgeKeys.has(k)) {
-      if (current.length > 0) {
-        const seg: PathSegment = {
-          path: current,
-          ...(entryFrom !== undefined ? { entryFromBridgeKey: entryFrom } : {}),
-          exitToBridgeKey: k,
-        };
-        segments.push(seg);
-      }
-      current = [];
+      // Close out the current segment — include the bridge cell as its tail.
+      current.push(c);
+      const seg: PathSegment = {
+        path: current,
+        ...(entryFrom !== undefined ? { entryFromBridgeKey: entryFrom } : {}),
+        exitToBridgeKey: k,
+      };
+      // Skip degenerate segments (single-cell bridge-only path with no body).
+      if (current.length >= 2) segments.push(seg);
+      // Start the next segment with the bridge cell as its head.
+      current = [c];
       entryFrom = k;
       continue;
     }
     current.push(c);
   }
-  if (current.length > 0) {
+  if (current.length >= 2) {
     const seg: PathSegment = {
       path: current,
       ...(entryFrom !== undefined ? { entryFromBridgeKey: entryFrom } : {}),
