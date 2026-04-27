@@ -1217,6 +1217,12 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
           panTarget={panTarget}
+          // P4 v7.7: only the select tool (no move / paste mode active)
+          // gets the right-mouse box-select. Other contexts treat any
+          // right-mouse release as a tool-cancel right-click.
+          boxSelectEnabled={
+            toolApi.tool.kind === 'select' && moveMode === null && pasteSource === null
+          }
         />
         <Toolbar api={toolApi} />
         <LayerToggle active={viewMode} onChange={setViewMode} />
