@@ -6,13 +6,12 @@
  *  SVG (not Konva) so the component renders cleanly in jsdom test envs
  *  without pulling in the canvas npm dependency.
  *
- *  P4 v7.6: also renders the same 3-char zh-Hans abbreviation as the
- *  on-canvas label (see `device-label.ts`), so library previews match
- *  the placed device.
+ *  P4 v7.7: the v7.6 zh-Hans name overlay was dropped — the card has the
+ *  full name as a text label outside the SVG already, and the overlay
+ *  inside the small footprint felt cluttered.
  */
 import { portsInWorldFrame } from '@core/domain/geometry.ts';
 import type { Device, PortKind } from '@core/data-loader/types.ts';
-import { abbreviateCnName } from './device-label.ts';
 
 const THUMB_PX = 80;
 const INSET = 6;
@@ -42,13 +41,6 @@ export function DeviceThumb({ device }: Props) {
   const offY = (THUMB_PX - fpH) / 2;
   const accent = device.has_fluid_interface ? '#4ec9d3' : '#ff9a3d';
   const ports = portsInWorldFrame(device, { position: { x: 0, y: 0 }, rotation: 0 });
-  // P4 v7.6: 3-char CN abbreviation centered inside the footprint, mirroring
-  // the canvas DeviceLayer label. Font size scales with the smaller footprint
-  // dimension; below ~10px we drop the label entirely to avoid noise on tiny
-  // 1×1 thumbs.
-  const label = abbreviateCnName(device.display_name_zh_hans);
-  const labelFontSize = Math.min(fpW / 4, fpH / 2);
-  const showLabel = labelFontSize >= 8;
 
   return (
     <svg
@@ -59,20 +51,6 @@ export function DeviceThumb({ device }: Props) {
     >
       <g transform={`translate(${offX.toString()}, ${offY.toString()})`}>
         <rect width={fpW} height={fpH} fill="#181d23" stroke={accent} strokeWidth={1} />
-        {showLabel && (
-          <text
-            x={fpW / 2}
-            y={fpH / 2}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontFamily="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif"
-            fontSize={labelFontSize}
-            fontWeight="bold"
-            fill={accent}
-          >
-            {label}
-          </text>
-        )}
         {ports.map((p, i) => (
           <PortGlyph
             key={i.toString()}
