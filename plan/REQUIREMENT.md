@@ -850,7 +850,15 @@ A feature is "done" when:
 
 ## Changelog
 
-### v7.9 — true move-mode perf fix + AoE coverage highlight + trackpad shortcuts (this document)
+### v7.10 — ghost transform hoist for move/paste mode (this document)
+
+A second, deeper move-mode perf pass on top of v7.9. Owners reported that 100+ device selections still lagged hard, and a 39-device + 42-belt paste cluster dropped frames noticeably.
+
+- **Diagnosis (v7.9 was incomplete).** v7.9's cursor dedupe cut the re-render frequency from per-pixel to per-cell, but each per-cell render still rebuilt the entire ghost: ~10 Konva nodes per ghost device + ~3 per link cell, and the v7.9 `React.memo(MoveModeGhost)` was defeated by a fresh `ghost` object reference every cursor change. For 100 devices that's ~3000 nodes diffed per mouse cell — ~50–100 ms/frame.
+- **Fix — transform hoist.** Split the cursor-dependent transform from the static body. The body renders at SNAPSHOT-relative positions inside an outer `<Group x={dx*CELL_PX} y={dy*CELL_PX}>`. The Group's translation attrs update per cursor; the body subtree (`<GhostBody>` — device outlines + port markers + link path rects) is `React.memo`'d on referentially-stable props (`bodyDevices`, `bodyLinks`, `lookup`, `collides`) and skips re-render entirely. Per-cursor cost is now ≈ updating 2 Konva attrs on the outer Group (O(1)) plus tiny `CollisionTints` + `AoePreview` overlays in world coords. **Decoupled from selection size.**
+- **API changes.** `MoveGhost` interface gains `bodyDevices` / `bodyLinks` / `transform`. New `computeMoveBody(state, lookup)` and `computePasteBody(payload)` helpers run once per moveMode entry / R press / paste source change (cached via `useMemo` in `EditorPage`). `computeMoveGhost` / `computePasteGhost` now accept the pre-baked body and only do the cheap O(N) translation pass + cluster collision check. `MoveModeGhost` decomposes into `AoePreview`, `CollisionTints`, and a memoized `GhostBody` inside the transform Group.
+
+### v7.9 — true move-mode perf fix + AoE coverage highlight + trackpad shortcuts
 
 Two follow-ups on v7.8 (AoE coverage shading + correctly-diagnosed perf fix) plus two trackpad-friendly shortcuts.
 
