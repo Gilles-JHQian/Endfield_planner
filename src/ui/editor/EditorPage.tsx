@@ -32,6 +32,7 @@ import { HistoryControls } from './HistoryControls.tsx';
 import { Inspector } from './Inspector.tsx';
 import { IssueHighlight } from './IssueHighlight.tsx';
 import { LinkLayer } from './LinkLayer.tsx';
+import { MoveModeGhost } from './MoveModeGhost.tsx';
 import { PowerOverlay } from './PowerOverlay.tsx';
 import { ProjectMenu } from './ProjectMenu.tsx';
 import {
@@ -46,7 +47,7 @@ import {
 } from './belt-router.ts';
 import { computePowerCoverage } from '@core/domain/power-coverage.ts';
 import { generateInstanceId } from '@core/domain/project.ts';
-import type { Layer } from '@core/domain/types.ts';
+import type { Layer, Link, PlacedDevice } from '@core/domain/types.ts';
 import type { Issue } from '@core/drc/index.ts';
 import {
   buildPayload,
@@ -128,6 +129,21 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // belts/pipes. Right-click on a link cell adds {id}; right-mouse drag
   // includes any link whose path is fully inside the rectangle.
   const [selectedLinkIds, setSelectedLinkIds] = useState<ReadonlySet<string>>(new Set());
+  // P4 v7.3: move mode. Owners press M with ≥1 highlighted device to enter.
+  //  - `devices` + `links` is the snapshot of what was removed from the
+  //    project on entry, used both for the cursor-following ghost and for
+  //    cancel-restore.
+  //  - `pivot` is the bbox center of the snapshot devices, fixed for the
+  //    duration of move mode (so 4 R-presses always return to original).
+  //  - `rotationSteps` counts 90° CW R-presses; the ghost re-renders.
+  //  - Cursor position drives the translation; left-click commits at the
+  //    current ghost position, right-click / M / Esc cancels and restores.
+  const [moveMode, setMoveMode] = useState<{
+    devices: readonly PlacedDevice[];
+    links: readonly Link[];
+    pivot: Cell;
+    rotationSteps: 0 | 1 | 2 | 3;
+  } | null>(null);
   // P4 v7: when non-null, the next left-click pastes this payload at the
   // cursor (place-mode-style). Set by clicking a slot in the clipboard tab;
   // cleared by right-click / Esc / successful paste.
@@ -279,9 +295,23 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         e.preventDefault();
         const devices = store.project.devices.filter((d) => boxSelected.has(d.instance_id));
         // P4 v7: include all links (both layers) whose endpoints both reference
-        // a device in the selection. buildPayload filters internally.
+        // P4 v7.3: include any link in selectedLinkIds PLUS any link whose
+        // both endpoints reference a boxSelected device. PortRefs to devices
+        // outside the selection are dropped on paste (v7.3 buildPayload).
         const allLinks = [...store.project.solid_links, ...store.project.fluid_links];
-        const payload = buildPayload(devices, allLinks);
+        const includedLinks = allLinks.filter((l) => {
+          if (selectedLinkIds.has(l.id)) return true;
+          if (
+            l.src &&
+            l.dst &&
+            boxSelected.has(l.src.device_instance_id) &&
+            boxSelected.has(l.dst.device_instance_id)
+          ) {
+            return true;
+          }
+          return false;
+        });
+        const payload = buildPayload(devices, includedLinks);
         if (payload) {
           copyToClipboard(payload);
           setClipboardTick((n) => n + 1);
@@ -326,16 +356,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         // Single-device deletion via Delete key (selected via V-tool left-
         // click) is handled by the existing selection-aware listener below.
       }
-      // P4 v7: R rotates the box selection 90° CW around the centroid. Only
-      // fires when ≥ 1 device is highlighted AND the active tool is select
-      // (so it doesn't conflict with the place-tool's R = ghost rotate).
-      if ((e.key === 'r' || e.key === 'R') && !meta) {
-        if (boxSelected.size === 0 || toolApi.tool.kind !== 'select') return;
-        e.preventDefault();
-        const actions = batchRotateActions(store.project, boxSelected, lookup);
-        if (actions.length > 0) store.applyMany(actions);
-        return;
-      }
+      // P4 v7.3: standalone batch-rotate removed. R only rotates inside
+      // move mode (snapshot-relative pivot, no drift). See moveMode handler.
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -357,6 +379,46 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [pasteSource]);
+
+  // P4 v7.3: M key. Outside move mode + with ≥1 highlighted device → enter
+  // move mode (snapshot + remove). Inside move mode → cancel (restore).
+  // Also: Esc cancels; R rotates the snapshot 90° CW around its pivot.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      const meta = e.ctrlKey || e.metaKey;
+      if (meta) return;
+      if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        if (moveMode) {
+          cancelMoveMode();
+        } else if (boxSelected.size > 0 && toolApi.tool.kind === 'select') {
+          enterMoveMode();
+        }
+        return;
+      }
+      if (moveMode && e.key === 'Escape') {
+        e.preventDefault();
+        cancelMoveMode();
+        return;
+      }
+      if (moveMode && (e.key === 'r' || e.key === 'R')) {
+        e.preventDefault();
+        setMoveMode((m) =>
+          m
+            ? {
+                ...m,
+                rotationSteps: (((m.rotationSteps + 1) % 4) as 0 | 1 | 2 | 3),
+              }
+            : m,
+        );
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moveMode, boxSelected, toolApi.tool.kind]);
 
   // Belt/pipe draft keybindings. Esc cancels the whole draft; Backspace pops
   // the last waypoint (so owners can correct a mis-click without restarting).
@@ -422,6 +484,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           };
         })()
       : null;
+  // P4 v7.3: cursor-following ghost for move mode. Re-computed every render
+  // (O(snapshot.devices × footprint + project.devices × footprint)).
+  const moveGhost =
+    moveMode && cursor ? computeMoveGhost(moveMode, cursor, store.project, lookup) : null;
 
   /** P4 v6 right-click: device or belt under cell goes into the highlight set
    *  (`boxSelected` for devices, `selectedLinkIds` for belts). Does NOT touch
@@ -450,48 +516,167 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       });
     }
     if (placeActions.length === 0) return;
-    const linkActions: ProjectAction[] = payload.links.map((l) => ({
-      type: 'add_link' as const,
-      layer: l.layer,
-      tier_id: l.tier_id,
-      path: l.rel_path.map((c) => ({ x: anchor.x + c.x, y: anchor.y + c.y })),
-      src: { device_instance_id: itemIds[l.src_item_index]!, port_index: l.src_port_index },
-      dst: { device_instance_id: itemIds[l.dst_item_index]!, port_index: l.dst_port_index },
-    }));
+    const linkActions: ProjectAction[] = payload.links.map((l) => {
+      const src =
+        l.src_item_index !== undefined && l.src_port_index !== undefined
+          ? { device_instance_id: itemIds[l.src_item_index]!, port_index: l.src_port_index }
+          : undefined;
+      const dst =
+        l.dst_item_index !== undefined && l.dst_port_index !== undefined
+          ? { device_instance_id: itemIds[l.dst_item_index]!, port_index: l.dst_port_index }
+          : undefined;
+      return {
+        type: 'add_link' as const,
+        layer: l.layer,
+        tier_id: l.tier_id,
+        path: l.rel_path.map((c) => ({ x: anchor.x + c.x, y: anchor.y + c.y })),
+        ...(src ? { src } : {}),
+        ...(dst ? { dst } : {}),
+      };
+    });
     const result = store.applyMany([...placeActions, ...linkActions]);
     if (result.ok) {
       setBoxSelected(new Set(result.value.placed.map((p) => p.instance_id)));
     }
   }
 
-  /** P4 v7: a cell is "highlighted" when it sits inside the footprint of a
-   *  device in the boxSelected set. Used by Canvas to decide whether
-   *  left-mousedown enters drag-move mode. */
-  function isCellHighlighted(cell: Cell): boolean {
-    if (boxSelected.size === 0) return false;
-    const hit = findDeviceAtCell(store.project.devices, lookup, cell);
-    return hit !== null && boxSelected.has(hit.instance_id);
+  /** P4 v7.3 — collect the snapshot devices + attached links and remove
+   *  them from the project. The links included are: any in selectedLinkIds,
+   *  PLUS any link whose both endpoints reference a boxSelected device (so
+   *  attached belts travel with their devices even when the user only
+   *  selected the devices). */
+  function enterMoveMode(): void {
+    const devices = store.project.devices.filter((d) => boxSelected.has(d.instance_id));
+    if (devices.length === 0) return;
+    const allLinks = [...store.project.solid_links, ...store.project.fluid_links];
+    const links = allLinks.filter((l) => {
+      if (selectedLinkIds.has(l.id)) return true;
+      if (
+        l.src &&
+        l.dst &&
+        boxSelected.has(l.src.device_instance_id) &&
+        boxSelected.has(l.dst.device_instance_id)
+      ) {
+        return true;
+      }
+      return false;
+    });
+    // Pivot: bbox center of all device footprints, floored to an integer
+    // cell so 90° rotations land on integer cells (rotation around an
+    // integer pivot is integer-clean for cells).
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const d of devices) {
+      const dev = lookup(d.device_id);
+      if (!dev) continue;
+      for (const c of footprintCells(dev, d)) {
+        if (c.x < minX) minX = c.x;
+        if (c.y < minY) minY = c.y;
+        if (c.x > maxX) maxX = c.x;
+        if (c.y > maxY) maxY = c.y;
+      }
+    }
+    const pivot: Cell = {
+      x: Math.floor((minX + maxX + 1) / 2),
+      y: Math.floor((minY + maxY + 1) / 2),
+    };
+    // Remove snapshot from project (atomic batch).
+    const removeActions: ProjectAction[] = [
+      ...links.map((l) => ({ type: 'delete_link' as const, link_id: l.id })),
+      ...devices.map((d) => ({ type: 'delete_device' as const, instance_id: d.instance_id })),
+    ];
+    const result = store.applyMany(removeActions);
+    if (!result.ok) return;
+    setMoveMode({ devices, links, pivot, rotationSteps: 0 });
+    // Clear visible selections so the highlight brackets don't linger
+    // pointing at instances that no longer exist.
+    setBoxSelected(new Set());
+    setSelectedLinkIds(new Set());
+    setSelectedInstanceId(null);
   }
 
-  /** P4 v7: drag-move every device in `boxSelected` by `delta` cells.
-   *  Batched into one applyMany so a partial collision rolls back the entire
-   *  drag (no half-moved selections). */
-  function handleDragMove(delta: Cell): void {
-    if (boxSelected.size === 0 || (delta.x === 0 && delta.y === 0)) return;
+  /** Restore the snapshot at its original positions (rotation = 0 step) and
+   *  exit move mode. Used by Esc / right-click / M-while-in-move-mode. */
+  function cancelMoveMode(): void {
+    if (!moveMode) return;
+    const itemIdMap = new Map<string, string>();
+    for (const d of moveMode.devices) {
+      itemIdMap.set(d.instance_id, generateInstanceId('d'));
+    }
     const actions: ProjectAction[] = [];
-    for (const id of boxSelected) {
-      const placed = store.project.devices.find((d) => d.instance_id === id);
-      if (!placed) continue;
+    for (const d of moveMode.devices) {
       actions.push({
-        type: 'move_device',
-        instance_id: id,
-        position: { x: placed.position.x + delta.x, y: placed.position.y + delta.y },
+        type: 'place_device',
+        device: lookup(d.device_id)!,
+        position: d.position,
+        rotation: d.rotation,
+        instance_id: itemIdMap.get(d.instance_id)!,
+      });
+    }
+    for (const l of moveMode.links) {
+      const src = l.src ? remapPortRef(l.src, itemIdMap) : undefined;
+      const dst = l.dst ? remapPortRef(l.dst, itemIdMap) : undefined;
+      actions.push({
+        type: 'add_link',
+        layer: l.layer,
+        tier_id: l.tier_id,
+        path: l.path,
+        ...(src ? { src } : {}),
+        ...(dst ? { dst } : {}),
       });
     }
     store.applyMany(actions);
+    setMoveMode(null);
+  }
+
+  /** Commit the snapshot at the cursor's current position + rotation if no
+   *  collisions. No-op (silent) if the ghost is red. */
+  function commitMoveMode(): void {
+    if (!moveMode || !cursor) return;
+    const ghost = computeMoveGhost(moveMode, cursor, store.project, lookup);
+    if (ghost.collides) return;
+    const itemIdMap = new Map<string, string>();
+    for (const d of moveMode.devices) {
+      itemIdMap.set(d.instance_id, generateInstanceId('d'));
+    }
+    const actions: ProjectAction[] = [];
+    for (let i = 0; i < ghost.devices.length; i++) {
+      const orig = moveMode.devices[i]!;
+      const placed = ghost.devices[i]!;
+      actions.push({
+        type: 'place_device',
+        device: lookup(orig.device_id)!,
+        position: placed.position,
+        rotation: placed.rotation,
+        instance_id: itemIdMap.get(orig.instance_id)!,
+      });
+    }
+    for (let i = 0; i < ghost.links.length; i++) {
+      const orig = moveMode.links[i]!;
+      const path = ghost.links[i]!.path;
+      const src = orig.src ? remapPortRef(orig.src, itemIdMap) : undefined;
+      const dst = orig.dst ? remapPortRef(orig.dst, itemIdMap) : undefined;
+      actions.push({
+        type: 'add_link',
+        layer: orig.layer,
+        tier_id: orig.tier_id,
+        path,
+        ...(src ? { src } : {}),
+        ...(dst ? { dst } : {}),
+      });
+    }
+    store.applyMany(actions);
+    setMoveMode(null);
   }
 
   function handleCellRightClick(cell: Cell): void {
+    // P4 v7.3: right-click cancels move mode (restore snapshot).
+    if (moveMode) {
+      cancelMoveMode();
+      return;
+    }
     // P4 v7: right-click clears paste mode if active.
     if (pasteSource) {
       setPasteSource(null);
@@ -525,13 +710,19 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     setSelectedLinkIds(new Set());
   }
 
-  /** P4 v6 right-mouse drag: highlight every device AND link fully inside
+  /** P4 v6 right-mouse drag (with v7.3 move-mode cancel): highlight every
+   *  device AND link fully inside
    *  the rectangle. Same "every cell inside" predicate for both.
    *
    *  In PLACING state, treat any right-mouse release (drag or click) as a
    *  draft cancel — same as handleCellRightClick. Avoids accidentally
    *  starting a box-select while the user is trying to abort. */
   function handleBoxSelect(rect: { from: Cell; to: Cell }): void {
+    // P4 v7.3: right-mouse drag in move mode = cancel (same as right-click).
+    if (moveMode) {
+      cancelMoveMode();
+      return;
+    }
     // P4 v7: right-mouse drag in PLACE mode also cancels (slipping a drag
     // while trying to abort the placement should still abort).
     if (toolApi.tool.kind === 'place') {
@@ -564,6 +755,12 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   }
 
   function handleCellClick(cell: Cell, _evt: MouseEvent): void {
+    // P4 v7.3 move mode: left-click commits the snapshot at the cursor's
+    // current position + rotation (silent no-op on collision).
+    if (moveMode) {
+      commitMoveMode();
+      return;
+    }
     // P4 v7 paste mode: a clipboard slot was picked from the Library tab.
     // Next left click pastes at cursor; mode persists until right-click /
     // Esc / tool change.
@@ -962,6 +1159,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                   onPort={beltCursorState.onPort}
                 />
               )}
+              {moveGhost && (
+                <MoveModeGhost ghost={moveGhost} lookup={lookup} />
+              )}
               {highlight && (
                 <IssueHighlight cells={highlight.cells} severity={highlight.severity} />
               )}
@@ -970,8 +1170,6 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onCellClick={handleCellClick}
           onCellRightClick={handleCellRightClick}
           onBoxSelect={handleBoxSelect}
-          isCellHighlighted={isCellHighlighted}
-          onDragMove={handleDragMove}
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
           panTarget={panTarget}
@@ -1188,6 +1386,129 @@ function signDir(to: Cell, from: Cell): { dx: number; dy: number } {
   return { dx: Math.sign(to.x - from.x), dy: Math.sign(to.y - from.y) };
 }
 
+/** P4 v7.3 — remap a PortRef's device_instance_id through a fresh-id map.
+ *  Used by the move-mode commit and cancel flows when re-adding the
+ *  snapshotted devices/links: the new devices have new instance ids, and
+ *  any belt's PortRef pointing at one needs to follow.
+ *  - If the original device id is in the map → use the new id.
+ *  - Else → keep pointing at the original (e.g. for a belt whose other end
+ *    references a device outside the snapshot, that device is still in the
+ *    project and the PortRef remains valid). */
+function remapPortRef(
+  ref: { device_instance_id: string; port_index: number },
+  idMap: ReadonlyMap<string, string>,
+): { device_instance_id: string; port_index: number } {
+  const newId = idMap.get(ref.device_instance_id);
+  return newId
+    ? { device_instance_id: newId, port_index: ref.port_index }
+    : ref;
+}
+
+/** P4 v7.3 — 90° CW rotation of a single cell around an integer pivot.
+ *  Derivation: cell-center (x+0.5, y+0.5) maps to
+ *  (px + py - y - 0.5, py - px + x + 0.5). Subtract (0.5, 0.5) for the
+ *  rotated cell's top-left. */
+function rotateCellCW(c: Cell, pivot: Cell): Cell {
+  return { x: pivot.x + pivot.y - c.y - 1, y: pivot.y - pivot.x + c.x };
+}
+
+/** P4 v7.3 — cursor-following ghost for move mode. Each device's footprint
+ *  cells are rotated `rotationSteps` × 90° CW around the snapshot pivot,
+ *  then translated by `(cursor - pivot)`. New top-left = min of new
+ *  footprint cells; new rotation = original + steps × 90°. Belt paths are
+ *  rotated cell-by-cell. Collision check: every ghost device footprint cell
+ *  is tested against the live (post-snapshot-removal) project per-layer
+ *  occupancy; out-of-plot also collides. */
+interface MoveGhost {
+  /** Ghost devices at their new positions/rotations. */
+  devices: PlacedDevice[];
+  /** Ghost links at their new path positions (src/dst PortRefs unchanged). */
+  links: {
+    layer: Layer;
+    tier_id: string;
+    path: Cell[];
+  }[];
+  /** True when at least one ghost cell collides with the live project or
+   *  falls outside the plot. The full set is in `collidingCells`. */
+  collides: boolean;
+  /** "x,y" keys for cells the ghost wants to occupy that are blocked. The
+   *  renderer overlays these in red. */
+  collidingCells: Set<string>;
+}
+
+function computeMoveGhost(
+  state: {
+    devices: readonly PlacedDevice[];
+    links: readonly Link[];
+    pivot: Cell;
+    rotationSteps: 0 | 1 | 2 | 3;
+  },
+  cursor: Cell,
+  project: { plot: { width: number; height: number } } & Parameters<typeof buildOccupancy>[0],
+  lookup: (id: string) => Device | undefined,
+): MoveGhost {
+  const dx = cursor.x - state.pivot.x;
+  const dy = cursor.y - state.pivot.y;
+  const rotateAndTranslate = (c: Cell): Cell => {
+    let cell = c;
+    for (let i = 0; i < state.rotationSteps; i++) {
+      cell = rotateCellCW(cell, state.pivot);
+    }
+    return { x: cell.x + dx, y: cell.y + dy };
+  };
+
+  const newDevices: PlacedDevice[] = state.devices.map((d) => {
+    const dev = lookup(d.device_id);
+    if (!dev) return d;
+    const fpCells = footprintCells(dev, { position: d.position, rotation: d.rotation });
+    const newFootprint = fpCells.map(rotateAndTranslate);
+    let minX = Infinity;
+    let minY = Infinity;
+    for (const c of newFootprint) {
+      if (c.x < minX) minX = c.x;
+      if (c.y < minY) minY = c.y;
+    }
+    const newRotation = (((d.rotation + 90 * state.rotationSteps) % 360) as 0 | 90 | 180 | 270);
+    return { ...d, position: { x: minX, y: minY }, rotation: newRotation };
+  });
+
+  const newLinks = state.links.map((l) => ({
+    layer: l.layer,
+    tier_id: l.tier_id,
+    path: l.path.map(rotateAndTranslate),
+  }));
+
+  // Collision check: out-of-plot OR cell already occupied (per layer the
+  // ghost device blocks). Snapshot has been removed from the project so we
+  // don't false-positive against ourselves.
+  const occ = buildOccupancy(project, lookup);
+  const colliding = new Set<string>();
+  for (const d of newDevices) {
+    const dev = lookup(d.device_id);
+    if (!dev) continue;
+    if (!fitsInPlot(dev, d, project.plot)) {
+      for (const c of footprintCells(dev, d)) {
+        colliding.add(`${c.x.toString()},${c.y.toString()}`);
+      }
+      continue;
+    }
+    const layers = layerOccupancyOf(dev);
+    const checkSolid = layers === 'solid' || layers === 'both';
+    const checkFluid = layers === 'fluid' || layers === 'both';
+    for (const c of footprintCells(dev, d)) {
+      const k = `${c.x.toString()},${c.y.toString()}`;
+      if (checkSolid && occ.deviceSolid.has(k)) colliding.add(k);
+      if (checkFluid && occ.deviceFluid.has(k)) colliding.add(k);
+    }
+  }
+  return {
+    devices: newDevices,
+    links: newLinks,
+    collides: colliding.size > 0,
+    collidingCells: colliding,
+  };
+}
+
 /** P4 v7.1: each affected belt yields ONE of three action descriptors that
  *  the caller bundles with the place_device action. */
 type PlaceOnBeltAction =
@@ -1297,69 +1618,6 @@ function planPlaceOnBeltSplits(
       // Single-cell belt — both endpoints at the same cell. Degenerate; skip.
       return 'red';
     }
-  }
-  return out;
-}
-
-const NEXT_ROTATION_CW: Record<0 | 90 | 180 | 270, 0 | 90 | 180 | 270> = {
-  0: 90,
-  90: 180,
-  180: 270,
-  270: 0,
-};
-
-/** P4 v7: build N `move_rotate_device` actions to rotate every device in
- *  `selectedIds` 90° CW around the SELECTION centroid. Returns [] if the
- *  selection is empty. Math:
- *  - Each device's center is `position + bbox/2` (continuous coords).
- *  - centroid = average of centers.
- *  - For each device: relative = center - centroid; rotated = (-rel.y, rel.x);
- *    new_center = centroid + rotated; new bbox after rotation; new position
- *    = floor(new_center - new_bbox/2). */
-function batchRotateActions(
-  project: ReturnType<typeof useProject>['project'],
-  selectedIds: ReadonlySet<string>,
-  lookup: (id: string) => Device | undefined,
-): ProjectAction[] {
-  const targets: { placed: { instance_id: string; position: Cell; rotation: 0 | 90 | 180 | 270 }; device: Device; cx: number; cy: number }[] = [];
-  for (const id of selectedIds) {
-    const placed = project.devices.find((d) => d.instance_id === id);
-    if (!placed) continue;
-    const dev = lookup(placed.device_id);
-    if (!dev) continue;
-    const bbox = rotatedBoundingBox(dev, placed.rotation);
-    targets.push({
-      placed: { instance_id: placed.instance_id, position: placed.position, rotation: placed.rotation },
-      device: dev,
-      cx: placed.position.x + bbox.width / 2,
-      cy: placed.position.y + bbox.height / 2,
-    });
-  }
-  if (targets.length === 0) return [];
-  const sumX = targets.reduce((acc, t) => acc + t.cx, 0);
-  const sumY = targets.reduce((acc, t) => acc + t.cy, 0);
-  const centroidX = sumX / targets.length;
-  const centroidY = sumY / targets.length;
-  const out: ProjectAction[] = [];
-  for (const t of targets) {
-    const relX = t.cx - centroidX;
-    const relY = t.cy - centroidY;
-    // 90° CW screen rotation: (relX, relY) → (-relY, relX).
-    const newRelX = -relY;
-    const newRelY = relX;
-    const newCenterX = centroidX + newRelX;
-    const newCenterY = centroidY + newRelY;
-    const newRotation = NEXT_ROTATION_CW[t.placed.rotation];
-    const newBbox = rotatedBoundingBox(t.device, newRotation);
-    out.push({
-      type: 'move_rotate_device',
-      instance_id: t.placed.instance_id,
-      position: {
-        x: Math.floor(newCenterX - newBbox.width / 2),
-        y: Math.floor(newCenterY - newBbox.height / 2),
-      },
-      rotation: newRotation,
-    });
   }
   return out;
 }
