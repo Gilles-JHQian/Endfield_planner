@@ -850,7 +850,15 @@ A feature is "done" when:
 
 ## Changelog
 
-### v7.3 — move mode + clipboard belts (this document)
+### v7.4 — move-mode polish + cross-layer auto-bridge guard (this document)
+
+Three small follow-ups on top of v7.3:
+
+- **Move-mode collision check now covers belts.** v7.3 only flagged ghost device cells against existing per-layer device occupants. v7.4 also flags: ghost devices landing on existing same-layer belts, ghost belt path cells overlapping existing same-layer belts, and ghost belt path cells entering existing same-layer device footprints. Owners can no longer accidentally move a device on top of a belt.
+- **Pipe auto-bridge over a solid belt is now red at ghost time.** The pipe-cross-bridge has `layerOccupancyOf == 'both'`, so dropping one over an existing solid belt would block that belt (LAYER_CROSS_001). v7.3 deferred this to DRC; v7.4 catches it during routing — the planner now consults a `crossBridgeBlocksOtherLayer` + `otherLayerOccupants` set built once per route context. Solid auto-bridges over fluid pipes still pass (the asymmetric §4.5.2 rule).
+- **X key alternates with M for move mode.** The game's default move keybinding is M (top-row right side); X is on the left near WASD and easier to reach. Both behave identically.
+
+### v7.3 — move mode + clipboard belts
 
 Replaces the v7 left-mouse drag-move + standalone batch-rotate with a
 proper move-mode interaction, fixing the rotation-drift + illegal
