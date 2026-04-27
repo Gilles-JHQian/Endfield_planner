@@ -53,6 +53,19 @@ export interface ClipboardPayload {
 let slot: ClipboardPayload | null = null;
 let history: ClipboardPayload[] = [];
 
+// Node ≥ 25 ships an experimental built-in `localStorage` that is registered
+// as an empty object when no `--localstorage-file` is passed; the `typeof
+// !== 'undefined'` test passes but `.getItem`/`.setItem` are undefined. Check
+// for the methods we actually use to gate browser-only persistence safely.
+function lsAvailable(): boolean {
+  return (
+    typeof localStorage !== 'undefined' &&
+    typeof localStorage.getItem === 'function' &&
+    typeof localStorage.setItem === 'function' &&
+    typeof localStorage.removeItem === 'function'
+  );
+}
+
 /** Build a ClipboardPayload from a set of placed devices and a set of links
  *  to include. P4 v7.3: the caller decides which links to include — typical
  *  rule is `selectedLinkIds ∪ {links with both endpoints in selection}`.
@@ -128,7 +141,7 @@ export function buildPayload(
 export function copyToClipboard(payload: ClipboardPayload): void {
   slot = payload;
   history = [payload, ...history].slice(0, HISTORY_LIMIT);
-  if (typeof localStorage === 'undefined') return;
+  if (!lsAvailable()) return;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch {
@@ -140,7 +153,7 @@ export function copyToClipboard(payload: ClipboardPayload): void {
  *  the in-memory slot is empty (e.g. on page reload). */
 export function readClipboard(): ClipboardPayload | null {
   if (slot) return slot;
-  if (typeof localStorage === 'undefined') return null;
+  if (!lsAvailable()) return null;
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
   try {
@@ -176,7 +189,7 @@ export function promoteToTopOfHistory(payload: ClipboardPayload): void {
 export function clearClipboardForTest(): void {
   slot = null;
   history = [];
-  if (typeof localStorage !== 'undefined') {
+  if (lsAvailable()) {
     localStorage.removeItem(STORAGE_KEY);
   }
 }
