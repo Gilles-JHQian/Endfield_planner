@@ -118,10 +118,14 @@ interface SplitLinkArgs {
   ids?: { left?: string; right?: string };
 }
 
-/** Split a Link at `at_cell` into two new Links. Drops `at_cell` from both
- *  halves (the bridge that triggers the split now occupies the cell). The
- *  original link is removed; the new halves carry the original's src/dst on
- *  the outer ends and `left_dst` / `right_src` on the inner ends. */
+/** Split a Link at `at_cell` into two new Links. The cell is KEPT in BOTH
+ *  halves (P4 v7.1) so the resulting belt segments visually CONNECT to the
+ *  bridge that triggered the split — owners reported v7's gap-on-each-side
+ *  rendering looked broken. Each half ends or starts at the bridge cell,
+ *  meeting the bridge device in the center.
+ *
+ *  Rejects splits at endpoint cells — either half would degenerate to a
+ *  single cell. Endpoint placements should use `setLinkEndpoint` instead. */
 export function splitLink({
   project,
   link_id,
@@ -142,14 +146,15 @@ export function splitLink({
   if (idx === 0 || idx === original.path.length - 1) {
     return err(
       'invalid_link',
-      `Cannot split link ${link_id} at an endpoint cell — would leave one half empty.`,
+      `Cannot split link ${link_id} at an endpoint cell — use setLinkEndpoint to retarget the dangling end instead.`,
       { at: at_cell },
     );
   }
 
-  const leftPath = original.path.slice(0, idx);
-  const rightPath = original.path.slice(idx + 1);
-  if (leftPath.length === 0 || rightPath.length === 0) {
+  // P4 v7.1: keep at_cell in both halves so renderings meet at the bridge.
+  const leftPath = original.path.slice(0, idx + 1);
+  const rightPath = original.path.slice(idx);
+  if (leftPath.length < 2 || rightPath.length < 2) {
     return err('invalid_link', `Split would produce an empty half.`, { at: at_cell });
   }
 
@@ -204,6 +209,48 @@ export function splitLink({
     left_id,
     right_id,
   });
+}
+
+/** Update a link's `src` or `dst` PortRef without touching the path (P4
+ *  v7.1). Used by the place-on-belt flow when the new device sits at one
+ *  of the existing belt's endpoints — no split is needed, just retarget
+ *  the dangling end to the device's port. Pass `ref: undefined` to clear. */
+export function setLinkEndpoint({
+  project,
+  link_id,
+  end,
+  ref,
+  lookup,
+}: {
+  project: Project;
+  link_id: string;
+  end: 'src' | 'dst';
+  ref: PortRef | undefined;
+  lookup: DeviceLookup;
+}): Result<Project> {
+  const portCheck = ref ? validatePortRef(project, ref, lookup) : null;
+  if (portCheck) return portCheck;
+  const updated_at = new Date().toISOString();
+  const updateLink = <T extends SolidLink | FluidLink>(l: T): T => {
+    if (l.id !== link_id) return l;
+    const next: T = { ...l };
+    if (end === 'src') {
+      if (ref) (next as { src?: PortRef }).src = ref;
+      else delete (next as { src?: PortRef }).src;
+    } else {
+      if (ref) (next as { dst?: PortRef }).dst = ref;
+      else delete (next as { dst?: PortRef }).dst;
+    }
+    return next;
+  };
+  const beforeS = project.solid_links;
+  const beforeF = project.fluid_links;
+  const solid_links = beforeS.map((l) => updateLink(l));
+  const fluid_links = beforeF.map((l) => updateLink(l));
+  const found =
+    beforeS.some((l) => l.id === link_id) || beforeF.some((l) => l.id === link_id);
+  if (!found) return err('not_found', `No link with id=${link_id}.`);
+  return ok({ ...project, solid_links, fluid_links, updated_at });
 }
 
 function validatePortRef(

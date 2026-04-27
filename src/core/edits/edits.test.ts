@@ -10,6 +10,7 @@ import {
   resizePlot,
   rotateDevice,
   setDeviceRecipe,
+  setLinkEndpoint,
   splitLink,
 } from './index.ts';
 
@@ -467,7 +468,7 @@ describe('splitLink', () => {
     return r.value.project;
   }
 
-  it('splits a 5-cell horizontal link at the middle cell', () => {
+  it('splits a 5-cell horizontal link at the middle cell — at_cell kept in BOTH halves (P4 v7.1)', () => {
     const path = [
       { x: 0, y: 0 },
       { x: 1, y: 0 },
@@ -492,8 +493,10 @@ describe('splitLink', () => {
     expect(left.path).toEqual([
       { x: 0, y: 0 },
       { x: 1, y: 0 },
+      { x: 2, y: 0 },
     ]);
     expect(right.path).toEqual([
+      { x: 2, y: 0 },
       { x: 3, y: 0 },
       { x: 4, y: 0 },
     ]);
@@ -575,6 +578,84 @@ describe('splitLink', () => {
     });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error.kind).toBe('invalid_link');
+  });
+});
+
+describe('setLinkEndpoint (P4 v7.1)', () => {
+  it('updates dst', () => {
+    const placed = unwrap(
+      placeDevice({
+        project: freshProject(),
+        device: FURNACE,
+        position: { x: 5, y: 5 },
+        lookup,
+        instance_id: 'd',
+      }),
+    ).project;
+    const project = unwrap(
+      addLink({
+        project: placed,
+        layer: 'solid',
+        tier_id: 'belt-1',
+        path: [
+          { x: 0, y: 0 },
+          { x: 1, y: 0 },
+        ],
+        lookup,
+        id: 'L',
+      }),
+    ).project;
+    const after = unwrap(
+      setLinkEndpoint({
+        project,
+        link_id: 'L',
+        end: 'dst',
+        ref: { device_instance_id: 'd', port_index: 0 },
+        lookup,
+      }),
+    );
+    expect(after.solid_links[0]!.dst).toEqual({ device_instance_id: 'd', port_index: 0 });
+    expect(after.solid_links[0]!.path).toHaveLength(2);
+  });
+
+  it('clears src when ref is undefined', () => {
+    const placed = unwrap(
+      placeDevice({
+        project: freshProject(),
+        device: FURNACE,
+        position: { x: 5, y: 5 },
+        lookup,
+        instance_id: 'd',
+      }),
+    ).project;
+    const project = unwrap(
+      addLink({
+        project: placed,
+        layer: 'solid',
+        tier_id: 'belt-1',
+        path: [{ x: 0, y: 0 }],
+        src: { device_instance_id: 'd', port_index: 0 },
+        lookup,
+        id: 'L',
+      }),
+    ).project;
+    expect(project.solid_links[0]!.src).toBeDefined();
+    const after = unwrap(
+      setLinkEndpoint({ project, link_id: 'L', end: 'src', ref: undefined, lookup }),
+    );
+    expect(after.solid_links[0]!.src).toBeUndefined();
+  });
+
+  it('rejects unknown link id', () => {
+    const r = setLinkEndpoint({
+      project: freshProject(),
+      link_id: 'NOPE',
+      end: 'dst',
+      ref: undefined,
+      lookup,
+    });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.kind).toBe('not_found');
   });
 });
 
