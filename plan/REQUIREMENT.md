@@ -850,7 +850,25 @@ A feature is "done" when:
 
 ## Changelog
 
-### v7.1 — bridge follow-ups (this document)
+### v7.3 — move mode + clipboard belts (this document)
+
+Replaces the v7 left-mouse drag-move + standalone batch-rotate with a
+proper move-mode interaction, fixing the rotation-drift + illegal
+overlap-on-drag bugs and naturally including attached belts.
+
+- **Move mode (M key).** With ≥1 highlighted device in the select tool, M enters move mode:
+  - Snapshot of selected devices + attached links is computed (links = `selectedLinkIds` ∪ links whose both endpoints reference a selected device).
+  - Snapshot is REMOVED from the project so collision checks against the rest are clean.
+  - Pivot = bbox center of snapshot devices, floored to integer cell — fixed for the duration of move mode (4 R-presses always return the layout to its original state).
+  - Cursor-following ghost: each device's footprint cells are rotated `rotationSteps` × 90° CW around the pivot, then translated by `(cursor - pivot)`. New top-left = min of new footprint cells; new rotation = original + steps × 90°. Belt paths rotated cell-by-cell.
+  - Real-time collision check: any ghost cell that lands out-of-plot OR on an existing per-layer device occupant is tinted red; commit is blocked while red.
+  - **Left click** commits at cursor + rotation if the ghost is green.
+  - **Right click / M / Esc** cancels (restores snapshot at original positions).
+  - **R** rotates 90° CW around the pivot (only inside move mode; the standalone R batch-rotate is removed).
+- **Clipboard with belts (broader rule).** Ctrl+C now includes any link in `selectedLinkIds` PLUS any link whose both endpoints reference a selected device. PortRefs to devices outside the selection are stored as `undefined` indices; paste creates the new link with that end dangling instead of dropping the link entirely.
+- **Drag-move removed.** The v7 left-mousedown-on-highlighted-cell drag is removed. Move mode is the only way to move multiple devices, which means owners can no longer accidentally stack devices onto belts (M-mode's real-time collision check catches it). Single-device tweaks are now: select → M → click target.
+
+### v7.1 — bridge follow-ups
 
 Patch round on top of v7 closing three owner-reported bridge bugs:
 

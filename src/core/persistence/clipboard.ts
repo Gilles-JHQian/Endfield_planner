@@ -31,13 +31,14 @@ export interface ClipboardLink {
    *  device `rel_position`). Paste re-resolves to absolute cells = origin
    *  cursor + rel cell. */
   readonly rel_path: readonly Cell[];
-  /** Index into ClipboardPayload.items pointing at the source device's
-   *  selection-relative position (i.e. the device that ENDS UP at items[N]
-   *  on paste). */
-  readonly src_item_index: number;
-  readonly src_port_index: number;
-  readonly dst_item_index: number;
-  readonly dst_port_index: number;
+  /** Index into ClipboardPayload.items when the original src referenced a
+   *  device IN the selection. Undefined when the original src was unset OR
+   *  pointed at a device outside the selection — paste leaves the new link
+   *  with src dangling (DRC PORT rules will surface it). Same for dst. */
+  readonly src_item_index?: number;
+  readonly src_port_index?: number;
+  readonly dst_item_index?: number;
+  readonly dst_port_index?: number;
 }
 
 export interface ClipboardPayload {
@@ -52,11 +53,18 @@ export interface ClipboardPayload {
 let slot: ClipboardPayload | null = null;
 let history: ClipboardPayload[] = [];
 
-/** Build a ClipboardPayload from a set of placed devices and the project's
- *  links. Links are included only when both endpoints reference devices in
- *  the `devices` set; PortRefs are remapped to selection-relative indices.
- *  The bounding-box origin spans all device positions AND link path cells
- *  so paste preserves the visual layout including belt routes. */
+/** Build a ClipboardPayload from a set of placed devices and a set of links
+ *  to include. P4 v7.3: the caller decides which links to include — typical
+ *  rule is `selectedLinkIds ∪ {links with both endpoints in selection}`.
+ *  Per-link PortRefs are remapped:
+ *  - If the original endpoint references a device in `devices` → store
+ *    its selection-relative index so paste can re-point at the new
+ *    instance id.
+ *  - Otherwise (unset OR references a device outside selection) → leave
+ *    the index undefined; paste creates the new link with that end
+ *    dangling (PORT DRC rules surface it).
+ *  Bounding-box origin spans device positions AND included link path cells
+ *  so paste preserves the visual layout. */
 export function buildPayload(
   devices: readonly PlacedDevice[],
   links?: readonly { layer: Layer; tier_id: string; path: readonly Cell[]; src?: { device_instance_id: string; port_index: number }; dst?: { device_instance_id: string; port_index: number } }[],
@@ -64,14 +72,7 @@ export function buildPayload(
   if (devices.length === 0) return null;
   const idToIndex = new Map<string, number>();
   devices.forEach((d, i) => idToIndex.set(d.instance_id, i));
-  // Filter links: keep only those with both endpoints in the selection.
-  const includedLinks = (links ?? []).filter(
-    (l) =>
-      l.src !== undefined &&
-      l.dst !== undefined &&
-      idToIndex.has(l.src.device_instance_id) &&
-      idToIndex.has(l.dst.device_instance_id),
-  );
+  const includedLinks = links ?? [];
   // Bounding box spans device positions AND link path cells so paste lands
   // the entire visual group at the cursor.
   let minX = Infinity;
@@ -93,15 +94,25 @@ export function buildPayload(
     rotation: d.rotation,
     recipe_id: d.recipe_id,
   }));
-  const linkPayload: ClipboardLink[] = includedLinks.map((l) => ({
-    layer: l.layer,
-    tier_id: l.tier_id,
-    rel_path: l.path.map((c) => ({ x: c.x - minX, y: c.y - minY })),
-    src_item_index: idToIndex.get(l.src!.device_instance_id)!,
-    src_port_index: l.src!.port_index,
-    dst_item_index: idToIndex.get(l.dst!.device_instance_id)!,
-    dst_port_index: l.dst!.port_index,
-  }));
+  const linkPayload: ClipboardLink[] = includedLinks.map((l) => {
+    const srcIdx =
+      l.src && idToIndex.has(l.src.device_instance_id)
+        ? idToIndex.get(l.src.device_instance_id)
+        : undefined;
+    const dstIdx =
+      l.dst && idToIndex.has(l.dst.device_instance_id)
+        ? idToIndex.get(l.dst.device_instance_id)
+        : undefined;
+    return {
+      layer: l.layer,
+      tier_id: l.tier_id,
+      rel_path: l.path.map((c) => ({ x: c.x - minX, y: c.y - minY })),
+      ...(srcIdx !== undefined ? { src_item_index: srcIdx } : {}),
+      ...(srcIdx !== undefined && l.src ? { src_port_index: l.src.port_index } : {}),
+      ...(dstIdx !== undefined ? { dst_item_index: dstIdx } : {}),
+      ...(dstIdx !== undefined && l.dst ? { dst_port_index: l.dst.port_index } : {}),
+    };
+  });
   return { origin, items, links: linkPayload };
 }
 
