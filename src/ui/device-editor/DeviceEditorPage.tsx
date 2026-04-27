@@ -79,7 +79,10 @@ export function DeviceEditorPage() {
       className="grid h-[calc(100vh-44px)] overflow-hidden"
       style={{ gridTemplateColumns: '280px 1fr 260px' }}
     >
-      <aside aria-label="device list" className="border-r border-line bg-surface-1">
+      <aside
+        aria-label="device list"
+        className="flex h-full min-h-0 flex-col overflow-hidden border-r border-line bg-surface-1"
+      >
         <DeviceList
           devices={bundle.devices}
           selectedId={draftApi.draft?.id ?? null}

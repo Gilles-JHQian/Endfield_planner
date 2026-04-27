@@ -64,6 +64,55 @@ describe('buildOccupancy + cellBlockedFor', () => {
     expect(cellBlockedFor({ x: 20, y: 20 }, 'solid', occ)).toBeNull();
     expect(cellBlockedFor({ x: 20, y: 20 }, 'fluid', occ)).toBeNull();
   });
+
+  // P4 v7: solid bridges (belt-merger / belt-splitter / belt-cross-bridge)
+  // occupy ONLY the solid layer so fluid pipes can pass underneath.
+  it('a placed belt-cross-bridge blocks the solid layer but lets fluid pipes through', () => {
+    const bridge: Device = mkDev('belt-cross-bridge', { width: 1, height: 1 });
+    const lookupB: DeviceLookup = (id) => {
+      if (id === FURNACE.id) return FURNACE;
+      if (id === bridge.id) return bridge;
+      return undefined;
+    };
+    const project = {
+      ...baseProject(),
+      devices: [
+        {
+          instance_id: 'br',
+          device_id: 'belt-cross-bridge',
+          position: { x: 15, y: 15 },
+          rotation: 0 as const,
+          recipe_id: null,
+        },
+      ],
+    };
+    const occ = buildOccupancy(project, lookupB);
+    expect(cellBlockedFor({ x: 15, y: 15 }, 'solid', occ)).toBe('device');
+    expect(cellBlockedFor({ x: 15, y: 15 }, 'fluid', occ)).toBeNull();
+  });
+
+  // P4 v7: pipe bridges still occupy both layers (block solid belts).
+  it('a placed pipe-cross-bridge blocks both layers', () => {
+    const pipeBridge: Device = mkDev('pipe-cross-bridge', { width: 1, height: 1 });
+    const lookupP: DeviceLookup = (id) => (id === pipeBridge.id ? pipeBridge : undefined);
+    const project = {
+      ...baseProject(),
+      devices: [
+        {
+          instance_id: 'pb',
+          device_id: 'pipe-cross-bridge',
+          position: { x: 15, y: 15 },
+          rotation: 0 as const,
+          recipe_id: null,
+        },
+      ],
+      solid_links: [],
+      fluid_links: [],
+    };
+    const occ = buildOccupancy(project, lookupP);
+    expect(cellBlockedFor({ x: 15, y: 15 }, 'solid', occ)).toBe('device');
+    expect(cellBlockedFor({ x: 15, y: 15 }, 'fluid', occ)).toBe('device');
+  });
 });
 
 function mkDev(id: string, footprint: { width: number; height: number }): Device {

@@ -4,7 +4,7 @@ A design automation tool for the integrated industry system in *Arknights: Endfi
 
 This document is the single source of truth for scope, priorities, and technical decisions. Read it end-to-end before starting work.
 
-**Document version:** v6 — Phase 4 testing-feedback round on top of v5. Eight-issue bundle from owner testing: belts are now box-selectable; right-click is a pure highlight that no longer changes Inspector content (Inspector pin is reserved for left-click in the select tool); input-port direction is now validated (a belt arriving from the wrong side fails the ghost); power-pole AoE preview matches the helper's "any cell counts" predicate; auto-bridge insertion now truncates BOTH belts at the crossing and wires them to the bridge's ports (preparing the data model for the auto-router); link `src` / `dst` PortRefs populated by the drafter and indexed by a new `topology.ts` helper; first segment after the initial waypoint follows the diagonal-quadrant heuristic (larger axis first); explicit READY/PLACING state machine with right-click cancel during drafting and a cursor-following dot in READY (enlarged when on an output port); rounded belt corners and flatter port direction triangles. Changelog at the end of this document.
+**Document version:** v7 — Phase 4 testing-feedback round #2 (on top of v6). Owner P4 v6 testing surfaced 14 items addressed as one bundle. Highlights: per-layer device occupancy (solid bridges no longer block fluid pipes; the asymmetric LAYER_CROSS_002 rule is enforced at place-time, not just by DRC); multi-port-per-cell direction matching (mergers / splitters with 4 ports on the same cell now wire correctly — drafter picks the port whose face matches the user's actual approach / departure direction); deleteDevice no longer cascade-deletes attached belts (belts persist with their PortRefs; PORT DRC rules surface dangling refs as warnings); right-click cancels the device place tool (symmetric with the v6 belt-tool cancel); device placement cursor anchored to the device's CENTER; placement ghost shows I/O port direction triangles; place-on-belt allowed when the device's port cell matches the belt's traversal direction (illegal cases turn the ghost red); drag-to-move highlighted devices with left-mouse-drag; R key batch-rotates the highlight around the selection centroid (new `move_rotate_device` core edit lands position + rotation atomically); clipboard payload now includes belts whose endpoints are both in the selection (PortRefs remapped to selection-relative item indices); rolling clipboard history with last 10 slots surfaced via a new "clipboard" tab in the Library / Rail; library cards render the device's actual SVG footprint + port markers; flatter / wider I/O port triangles; device-editor list-aside scroll fix. Changelog at the end of this document.
 
 ---
 
@@ -132,7 +132,7 @@ Straight pipe segments coexist freely with straight belt segments in the same ce
 
 ### 4.5 Crossings and layer rules
 
-Every grid `Cell` has two independent occupancy slots: `solid_occupant` and `fluid_occupant`. A device footprint cell sets both slots (devices occupy both layers at their location unless specifically marked otherwise).
+Every grid `Cell` has two independent occupancy slots: `solid_occupant` and `fluid_occupant`. A device footprint cell sets both slots by default; the three SOLID bridges (`belt-merger` / `belt-splitter` / `belt-cross-bridge`) are the documented exception and set ONLY the solid slot (P4 v7) so fluid pipes can pass underneath. Per-layer occupancy is encoded in `src/core/drc/bridges.ts::layerOccupancyOf(device)` and consumed by `buildOccupancy` + the editor's place-time ghost — the asymmetric LAYER_CROSS_002 rule that was DRC-only in v4–v6 now lands at placement validation as well.
 
 #### 4.5.1 Same-layer collision is illegal without a dedicated crossing component
 
@@ -231,11 +231,13 @@ Solver output is a **recipe graph**, not a layout. This is a separate deliverabl
 A 2D grid-based canvas where the user can:
 
 - Pan, zoom, and scroll. Middle-mouse drag = pan.
-- Place devices from a palette, with rotation (R key) and mirroring.
+- Place devices from a palette, with rotation (R key) and mirroring. **Cursor anchored to the device's CENTER (P4 v7)** — for an N×N device the cursor sits in the center cell; for even sizes the cursor lands in the bottom-right of the centered footprint. **Right-click in the place tool cancels** (P4 v7, symmetric with belt/pipe-tool right-click cancel).
 - **Right-mouse-button drives a "highlight" selection (P4 v6 split):** right-click on a device or belt adds it to the highlight set (visual brackets / halo + keyboard targets); right-mouse drag adds every device or belt fully inside the rectangle. Right-click on an empty cell clears the highlight only. Right-click context menu is disabled inside the canvas.
 - **Inspector pin is a separate concept (P4 v6).** The right-column Inspector panel shows the device that was last left-clicked in the `select` tool — right-click never changes it. This lets owners highlight things to delete / rotate without losing their inspect-pin context.
-- Selected devices: M move, R rotate-around-centroid, F delete, Ctrl+C / Ctrl+V copy/paste. The selection drives the Inspector pin only via left-click in the select tool.
-- **Belts and pipes are selectable** as a unit: single right-click on any cell of an existing link adds the link to the highlight set; right-mouse drag adds every link whose path is fully inside the rectangle (P4 v6). Delete removes every highlighted link AND device in one history snapshot.
+- **Highlighted-device drag-move (P4 v7):** left-mousedown on a cell that's part of the highlight set + drag past one cell → the entire highlight set moves by `delta`. Plain click without drag still pins the Inspector. Mousedown on a non-highlighted cell skips drag tracking entirely.
+- **Batch rotate around centroid (P4 v7):** R key with ≥ 1 device highlighted in the select tool rotates all of them 90° CW around the SELECTION centroid (each device's footprint also rotates). New `move_rotate_device` core edit lands position + rotation atomically so a partial collision rolls back the whole batch.
+- F delete, Ctrl+C / Ctrl+V copy/paste. **Clipboard now includes belts (P4 v7)** whose endpoints both reference selected devices — paste re-resolves PortRefs to the new instance ids. **Rolling clipboard history (last 10 slots, memory-only)** surfaced via a new "clipboard" pseudo-tab in the Rail / Library; clicking a slot promotes it + arms paste mode (next left-click pastes at cursor, right-click / Esc cancels).
+- **Belts and pipes are selectable** as a unit: single right-click on any cell of an existing link adds the link to the highlight set; right-mouse drag adds every link whose path is fully inside the rectangle (P4 v6). Delete removes every highlighted link AND device in one history snapshot. **`deleteDevice` no longer cascades to attached links (P4 v7)** — belts persist with their PortRefs; PORT DRC rules surface dangling refs as warnings.
 - Undo / redo with unlimited history within a session. Group operations share a single history snapshot.
 - Draw a solid belt or fluid pipe path **as a multi-segment polyline**. First click sets the start; each subsequent click commits a waypoint and starts a new segment from there. Drafting commits when:
   - the cursor lands on another device's input port of the matching `kind` (sets `dst` PortRef);
@@ -249,6 +251,12 @@ A 2D grid-based canvas where the user can:
 **Keyboard shortcuts:** V = select; B / E = belt; P / Q = pipe (B/P preserved for muscle memory; Q/E added in P3 for one-hand reach); R = rotate ghost or selection; M = move selection; F / Delete = delete selection; Esc = cancel; Backspace = pop waypoint while drawing.
 
 **Live ghost preview (mandatory):** while the user is drawing a belt or pipe, or has a device selected from the palette, the tool renders a **real-time ghost** of the placement at the current mouse position. The ghost updates every mouse-move event, shows the candidate path/footprint, and color-codes validity (green = valid, red = DRC violation, yellow = valid but sub-optimal). Performance budget: ghost render must complete within one frame (~16ms) at the performance targets in §6.5.
+
+**Device placement ghost (P4 v7):**
+- The ghost cursor anchors to the device's CENTER (not top-left). For 1×1 devices this is unchanged; 2×2 cursor at (5, 5) → ghost spans (4, 4)-(5, 5); 3×3 cursor at (5, 5) → (4, 4)-(6, 6).
+- The ghost renders the same I/O port direction triangles as a placed device (extracted from `DeviceLayer::PortMarkers` and tinted with the status color). Owners see port directions before clicking.
+- The ghost honors per-layer occupancy: a solid bridge (`belt-merger` / `belt-splitter` / `belt-cross-bridge`) ghosted over an existing fluid pipe stays GREEN — the bridge only blocks the solid layer. Dropping a `pipe-cross-bridge` onto a belt stays RED (pipe bridges block both layers).
+- **Place-on-belt (P4 v7):** the ghost may overlap existing belts on the matching layer ONLY if every belt cell inside the device's footprint is a port cell with matching traversal direction. Specifically: the belt cell must be an interior cell of the belt (both prev + next exist), the device must declare an INPUT port at that cell whose face equals `-arrival_direction`, AND an OUTPUT port whose face equals `exit_direction`. When legal, the place commit bundles `place_device` + N `split_link` actions inside one applyMany — each affected belt is split at the device's port cell, with the two halves wired to the device's input/output ports. When illegal (no matching ports, multi-cell overlap, endpoint coverage) the ghost goes RED and the click is rejected.
 
 **Belt routing (P4 v6 — auto-bridge truncation):** the ghost path planner does NOT detour around existing same-layer links. Instead, when the planned segment would cross an existing belt:
 - **Perpendicular crossing** + cell free of any other device → the cell is tagged "auto-bridge" and shown as legal green in the ghost. On commit, an atomic `applyMany` transaction:
@@ -842,7 +850,22 @@ A feature is "done" when:
 
 ## Changelog
 
-### v6 (this document)
+### v7 (this document)
+
+Phase 4 testing-feedback round #2 on top of v6, 14-item bundle from owner P4 v6 testing:
+
+- **§4.5 Layer occupancy lifted into core.** Solid bridges (belt-merger / belt-splitter / belt-cross-bridge) declare `layer_occupancy: 'solid'`; everything else stays `'both'`. `Occupancy` partitioned into `{ deviceSolid, deviceFluid }`; ghost & place collision checks consult only the layers the new device blocks. Solid bridge over fluid pipe → green ghost; pipe-cross-bridge over solid belt → red.
+- **§5.1 F3 editor — multi-port-per-cell direction matching.** 1×1 mergers / splitters declare 4 ports on the same cell; the drafter previously took the first match. New optional `departure` arg on `findOutputPortAtCell` symmetric with v6's `arrival`. The drafter plans unconstrained when the start cell has ≥ 2 output ports and resolves the actual port from `planned.path`'s first step. Same on the input side via `findInputPortAtCell`.
+- **§5.1 F3 editor — device placement UX.** Cursor anchors to the device CENTER; right-click cancels the place tool; the ghost now shows the same I/O direction triangles as a placed device.
+- **§5.1 F3 editor — place-on-belt with split.** When the device's footprint overlaps existing same-layer belts, the placement is allowed only if every belt cell inside the footprint is a port cell with matching direction; legal placements bundle `place_device` + N `split_link` actions atomically. Illegal placements turn the ghost red.
+- **§5.1 F3 editor — drag-move + batch rotate.** Left-mousedown on a highlighted device + drag → all highlighted devices move; plain click without drag still pins the Inspector. R key with ≥ 1 highlighted device rotates the whole set 90° CW around the SELECTION centroid via the new `move_rotate_device` core edit.
+- **§5.1 F3 editor — clipboard with belts.** ClipboardPayload gains a `links` field with selection-relative paths and PortRef indices remapped to item-array positions; `buildPayload` filters to links whose BOTH endpoints reference selected devices. Ctrl+V re-resolves PortRefs to fresh paste-time instance ids inside one applyMany.
+- **Library / Rail — clipboard pseudo-tab.** Rail gains a 📋 tab; Library renders a slot list of the rolling 10-entry history (memory-only). Clicking a slot promotes it to the top and arms paste mode; the next left-click pastes at cursor. Right-click / Esc cancels.
+- **Library cards render real device geometry.** New `DeviceThumb` SVG component shows footprint + I/O port triangles instead of the v6 first-letter glyph.
+- **§5.1 F5 (deleteDevice) — no more cascading.** Removed the link-filter from `deleteDevice`. Belts persist with their PortRefs; PORT DRC rules surface dangling refs as warnings. Side-effect: the v6 mixed F-delete bug (rolled back when delete_device removed a belt that delete_link then couldn't find) is fixed.
+- **Visual polish.** I/O port triangles flatter (LEN 0.22 → 0.18 cell, WING 0.18 → 0.26 cell). Device-editor list `<aside>` gains `flex h-full min-h-0 overflow-hidden` so the inner `flex-1 scroll-y` actually has a bounded height to scroll inside.
+
+### v6
 
 Phase 4 testing-feedback round on top of v5, eight-issue bundle from owner P4 v5 testing:
 

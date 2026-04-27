@@ -1,24 +1,45 @@
 /** Device library panel per design/handoff/components.css `.library`.
  *  Header (count + title) → search box → 2-column device card grid.
  *  Cards are draggable / clickable; placement wiring lands in B7 commit 3.
+ *
+ *  P4 v7 adds a 'clipboard' pseudo-tab that swaps the device grid for the
+ *  clipboard-history slots. Clicking a slot promotes it to the top of the
+ *  history (so Ctrl+V picks it up) and arms the paste-mode preview.
  */
 import { useMemo, useState } from 'react';
 import { useI18n } from '@i18n/index.tsx';
 import { Card } from '@ui/components/index.ts';
-import type { Device, DeviceCategory } from '@core/data-loader/types.ts';
+import type { Device } from '@core/data-loader/types.ts';
+import type { ClipboardPayload } from '@core/persistence/index.ts';
+import { DeviceThumb } from './DeviceThumb.tsx';
+import type { LibraryTab } from './Rail.tsx';
 
 interface Props {
   devices: readonly Device[];
-  category: DeviceCategory;
+  category: LibraryTab;
   selectedDeviceId: string | null;
   onPick: (device: Device | null) => void;
+  /** P4 v7: rolling clipboard history (memory-only, last 10). Only consulted
+   *  when category === 'clipboard'. */
+  clipboardHistory?: readonly ClipboardPayload[];
+  /** P4 v7: callback when a clipboard slot is picked. Editor uses this to
+   *  promote the slot + arm paste mode. */
+  onPickClipboardSlot?: (payload: ClipboardPayload) => void;
 }
 
-export function Library({ devices, category, selectedDeviceId, onPick }: Props) {
+export function Library({
+  devices,
+  category,
+  selectedDeviceId,
+  onPick,
+  clipboardHistory,
+  onPickClipboardSlot,
+}: Props) {
   const { t } = useI18n();
   const [query, setQuery] = useState('');
 
   const filtered = useMemo(() => {
+    if (category === 'clipboard') return [] as Device[];
     const q = query.trim().toLowerCase();
     return devices.filter((d) => {
       if (d.category !== category) return false;
@@ -30,6 +51,15 @@ export function Library({ devices, category, selectedDeviceId, onPick }: Props) 
       );
     });
   }, [devices, category, query]);
+
+  if (category === 'clipboard') {
+    return (
+      <ClipboardView
+        history={clipboardHistory ?? []}
+        {...(onPickClipboardSlot ? { onPick: onPickClipboardSlot } : {})}
+      />
+    );
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -83,12 +113,7 @@ export function Library({ devices, category, selectedDeviceId, onPick }: Props) 
                       backgroundSize: '8px 8px',
                     }}
                   >
-                    <span
-                      className={`font-display text-[18px] uppercase ${layer === 'fluid' ? 'text-teal' : 'text-amber'}`}
-                      aria-hidden
-                    >
-                      {d.id.split('-')[0]?.[0]?.toUpperCase() ?? '?'}
-                    </span>
+                    <DeviceThumb device={d} />
                   </div>
                   <div>
                     <div className="font-cn text-[12px] leading-tight text-fg">
@@ -121,4 +146,82 @@ export function Library({ devices, category, selectedDeviceId, onPick }: Props) 
       </div>
     </div>
   );
+}
+
+/** P4 v7 clipboard tab: render the rolling history as 1-column cards.
+ *  Each card shows the device count + a tiny bbox preview rectangle so
+ *  owners can distinguish slots at a glance. Clicking promotes + arms paste. */
+function ClipboardView({
+  history,
+  onPick,
+}: {
+  history: readonly ClipboardPayload[];
+  onPick?: (payload: ClipboardPayload) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="flex h-full flex-col">
+      <header className="flex items-center justify-between border-b border-line-faint px-3.5 py-3">
+        <div className="flex flex-col gap-px">
+          <span className="font-display text-[11px] font-semibold uppercase tracking-[2px] text-amber">
+            CLIPBOARD
+          </span>
+          <span className="font-cn text-[14px] font-bold text-fg">{t('library.clipboard')}</span>
+        </div>
+        <span className="rounded-[2px] border border-line-strong px-1.5 py-0.5 font-tech-mono text-[10px] text-fg-faint">
+          {history.length.toString()}
+        </span>
+      </header>
+      <div className="scroll-y min-h-0 flex-1 px-3 py-3">
+        {history.length === 0 ? (
+          <div className="grid h-32 place-items-center px-3 text-center font-cn text-[12px] text-fg-faint">
+            {t('library.clipboardEmpty')}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {history.map((payload, i) => {
+              const w = bboxWidth(payload);
+              const h = bboxHeight(payload);
+              return (
+                <button
+                  type="button"
+                  key={i.toString()}
+                  onClick={() => onPick?.(payload)}
+                  className="flex items-center gap-3 rounded-[2px] border border-line bg-surface-1 px-3 py-2 text-left transition-colors hover:border-amber"
+                >
+                  <span className="font-tech-mono text-[10px] text-fg-faint">
+                    #{(i + 1).toString()}
+                  </span>
+                  <div className="flex flex-1 flex-col gap-0.5">
+                    <span className="font-cn text-[12px] text-fg">
+                      {t('library.clipboardSlot', {
+                        devices: payload.items.length,
+                        links: payload.links.length,
+                      })}
+                    </span>
+                    <span className="font-tech-mono text-[10px] text-fg-faint">
+                      {w.toString()} × {h.toString()}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function bboxWidth(p: ClipboardPayload): number {
+  let max = 0;
+  for (const it of p.items) max = Math.max(max, it.rel_position.x + 1);
+  for (const l of p.links) for (const c of l.rel_path) max = Math.max(max, c.x + 1);
+  return max;
+}
+function bboxHeight(p: ClipboardPayload): number {
+  let max = 0;
+  for (const it of p.items) max = Math.max(max, it.rel_position.y + 1);
+  for (const l of p.links) for (const c of l.rel_path) max = Math.max(max, c.y + 1);
+  return max;
 }

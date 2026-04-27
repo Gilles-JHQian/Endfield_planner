@@ -259,16 +259,39 @@
     "id": "belt-cross-bridge",
     "display_name_zh_hans": "物流交叉桥",
     "display_name_en": "Belt Cross Bridge",
-    "footprint": { "width": 1, "height": 1 },
+    "footprint": {
+      "width": 1,
+      "height": 1
+    },
     "bandwidth": 60,
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": false,
     "io_ports": [
-      { "side": "N", "offset": 0, "kind": "solid", "direction_constraint": "paired_opposite" },
-      { "side": "E", "offset": 0, "kind": "solid", "direction_constraint": "paired_opposite" },
-      { "side": "S", "offset": 0, "kind": "solid", "direction_constraint": "paired_opposite" },
-      { "side": "W", "offset": 0, "kind": "solid", "direction_constraint": "paired_opposite" }
+      {
+        "side": "N",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "paired_opposite"
+      },
+      {
+        "side": "E",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "paired_opposite"
+      },
+      {
+        "side": "S",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "paired_opposite"
+      },
+      {
+        "side": "W",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "paired_opposite"
+      }
     ],
     "tech_prereq": [],
     "category": "logistics",
@@ -278,16 +301,39 @@
     "id": "belt-merger",
     "display_name_zh_hans": "物流汇流桥",
     "display_name_en": "Belt Merger",
-    "footprint": { "width": 1, "height": 1 },
+    "footprint": {
+      "width": 1,
+      "height": 1
+    },
     "bandwidth": 60,
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": false,
     "io_ports": [
-      { "side": "N", "offset": 0, "kind": "solid", "direction_constraint": "input" },
-      { "side": "E", "offset": 0, "kind": "solid", "direction_constraint": "input" },
-      { "side": "S", "offset": 0, "kind": "solid", "direction_constraint": "input" },
-      { "side": "W", "offset": 0, "kind": "solid", "direction_constraint": "output" }
+      {
+        "side": "N",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "E",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "S",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "W",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "output"
+      }
     ],
     "tech_prereq": [],
     "category": "logistics",
@@ -297,16 +343,39 @@
     "id": "belt-splitter",
     "display_name_zh_hans": "物流分流桥",
     "display_name_en": "Belt Splitter",
-    "footprint": { "width": 1, "height": 1 },
+    "footprint": {
+      "width": 1,
+      "height": 1
+    },
     "bandwidth": 60,
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": false,
     "io_ports": [
-      { "side": "W", "offset": 0, "kind": "solid", "direction_constraint": "input" },
-      { "side": "N", "offset": 0, "kind": "solid", "direction_constraint": "output" },
-      { "side": "E", "offset": 0, "kind": "solid", "direction_constraint": "output" },
-      { "side": "S", "offset": 0, "kind": "solid", "direction_constraint": "output" }
+      {
+        "side": "W",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "N",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "E",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "S",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "output"
+      }
     ],
     "tech_prereq": [],
     "category": "logistics",
@@ -339,7 +408,44 @@
     "power_draw": 20,
     "requires_power": true,
     "has_fluid_interface": false,
-    "io_ports": [],
+    "io_ports": [
+      {
+        "side": "N",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "N",
+        "offset": 1,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "N",
+        "offset": 2,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "S",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "S",
+        "offset": 1,
+        "kind": "solid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "S",
+        "offset": 2,
+        "kind": "solid",
+        "direction_constraint": "output"
+      }
+    ],
     "tech_prereq": [],
     "category": "basic_production",
     "recipes": [
@@ -507,7 +613,10 @@
     "io_ports": [],
     "tech_prereq": [],
     "category": "synthesis",
-    "recipes": ["recipe-liquid-copper-enr", "recipe-liquid-xiranite-poly-2"]
+    "recipes": [
+      "recipe-liquid-copper-enr",
+      "recipe-liquid-xiranite-poly-2"
+    ]
   },
   {
     "id": "liquid-storager-1",
@@ -707,16 +816,39 @@
     "id": "pipe-cross-bridge",
     "display_name_zh_hans": "流体交叉桥",
     "display_name_en": "Pipe Cross Bridge",
-    "footprint": { "width": 1, "height": 1 },
+    "footprint": {
+      "width": 1,
+      "height": 1
+    },
     "bandwidth": 120,
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": true,
     "io_ports": [
-      { "side": "N", "offset": 0, "kind": "fluid", "direction_constraint": "paired_opposite" },
-      { "side": "E", "offset": 0, "kind": "fluid", "direction_constraint": "paired_opposite" },
-      { "side": "S", "offset": 0, "kind": "fluid", "direction_constraint": "paired_opposite" },
-      { "side": "W", "offset": 0, "kind": "fluid", "direction_constraint": "paired_opposite" }
+      {
+        "side": "N",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "paired_opposite"
+      },
+      {
+        "side": "E",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "paired_opposite"
+      },
+      {
+        "side": "S",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "paired_opposite"
+      },
+      {
+        "side": "W",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "paired_opposite"
+      }
     ],
     "tech_prereq": [],
     "category": "logistics",
@@ -726,16 +858,39 @@
     "id": "pipe-merger",
     "display_name_zh_hans": "流体汇流桥",
     "display_name_en": "Pipe Merger",
-    "footprint": { "width": 1, "height": 1 },
+    "footprint": {
+      "width": 1,
+      "height": 1
+    },
     "bandwidth": 120,
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": true,
     "io_ports": [
-      { "side": "N", "offset": 0, "kind": "fluid", "direction_constraint": "input" },
-      { "side": "E", "offset": 0, "kind": "fluid", "direction_constraint": "input" },
-      { "side": "S", "offset": 0, "kind": "fluid", "direction_constraint": "input" },
-      { "side": "W", "offset": 0, "kind": "fluid", "direction_constraint": "output" }
+      {
+        "side": "N",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "E",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "S",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "W",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "output"
+      }
     ],
     "tech_prereq": [],
     "category": "logistics",
@@ -745,16 +900,39 @@
     "id": "pipe-splitter",
     "display_name_zh_hans": "流体分流桥",
     "display_name_en": "Pipe Splitter",
-    "footprint": { "width": 1, "height": 1 },
+    "footprint": {
+      "width": 1,
+      "height": 1
+    },
     "bandwidth": 120,
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": true,
     "io_ports": [
-      { "side": "W", "offset": 0, "kind": "fluid", "direction_constraint": "input" },
-      { "side": "N", "offset": 0, "kind": "fluid", "direction_constraint": "output" },
-      { "side": "E", "offset": 0, "kind": "fluid", "direction_constraint": "output" },
-      { "side": "S", "offset": 0, "kind": "fluid", "direction_constraint": "output" }
+      {
+        "side": "W",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "N",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "E",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "S",
+        "offset": 0,
+        "kind": "fluid",
+        "direction_constraint": "output"
+      }
     ],
     "tech_prereq": [],
     "category": "logistics",
@@ -798,7 +976,11 @@
     "tech_prereq": [],
     "category": "power",
     "recipes": [],
-    "power_aoe": { "kind": "square_centered", "edge": 12, "purpose": "device_supply" }
+    "power_aoe": {
+      "kind": "square_centered",
+      "edge": 12,
+      "purpose": "device_supply"
+    }
   },
   {
     "id": "power-diffuser-2",
@@ -815,7 +997,11 @@
     "tech_prereq": [],
     "category": "power",
     "recipes": [],
-    "power_aoe": { "kind": "square_centered", "edge": 12, "purpose": "device_supply" }
+    "power_aoe": {
+      "kind": "square_centered",
+      "edge": 12,
+      "purpose": "device_supply"
+    }
   },
   {
     "id": "power-pole-2",
@@ -832,7 +1018,11 @@
     "tech_prereq": [],
     "category": "power",
     "recipes": [],
-    "power_aoe": { "kind": "square_centered", "edge": 7, "purpose": "pole_link" }
+    "power_aoe": {
+      "kind": "square_centered",
+      "edge": 7,
+      "purpose": "pole_link"
+    }
   },
   {
     "id": "power-pole-3",
@@ -849,7 +1039,11 @@
     "tech_prereq": [],
     "category": "power",
     "recipes": [],
-    "power_aoe": { "kind": "square_centered", "edge": 7, "purpose": "pole_link" }
+    "power_aoe": {
+      "kind": "square_centered",
+      "edge": 7,
+      "purpose": "pole_link"
+    }
   },
   {
     "id": "power-station-1",
@@ -1343,6 +1537,10 @@
     "io_ports": [],
     "tech_prereq": [],
     "category": "synthesis",
-    "recipes": ["recipe-muck-xiranite-1", "recipe-xiranite-enr-powder", "recipe-xiranite-powder"]
+    "recipes": [
+      "recipe-muck-xiranite-1",
+      "recipe-xiranite-enr-powder",
+      "recipe-xiranite-powder"
+    ]
   }
 ]

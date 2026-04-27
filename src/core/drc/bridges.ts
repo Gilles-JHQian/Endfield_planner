@@ -30,3 +30,20 @@ export const FLUID_BRIDGE_IDS: ReadonlySet<string> = new Set([
 
 export const SOLID_CROSS_BRIDGE_ID = 'belt-cross-bridge';
 export const FLUID_CROSS_BRIDGE_ID = 'pipe-cross-bridge';
+
+/** Per-device layer occupancy (P4 v7). REQUIREMENT.md §4.5 says devices
+ *  default to occupying both layers — that stays the universal default.
+ *  The three SOLID bridges (`belt-merger` / `belt-splitter` /
+ *  `belt-cross-bridge`) are the documented exception: they sit only on
+ *  the solid layer so fluid pipes can pass underneath (the asymmetric
+ *  LAYER_CROSS_002 rule from v4 already enshrined this; v7 carries it
+ *  through to placement-time ghost validation).
+ *
+ *  Used by `buildOccupancy` to populate the per-layer device sets and by
+ *  the editor's ghost preview at placement time. */
+export type LayerOccupancy = 'solid' | 'fluid' | 'both';
+
+export function layerOccupancyOf(device: { id: string }): LayerOccupancy {
+  if (SOLID_BRIDGE_IDS.has(device.id)) return 'solid';
+  return 'both';
+}

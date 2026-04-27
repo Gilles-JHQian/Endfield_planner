@@ -130,12 +130,19 @@ export function planSegments(
 
 /** Find an output port at the given world cell. Returns its face_direction
  *  (for first-step lock) AND its PortRef fields (so the link's `src` can be
- *  populated, P4 v6). */
+ *  populated, P4 v6).
+ *
+ *  P4 v7: optional `departure` parameter filters by direction the user intends
+ *  to leave the cell. Required for multi-output ports that share a cell — e.g.
+ *  belt-splitter (1×1, output ports on N/E/S faces all at the same cell).
+ *  Without `departure`, the first matching port is returned (legacy
+ *  single-port-per-cell behavior). */
 export function findOutputPortAtCell(
   cell: Cell,
   layer: Layer,
   project: Project,
   lookup: (id: string) => Device | undefined,
+  departure?: { dx: number; dy: number },
 ): {
   device_instance_id: string;
   port_index: number;
@@ -149,16 +156,46 @@ export function findOutputPortAtCell(
       if (p.direction_constraint !== 'output') continue;
       const matches =
         (layer === 'solid' && p.kind === 'solid') || (layer === 'fluid' && p.kind === 'fluid');
-      if (matches) {
-        return {
-          device_instance_id: placed.instance_id,
-          port_index: p.port_index,
-          face_direction: p.face_direction,
-        };
+      if (!matches) continue;
+      if (departure && (p.face_direction.dx !== departure.dx || p.face_direction.dy !== departure.dy)) {
+        continue;
       }
+      return {
+        device_instance_id: placed.instance_id,
+        port_index: p.port_index,
+        face_direction: p.face_direction,
+      };
     }
   }
   return null;
+}
+
+/** True if `cell` hosts ≥ 2 output ports of the matching layer (different
+ *  faces). Used by the live ghost to decide whether to lock the first-step
+ *  direction (single port → lock to its face) or leave it free (multiple
+ *  ports → wait for the user's first move to disambiguate). P4 v7. */
+export function hasMultipleOutputPortsAtCell(
+  cell: Cell,
+  layer: Layer,
+  project: Project,
+  lookup: (id: string) => Device | undefined,
+): boolean {
+  let count = 0;
+  for (const placed of project.devices) {
+    const dev = lookup(placed.device_id);
+    if (!dev) continue;
+    for (const p of portsInWorldFrame(dev, placed)) {
+      if (p.cell.x !== cell.x || p.cell.y !== cell.y) continue;
+      if (p.direction_constraint !== 'output') continue;
+      const matches =
+        (layer === 'solid' && p.kind === 'solid') || (layer === 'fluid' && p.kind === 'fluid');
+      if (matches) {
+        count += 1;
+        if (count >= 2) return true;
+      }
+    }
+  }
+  return false;
 }
 
 /** Find an input port at world cell `cell` of the matching layer. Returns the
@@ -193,7 +230,12 @@ export function findInputPortAtCell(
       const matches =
         (layer === 'solid' && p.kind === 'solid') || (layer === 'fluid' && p.kind === 'fluid');
       if (!matches) continue;
-      const required = { dx: -p.face_direction.dx, dy: -p.face_direction.dy };
+      // Normalize -0 → 0 so deep-equal comparisons in tests / callers don't
+      // trip on the JS sign-of-zero quirk when negating a 0 dx/dy.
+      const required = {
+        dx: p.face_direction.dx === 0 ? 0 : -p.face_direction.dx,
+        dy: p.face_direction.dy === 0 ? 0 : -p.face_direction.dy,
+      };
       if (arrival && (arrival.dx !== required.dx || arrival.dy !== required.dy)) continue;
       return {
         device_instance_id: placed.instance_id,

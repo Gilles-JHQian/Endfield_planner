@@ -9,12 +9,19 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDataBundle } from '@ui/use-data-bundle.ts';
 import { createProject } from '@core/domain/project.ts';
 import type { Cell } from '@core/domain/types.ts';
-import { buildOccupancy, cellBlockedFor, fitsInPlot, footprintCells } from '@core/domain/index.ts';
-import type { DataBundle, Device, DeviceCategory } from '@core/data-loader/types.ts';
+import {
+  buildOccupancy,
+  fitsInPlot,
+  footprintCells,
+  portsInWorldFrame,
+  rotatedBoundingBox,
+} from '@core/domain/index.ts';
+import { layerOccupancyOf } from '@core/drc/bridges.ts';
+import type { DataBundle, Device } from '@core/data-loader/types.ts';
 import { Canvas } from './Canvas.tsx';
 import { LayerToggle } from './LayerToggle.tsx';
 import { StatusBar } from './StatusBar.tsx';
-import { Rail } from './Rail.tsx';
+import { Rail, type LibraryTab } from './Rail.tsx';
 import { Library } from './Library.tsx';
 import { Toolbar } from './Toolbar.tsx';
 import { DeviceLayer, findDeviceAtCell } from './DeviceLayer.tsx';
@@ -33,6 +40,7 @@ import {
   defaultTierId,
   findInputPortAtCell,
   findOutputPortAtCell,
+  hasMultipleOutputPortsAtCell,
   planSegments,
   type ProjectRouteContext,
 } from './belt-router.ts';
@@ -48,8 +56,11 @@ import {
   flushSave,
   importProject,
   loadCurrent,
+  promoteToTopOfHistory,
   readClipboard,
+  readClipboardHistory,
   scheduleSave,
+  type ClipboardPayload,
 } from '@core/persistence/index.ts';
 import { useDrc } from './use-drc.ts';
 import { useViewMode } from './use-view-mode.ts';
@@ -102,7 +113,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [zoom, setZoom] = useState(1);
   const [viewMode, setViewMode] = useViewMode();
-  const [category, setCategory] = useState<DeviceCategory>('basic_production');
+  const [category, setCategory] = useState<LibraryTab>('basic_production');
   const [pickedDevice, setPickedDevice] = useState<Device | null>(null);
   // Inspector pin: the device shown in the right-column inspector panel.
   // P4 v6: ONLY left-click on a device in the select tool drives this; right-
@@ -117,6 +128,18 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // belts/pipes. Right-click on a link cell adds {id}; right-mouse drag
   // includes any link whose path is fully inside the rectangle.
   const [selectedLinkIds, setSelectedLinkIds] = useState<ReadonlySet<string>>(new Set());
+  // P4 v7: when non-null, the next left-click pastes this payload at the
+  // cursor (place-mode-style). Set by clicking a slot in the clipboard tab;
+  // cleared by right-click / Esc / successful paste.
+  const [pasteSource, setPasteSource] = useState<ClipboardPayload | null>(null);
+  // Tick that nudges the Library to re-render when clipboard history changes
+  // (history is module-level state, not React state).
+  const [clipboardTick, setClipboardTick] = useState(0);
+  const clipboardHistory = useMemo(
+    () => readClipboardHistory(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [clipboardTick],
+  );
   // Multi-segment belt/pipe draft. Each click adds a waypoint; the segment
   // between consecutive waypoints is BFS-routed around devices. Drafting
   // commits when the user clicks an input port of the matching layer or
@@ -255,8 +278,14 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         if (boxSelected.size === 0) return;
         e.preventDefault();
         const devices = store.project.devices.filter((d) => boxSelected.has(d.instance_id));
-        const payload = buildPayload(devices);
-        if (payload) copyToClipboard(payload);
+        // P4 v7: include all links (both layers) whose endpoints both reference
+        // a device in the selection. buildPayload filters internally.
+        const allLinks = [...store.project.solid_links, ...store.project.fluid_links];
+        const payload = buildPayload(devices, allLinks);
+        if (payload) {
+          copyToClipboard(payload);
+          setClipboardTick((n) => n + 1);
+        }
         return;
       }
       if (meta && (e.key === 'v' || e.key === 'V')) {
@@ -264,22 +293,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         const payload = readClipboard();
         if (!payload) return;
         e.preventDefault();
-        const placeActions: ProjectAction[] = [];
-        for (const item of payload.items) {
-          const dev = lookup(item.device_id);
-          if (!dev) continue;
-          placeActions.push({
-            type: 'place_device',
-            device: dev,
-            position: { x: cursor.x + item.rel_position.x, y: cursor.y + item.rel_position.y },
-            rotation: item.rotation,
-          });
-        }
-        if (placeActions.length === 0) return;
-        const result = store.applyMany(placeActions);
-        if (result.ok) {
-          setBoxSelected(new Set(result.value.placed.map((p) => p.instance_id)));
-        }
+        pastePayloadAtCursor(payload, cursor);
         return;
       }
       if (e.key === 'f' || e.key === 'F' || e.key === 'Delete') {
@@ -312,10 +326,37 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
         // Single-device deletion via Delete key (selected via V-tool left-
         // click) is handled by the existing selection-aware listener below.
       }
+      // P4 v7: R rotates the box selection 90° CW around the centroid. Only
+      // fires when ≥ 1 device is highlighted AND the active tool is select
+      // (so it doesn't conflict with the place-tool's R = ghost rotate).
+      if ((e.key === 'r' || e.key === 'R') && !meta) {
+        if (boxSelected.size === 0 || toolApi.tool.kind !== 'select') return;
+        e.preventDefault();
+        const actions = batchRotateActions(store.project, boxSelected, lookup);
+        if (actions.length > 0) store.applyMany(actions);
+        return;
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+    // pastePayloadAtCursor / toolApi.tool.kind intentionally omitted: the
+    // handler reads the latest closure values via the function instance, and
+    // these change every render, which would re-attach the listener for no
+    // benefit. Same pattern as v5/v6 keyboard effects.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [boxSelected, store, selectedInstanceId, selectedLinkIds, cursor, lookup]);
+
+  // P4 v7: Esc cancels paste mode.
+  useEffect(() => {
+    if (!pasteSource) return;
+    const onKey = (e: KeyboardEvent): void => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+      if (e.key === 'Escape') setPasteSource(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pasteSource]);
 
   // Belt/pipe draft keybindings. Esc cancels the whole draft; Backspace pops
   // the last waypoint (so owners can correct a mis-click without restarting).
@@ -390,7 +431,79 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
    *  In PLACING state (linkDraft active), right-click cancels the draft
    *  back to READY instead — owners can abort a mis-started path without
    *  reaching for Esc. */
+  /** P4 v7: paste a clipboard payload at the cursor cell. Pre-generates
+   *  instance ids for the new devices so the link `add_link` actions in the
+   *  same applyMany batch can forward-reference them via PortRef. */
+  function pastePayloadAtCursor(payload: ClipboardPayload, anchor: Cell): void {
+    const itemIds = payload.items.map(() => generateInstanceId('d'));
+    const placeActions: ProjectAction[] = [];
+    for (let i = 0; i < payload.items.length; i++) {
+      const item = payload.items[i]!;
+      const dev = lookup(item.device_id);
+      if (!dev) continue;
+      placeActions.push({
+        type: 'place_device',
+        device: dev,
+        position: { x: anchor.x + item.rel_position.x, y: anchor.y + item.rel_position.y },
+        rotation: item.rotation,
+        instance_id: itemIds[i]!,
+      });
+    }
+    if (placeActions.length === 0) return;
+    const linkActions: ProjectAction[] = payload.links.map((l) => ({
+      type: 'add_link' as const,
+      layer: l.layer,
+      tier_id: l.tier_id,
+      path: l.rel_path.map((c) => ({ x: anchor.x + c.x, y: anchor.y + c.y })),
+      src: { device_instance_id: itemIds[l.src_item_index]!, port_index: l.src_port_index },
+      dst: { device_instance_id: itemIds[l.dst_item_index]!, port_index: l.dst_port_index },
+    }));
+    const result = store.applyMany([...placeActions, ...linkActions]);
+    if (result.ok) {
+      setBoxSelected(new Set(result.value.placed.map((p) => p.instance_id)));
+    }
+  }
+
+  /** P4 v7: a cell is "highlighted" when it sits inside the footprint of a
+   *  device in the boxSelected set. Used by Canvas to decide whether
+   *  left-mousedown enters drag-move mode. */
+  function isCellHighlighted(cell: Cell): boolean {
+    if (boxSelected.size === 0) return false;
+    const hit = findDeviceAtCell(store.project.devices, lookup, cell);
+    return hit !== null && boxSelected.has(hit.instance_id);
+  }
+
+  /** P4 v7: drag-move every device in `boxSelected` by `delta` cells.
+   *  Batched into one applyMany so a partial collision rolls back the entire
+   *  drag (no half-moved selections). */
+  function handleDragMove(delta: Cell): void {
+    if (boxSelected.size === 0 || (delta.x === 0 && delta.y === 0)) return;
+    const actions: ProjectAction[] = [];
+    for (const id of boxSelected) {
+      const placed = store.project.devices.find((d) => d.instance_id === id);
+      if (!placed) continue;
+      actions.push({
+        type: 'move_device',
+        instance_id: id,
+        position: { x: placed.position.x + delta.x, y: placed.position.y + delta.y },
+      });
+    }
+    store.applyMany(actions);
+  }
+
   function handleCellRightClick(cell: Cell): void {
+    // P4 v7: right-click clears paste mode if active.
+    if (pasteSource) {
+      setPasteSource(null);
+      return;
+    }
+    // P4 v7: right-click in PLACE mode cancels the device-placement ghost,
+    // symmetric with the v6 belt/pipe-tool right-click cancel.
+    if (toolApi.tool.kind === 'place') {
+      toolApi.setSelect();
+      setPickedDevice(null);
+      return;
+    }
     if (linkDraft) {
       setLinkDraft(null);
       return;
@@ -419,6 +532,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
    *  draft cancel — same as handleCellRightClick. Avoids accidentally
    *  starting a box-select while the user is trying to abort. */
   function handleBoxSelect(rect: { from: Cell; to: Cell }): void {
+    // P4 v7: right-mouse drag in PLACE mode also cancels (slipping a drag
+    // while trying to abort the placement should still abort).
+    if (toolApi.tool.kind === 'place') {
+      toolApi.setSelect();
+      setPickedDevice(null);
+      return;
+    }
     if (linkDraft) {
       setLinkDraft(null);
       return;
@@ -444,17 +564,49 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   }
 
   function handleCellClick(cell: Cell, _evt: MouseEvent): void {
+    // P4 v7 paste mode: a clipboard slot was picked from the Library tab.
+    // Next left click pastes at cursor; mode persists until right-click /
+    // Esc / tool change.
+    if (pasteSource) {
+      pastePayloadAtCursor(pasteSource, cell);
+      return;
+    }
     if (toolApi.tool.kind === 'place') {
-      const result = store.apply({
-        type: 'place_device',
-        device: toolApi.tool.device,
-        position: cell,
-        rotation: toolApi.tool.rotation,
-      });
-      if (!result.ok) {
-        // For now silent — visual ghost color already told the user it's invalid.
-        return;
-      }
+      // P4 v7: cursor anchored to the device's CENTER (not top-left). For a
+      // 2×2 device, cursor at (5,5) → footprint (4,4)-(5,5). For 3×3:
+      // (4,4)-(6,6). 1×1 stays unchanged. Convert cursor → top-left here so
+      // the underlying place_device contract is unchanged.
+      const topLeft = cursorToTopLeft(cell, toolApi.tool.device, toolApi.tool.rotation);
+      // P4 v7: place-on-belt — when the device's footprint overlaps existing
+      // same-layer belts, plan splits at the device's port cells if legal,
+      // otherwise reject the click. Bundle bridge id pinning + place_device +
+      // split_link into one applyMany so undo wipes the entire interaction.
+      const placePlan = planPlaceOnBeltSplits(
+        store.project,
+        toolApi.tool.device,
+        topLeft,
+        toolApi.tool.rotation,
+      );
+      if (placePlan === 'red') return;
+      const newDeviceId = generateInstanceId('d');
+      const actions: ProjectAction[] = [
+        {
+          type: 'place_device',
+          device: toolApi.tool.device,
+          position: topLeft,
+          rotation: toolApi.tool.rotation,
+          instance_id: newDeviceId,
+        },
+        ...placePlan.map((p) => ({
+          type: 'split_link' as const,
+          link_id: p.link_id,
+          at_cell: p.at_cell,
+          left_dst: { device_instance_id: newDeviceId, port_index: p.input_port_index },
+          right_src: { device_instance_id: newDeviceId, port_index: p.output_port_index },
+        })),
+      ];
+      const result = store.applyMany(actions);
+      if (!result.ok) return;
     } else if (toolApi.tool.kind === 'select') {
       // Inspector pin: drives the right-column panel content. Only left-click
       // in the select tool sets it (P4 v6 — was also right-click in v5).
@@ -488,25 +640,35 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     // If it has collisions, reject the click — the ghost's red color already
     // told the user it's illegal.
     const ctx = buildRouteContext(store.project, layer, lookup);
+    // P4 v7: when start cell hosts ≥ 2 output ports, leave the lock open and
+    // resolve port post-routing. Single-port → keep v6 lock for the L-shape
+    // hint to make sense.
+    const startMulti =
+      linkDraft.waypoints.length === 1 &&
+      hasMultipleOutputPortsAtCell(start, layer, store.project, lookup);
     const firstStep =
-      linkDraft.waypoints.length === 1
+      linkDraft.waypoints.length === 1 && !startMulti
         ? (findOutputPortAtCell(start, layer, store.project, lookup)?.face_direction ?? undefined)
         : undefined;
-    // P4 v6: detect input-port at the click cell first (without arrival-direction
-    // filter) so we can pass its required arrival_direction into the planner.
-    // The planner enforces the match and returns a collision if mismatched.
-    const portAtClick = findInputPortAtCell(cell, layer, store.project, lookup);
     const initialHeading = headingAtEnd(linkDraft.waypoints, ctx, firstStep);
     const candidate = planSegments(
       [last, cell],
       ctx,
       initialHeading,
-      // First-step direction only applies if last is itself the first waypoint
-      // (single-waypoint draft); otherwise the heading carries forward.
       linkDraft.waypoints.length === 1 ? firstStep : undefined,
-      portAtClick?.arrival_direction,
     );
     if (candidate.collisions.length > 0) return;
+
+    // P4 v7: resolve input port from the actual planned arrival direction
+    // (handles multi-port-per-cell mergers). Mismatch on a port-bearing cell
+    // → reject the click.
+    let portAtClick: ReturnType<typeof findInputPortAtCell> = null;
+    if (candidate.path.length >= 2) {
+      const arrival = signDir(candidate.path[candidate.path.length - 1]!, candidate.path[candidate.path.length - 2]!);
+      portAtClick = findInputPortAtCell(cell, layer, store.project, lookup, arrival);
+      const anyInput = portAtClick ?? findInputPortAtCell(cell, layer, store.project, lookup);
+      if (anyInput && !portAtClick) return; // wrong-direction approach to a port cell
+    }
 
     // Commit conditions.
     const closesLoop = cell.x === start.x && cell.y === start.y && linkDraft.waypoints.length >= 2;
@@ -527,7 +689,14 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     portHit: { device_instance_id: string; port_index: number } | null,
   ): void {
     const ctx = buildRouteContext(store.project, layer, lookup);
-    const startPort = findOutputPortAtCell(waypoints[0]!, layer, store.project, lookup);
+    // P4 v7: when the start cell hosts ≥ 2 output ports, leave firstStepDirection
+    // unconstrained (let the user's chosen direction pick the port). The
+    // actual src PortRef is then resolved from `planned.path`'s first step
+    // post-routing.
+    const startMulti = hasMultipleOutputPortsAtCell(waypoints[0]!, layer, store.project, lookup);
+    const startSingle = startMulti
+      ? null
+      : findOutputPortAtCell(waypoints[0]!, layer, store.project, lookup);
     const lastInput = portHit
       ? findInputPortAtCell(waypoints[waypoints.length - 1]!, layer, store.project, lookup)
       : null;
@@ -535,10 +704,17 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       waypoints,
       ctx,
       null,
-      startPort?.face_direction,
+      startSingle?.face_direction,
       lastInput?.arrival_direction,
     );
     if (planned.collisions.length > 0) return; // shouldn't happen — ghost gates clicks
+
+    // Now resolve the actual output port using the planned path's first step.
+    const startDeparture =
+      planned.path.length >= 2 ? signDir(planned.path[1]!, planned.path[0]!) : undefined;
+    const startPort =
+      startSingle ??
+      findOutputPortAtCell(waypoints[0]!, layer, store.project, lookup, startDeparture);
 
     const tier_id = defaultTierId(bundle, layer);
     const srcRef = startPort
@@ -683,6 +859,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           category={category}
           selectedDeviceId={pickedDevice?.id ?? null}
           onPick={handlePick}
+          clipboardHistory={clipboardHistory}
+          onPickClipboardSlot={(payload) => {
+            promoteToTopOfHistory(payload);
+            setClipboardTick((n) => n + 1);
+            setPasteSource(payload);
+            // Clear other tools so paste-mode is the only active interaction.
+            toolApi.setSelect();
+            setPickedDevice(null);
+          }}
         />
       </aside>
       <main aria-label="workspace" className="relative bg-canvas">
@@ -735,6 +920,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onCellClick={handleCellClick}
           onCellRightClick={handleCellRightClick}
           onBoxSelect={handleBoxSelect}
+          isCellHighlighted={isCellHighlighted}
+          onDragMove={handleDragMove}
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
           panTarget={panTarget}
@@ -774,6 +961,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
 
 interface GhostState {
   device: Device;
+  /** TOP-LEFT of the footprint in world cells. Owner cursor → top-left
+   *  conversion (P4 v7 center anchor) lives in `cursorToTopLeft`. */
   cell: Cell;
   rotation: 0 | 90 | 180 | 270;
   status: 'valid' | 'collision' | 'warn';
@@ -787,18 +976,51 @@ function computeGhost(
 ): GhostState | null {
   if (tool.kind !== 'place' || !cursor) return null;
   const { device, rotation } = tool;
-  const placed = { position: cursor, rotation };
+  // P4 v7: cursor is the device's CENTER; convert to top-left for the place
+  // edit + collision check.
+  const topLeft = cursorToTopLeft(cursor, device, rotation);
+  const placed = { position: topLeft, rotation };
 
   if (!fitsInPlot(device, placed, project.plot)) {
-    return { device, cell: cursor, rotation, status: 'collision' };
+    return { device, cell: topLeft, rotation, status: 'collision' };
   }
+  // P4 v7: only check layers the new device actually occupies. A solid
+  // bridge ghosted over an existing fluid pipe should NOT collide — the
+  // bridge only sits on the solid layer.
   const occ = buildOccupancy(project, lookup);
+  const layers = layerOccupancyOf(device);
+  const checkSolid = layers === 'solid' || layers === 'both';
+  const checkFluid = layers === 'fluid' || layers === 'both';
   for (const c of footprintCells(device, placed)) {
-    if (cellBlockedFor(c, 'solid', occ) || cellBlockedFor(c, 'fluid', occ)) {
-      return { device, cell: cursor, rotation, status: 'collision' };
+    // Device-vs-device collision (per layer).
+    if (checkSolid && occ.deviceSolid.has(`${c.x.toString()},${c.y.toString()}`)) {
+      return { device, cell: topLeft, rotation, status: 'collision' };
+    }
+    if (checkFluid && occ.deviceFluid.has(`${c.x.toString()},${c.y.toString()}`)) {
+      return { device, cell: topLeft, rotation, status: 'collision' };
     }
   }
-  return { device, cell: cursor, rotation, status: 'valid' };
+  // P4 v7 place-on-belt: device may overlap existing belts ONLY if every
+  // such overlap is split-legal (port at the cell with matching directions).
+  // planPlaceOnBeltSplits returns 'red' when not.
+  const beltPlan = planPlaceOnBeltSplits(project, device, topLeft, rotation);
+  if (beltPlan === 'red') {
+    return { device, cell: topLeft, rotation, status: 'collision' };
+  }
+  return { device, cell: topLeft, rotation, status: 'valid' };
+}
+
+/** Convert the cursor cell (visual center anchor in P4 v7) to the device's
+ *  top-left footprint cell. For 1×1: identity. For 2×2: subtract 1 from each
+ *  axis (cursor sits in the bottom-right cell). For 3×3: subtract 1 from
+ *  each axis (cursor at center cell). General rule: top-left = cursor -
+ *  floor(bbox/2). */
+function cursorToTopLeft(cursor: Cell, device: Device, rotation: 0 | 90 | 180 | 270): Cell {
+  const bbox = rotatedBoundingBox(device, rotation);
+  return {
+    x: cursor.x - Math.floor(bbox.width / 2),
+    y: cursor.y - Math.floor(bbox.height / 2),
+  };
 }
 
 interface DraftPathState {
@@ -822,9 +1044,19 @@ function computeDraftPath(
   // First-step direction: only set when waypoint[0] is itself the very first
   // cell (no committed segments yet) — once we've passed at least one waypoint
   // the heading carries through and overrides any port lock.
-  const firstStep =
-    findOutputPortAtCell(draft.waypoints[0]!, draft.layer, project, lookup)?.face_direction ??
-    undefined;
+  // P4 v7: skip the lock when the cell hosts ≥ 2 output ports (e.g. a
+  // splitter at the start). The user's first move chooses the port; the
+  // commit path resolves the actual port from the planned path.
+  const startMulti = hasMultipleOutputPortsAtCell(
+    draft.waypoints[0]!,
+    draft.layer,
+    project,
+    lookup,
+  );
+  const firstStep = startMulti
+    ? undefined
+    : (findOutputPortAtCell(draft.waypoints[0]!, draft.layer, project, lookup)?.face_direction ??
+      undefined);
 
   // Build the cell list to plan: waypoints + the live cursor cell if it
   // differs from the last waypoint (otherwise the cursor sits on the last
@@ -840,12 +1072,21 @@ function computeDraftPath(
     return { path: [pts[0]!], layer: draft.layer, status: 'valid', autoBridges: [] };
   }
 
-  // P4 v6: if the cursor sits on an input port, lock the last segment's
-  // arrival direction. Mismatch → planSegments reports a collision → ghost
-  // goes red and the click is rejected.
+  // P4 v7: plan unconstrained first (no last-step lock). Then resolve the
+  // input port using the planned path's actual last step — needed for cells
+  // hosting multiple input ports (e.g. mergers). If the cell HAS input ports
+  // but NONE matches the actual approach, mark the last cell as a collision
+  // so the ghost goes red and the click is rejected.
   const lastCell = pts[pts.length - 1]!;
-  const lastInput = findInputPortAtCell(lastCell, draft.layer, project, lookup);
-  const planned = planSegments(pts, ctx, null, firstStep, lastInput?.arrival_direction);
+  let planned = planSegments(pts, ctx, null, firstStep);
+  if (planned.collisions.length === 0 && planned.path.length >= 2) {
+    const arrival = signDir(planned.path[planned.path.length - 1]!, planned.path[planned.path.length - 2]!);
+    const matched = findInputPortAtCell(lastCell, draft.layer, project, lookup, arrival);
+    const anyInput = matched ?? findInputPortAtCell(lastCell, draft.layer, project, lookup);
+    if (anyInput && !matched) {
+      planned = { ...planned, collisions: [lastCell] };
+    }
+  }
   const status: 'valid' | 'collision' = planned.collisions.length > 0 ? 'collision' : 'valid';
   return {
     path: planned.path as Cell[],
@@ -895,6 +1136,146 @@ function findLayerLinkAtCell(
  *  assumed adjacent (differ by exactly 1 in one axis). */
 function signDir(to: Cell, from: Cell): { dx: number; dy: number } {
   return { dx: Math.sign(to.x - from.x), dy: Math.sign(to.y - from.y) };
+}
+
+interface PlaceOnBeltSplit {
+  link_id: string;
+  at_cell: Cell;
+  input_port_index: number;
+  output_port_index: number;
+}
+
+/** P4 v7 place-on-belt: for each existing same-layer link whose path covers
+ *  any cell of the candidate device's footprint, return the list of split
+ *  actions needed to integrate the device with the existing belts.
+ *
+ *  Rules (v7 simple version):
+ *  - The device's footprint may cover AT MOST ONE cell of any single belt.
+ *    If a belt covers ≥ 2 cells of the footprint, return 'red'.
+ *  - That cell must be an interior cell of the belt (both prev + next exist).
+ *    Endpoint coverage → 'red' (the v7 splitLink edit can't drop endpoints).
+ *  - The device must declare an INPUT port at that cell whose face matches
+ *    the belt's arrival direction reversed, AND an OUTPUT port at that cell
+ *    whose face matches the belt's exit direction. Otherwise → 'red'.
+ *
+ *  When all belts are legal, returns the list of (link_id, at_cell, input_port_index,
+ *  output_port_index) splits the caller bundles with the place_device action.
+ *  Returns [] when the footprint touches no belts (normal placement). */
+function planPlaceOnBeltSplits(
+  project: ReturnType<typeof useProject>['project'],
+  device: Device,
+  topLeft: Cell,
+  rotation: 0 | 90 | 180 | 270,
+): PlaceOnBeltSplit[] | 'red' {
+  const placedStub = { position: topLeft, rotation };
+  const footprint = footprintCells(device, placedStub);
+  const footprintSet = new Set(footprint.map((c) => `${c.x.toString()},${c.y.toString()}`));
+  // Stub-instance world ports for direction matching. portsInWorldFrame
+  // only reads position + rotation off the placed argument.
+  const ports = portsInWorldFrame(device, { position: topLeft, rotation });
+  const out: PlaceOnBeltSplit[] = [];
+  const allLinks = [...project.solid_links, ...project.fluid_links];
+  for (const link of allLinks) {
+    const linkLayer = link.layer;
+    const insideIndices: number[] = [];
+    for (let i = 0; i < link.path.length; i++) {
+      const k = `${link.path[i]!.x.toString()},${link.path[i]!.y.toString()}`;
+      if (footprintSet.has(k)) insideIndices.push(i);
+    }
+    if (insideIndices.length === 0) continue;
+    if (insideIndices.length > 1) return 'red';
+    const idx = insideIndices[0]!;
+    if (idx === 0 || idx === link.path.length - 1) return 'red';
+    const cell = link.path[idx]!;
+    const enterDir = signDir(cell, link.path[idx - 1]!);
+    const exitDir = signDir(link.path[idx + 1]!, cell);
+    // Find INPUT port at this cell whose face_direction = -enterDir.
+    const inputPort = ports.find((p) => {
+      if (p.cell.x !== cell.x || p.cell.y !== cell.y) return false;
+      if (p.direction_constraint !== 'input') return false;
+      if (linkLayer === 'solid' && p.kind !== 'solid') return false;
+      if (linkLayer === 'fluid' && p.kind !== 'fluid') return false;
+      return p.face_direction.dx === -enterDir.dx && p.face_direction.dy === -enterDir.dy;
+    });
+    const outputPort = ports.find((p) => {
+      if (p.cell.x !== cell.x || p.cell.y !== cell.y) return false;
+      if (p.direction_constraint !== 'output') return false;
+      if (linkLayer === 'solid' && p.kind !== 'solid') return false;
+      if (linkLayer === 'fluid' && p.kind !== 'fluid') return false;
+      return p.face_direction.dx === exitDir.dx && p.face_direction.dy === exitDir.dy;
+    });
+    if (!inputPort || !outputPort) return 'red';
+    out.push({
+      link_id: link.id,
+      at_cell: cell,
+      input_port_index: inputPort.port_index,
+      output_port_index: outputPort.port_index,
+    });
+  }
+  return out;
+}
+
+const NEXT_ROTATION_CW: Record<0 | 90 | 180 | 270, 0 | 90 | 180 | 270> = {
+  0: 90,
+  90: 180,
+  180: 270,
+  270: 0,
+};
+
+/** P4 v7: build N `move_rotate_device` actions to rotate every device in
+ *  `selectedIds` 90° CW around the SELECTION centroid. Returns [] if the
+ *  selection is empty. Math:
+ *  - Each device's center is `position + bbox/2` (continuous coords).
+ *  - centroid = average of centers.
+ *  - For each device: relative = center - centroid; rotated = (-rel.y, rel.x);
+ *    new_center = centroid + rotated; new bbox after rotation; new position
+ *    = floor(new_center - new_bbox/2). */
+function batchRotateActions(
+  project: ReturnType<typeof useProject>['project'],
+  selectedIds: ReadonlySet<string>,
+  lookup: (id: string) => Device | undefined,
+): ProjectAction[] {
+  const targets: { placed: { instance_id: string; position: Cell; rotation: 0 | 90 | 180 | 270 }; device: Device; cx: number; cy: number }[] = [];
+  for (const id of selectedIds) {
+    const placed = project.devices.find((d) => d.instance_id === id);
+    if (!placed) continue;
+    const dev = lookup(placed.device_id);
+    if (!dev) continue;
+    const bbox = rotatedBoundingBox(dev, placed.rotation);
+    targets.push({
+      placed: { instance_id: placed.instance_id, position: placed.position, rotation: placed.rotation },
+      device: dev,
+      cx: placed.position.x + bbox.width / 2,
+      cy: placed.position.y + bbox.height / 2,
+    });
+  }
+  if (targets.length === 0) return [];
+  const sumX = targets.reduce((acc, t) => acc + t.cx, 0);
+  const sumY = targets.reduce((acc, t) => acc + t.cy, 0);
+  const centroidX = sumX / targets.length;
+  const centroidY = sumY / targets.length;
+  const out: ProjectAction[] = [];
+  for (const t of targets) {
+    const relX = t.cx - centroidX;
+    const relY = t.cy - centroidY;
+    // 90° CW screen rotation: (relX, relY) → (-relY, relX).
+    const newRelX = -relY;
+    const newRelY = relX;
+    const newCenterX = centroidX + newRelX;
+    const newCenterY = centroidY + newRelY;
+    const newRotation = NEXT_ROTATION_CW[t.placed.rotation];
+    const newBbox = rotatedBoundingBox(t.device, newRotation);
+    out.push({
+      type: 'move_rotate_device',
+      instance_id: t.placed.instance_id,
+      position: {
+        x: Math.floor(newCenterX - newBbox.width / 2),
+        y: Math.floor(newCenterY - newBbox.height / 2),
+      },
+      rotation: newRotation,
+    });
+  }
+  return out;
 }
 
 /** Belt port indices on cross-bridge devices (1×1, ports declared in N,E,S,W

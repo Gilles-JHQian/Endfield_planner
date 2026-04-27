@@ -37,6 +37,14 @@ interface Props {
   onCellRightClick?: (cell: Cell, evt: MouseEvent) => void;
   /** Right-mouse drag completed (P4 v5: box-select). Normalized rectangle. */
   onBoxSelect?: (rect: BoxRect, evt: MouseEvent) => void;
+  /** P4 v7: predicate returning true if `cell` is part of the current
+   *  highlight selection. Drives whether left-mouse-down enters drag-move
+   *  mode vs. falls through to a normal click. Optional — when omitted, all
+   *  left clicks are treated as plain clicks. */
+  isCellHighlighted?: (cell: Cell) => boolean;
+  /** P4 v7: left-mouse-drag completed on a highlighted cell. `delta` is the
+   *  cell-coord offset from the drag start to the drag end. */
+  onDragMove?: (delta: Cell, evt: MouseEvent) => void;
   onCursorChange?: (cell: Cell | null) => void;
   onCameraChange?: (state: { zoom: number }) => void;
   /** When this changes (and is non-null), pan camera so the cell lands at center.
@@ -51,6 +59,8 @@ export function Canvas({
   onCellClick,
   onCellRightClick,
   onBoxSelect,
+  isCellHighlighted,
+  onDragMove,
   onCursorChange,
   onCameraChange,
   panTarget,
@@ -64,6 +74,11 @@ export function Canvas({
   // pointer has moved enough to count as a drag (vs a click).
   const rightDragStart = useRef<Cell | null>(null);
   const rightDragMoved = useRef(false);
+  // Left-mouse drag state (P4 v7). Set when mousedown lands on a highlighted
+  // cell; subsequent mousemove past the start cell flips `leftDragMoved` true
+  // and the mouseup fires onDragMove(delta) instead of onCellClick.
+  const leftDragStart = useRef<Cell | null>(null);
+  const leftDragMoved = useRef(false);
   const [boxRect, setBoxRect] = useState<BoxRect | null>(null);
 
   useEffect(() => {
@@ -108,7 +123,15 @@ export function Canvas({
   }
 
   function handleMouseDown(e: Konva.KonvaEventObject<MouseEvent>): void {
-    if (e.evt.button === 1) {
+    if (e.evt.button === 0) {
+      // P4 v7: left-mousedown on a highlighted cell starts drag-move tracking.
+      // Mouseup with no movement falls through to onCellClick.
+      const cell = pointerCell(e);
+      if (cell && isCellHighlighted?.(cell)) {
+        leftDragStart.current = cell;
+        leftDragMoved.current = false;
+      }
+    } else if (e.evt.button === 1) {
       isPanning.current = true;
       lastPan.current = { x: e.evt.clientX, y: e.evt.clientY };
       e.evt.preventDefault();
@@ -121,12 +144,6 @@ export function Canvas({
       }
       e.evt.preventDefault();
     }
-  }
-
-  function handleClick(e: Konva.KonvaEventObject<MouseEvent>): void {
-    if (e.evt.button !== 0) return; // primary button only
-    const cell = pointerCell(e);
-    if (cell) onCellClick?.(cell, e.evt);
   }
 
   function handleMouseMove(e: Konva.KonvaEventObject<MouseEvent>): void {
@@ -146,6 +163,15 @@ export function Canvas({
         setBoxRect(normalizeBox(start, cur));
       }
     }
+    if (leftDragStart.current) {
+      const cur = pointerCell(e);
+      if (cur) {
+        const start = leftDragStart.current;
+        if (cur.x !== start.x || cur.y !== start.y) {
+          leftDragMoved.current = true;
+        }
+      }
+    }
     onCursorChange?.(pointerCell(e));
   }
 
@@ -153,6 +179,23 @@ export function Canvas({
     if (isPanning.current && e.evt.button === 1) {
       isPanning.current = false;
       lastPan.current = null;
+    }
+    if (e.evt.button === 0) {
+      const cell = pointerCell(e);
+      if (leftDragStart.current) {
+        const start = leftDragStart.current;
+        leftDragStart.current = null;
+        if (leftDragMoved.current && cell) {
+          onDragMove?.({ x: cell.x - start.x, y: cell.y - start.y }, e.evt);
+        } else if (cell) {
+          // Mousedown on highlighted but no movement → treat as click.
+          onCellClick?.(cell, e.evt);
+        }
+        leftDragMoved.current = false;
+      } else if (cell) {
+        // Mousedown was NOT on a highlighted cell → plain click semantics.
+        onCellClick?.(cell, e.evt);
+      }
     }
     if (rightDragStart.current && e.evt.button === 2) {
       const start = rightDragStart.current;
@@ -173,6 +216,8 @@ export function Canvas({
     lastPan.current = null;
     rightDragStart.current = null;
     rightDragMoved.current = false;
+    leftDragStart.current = null;
+    leftDragMoved.current = false;
     setBoxRect(null);
     onCursorChange?.(null);
   }
@@ -195,7 +240,6 @@ export function Canvas({
           scaleY={camera.zoom}
           onWheel={handleWheel}
           onMouseDown={handleMouseDown}
-          onClick={handleClick}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseLeave}
