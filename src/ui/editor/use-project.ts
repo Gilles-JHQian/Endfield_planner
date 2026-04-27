@@ -18,6 +18,7 @@ import {
   resizePlot,
   rotateDevice,
   setDeviceRecipe,
+  setLinkEndpoint,
   splitLink,
 } from '@core/edits/index.ts';
 import type {
@@ -71,6 +72,15 @@ export type ProjectAction =
       at_cell: Cell;
       left_dst: PortRef;
       right_src: PortRef;
+    }
+  | {
+      /** P4 v7.1: retarget a link's src or dst PortRef without splitting.
+       *  Used by the place-on-belt flow when the new device sits at one of
+       *  the existing belt's endpoints. */
+      type: 'set_link_endpoint';
+      link_id: string;
+      end: 'src' | 'dst';
+      ref: PortRef | undefined;
     }
   | { type: 'resize_plot'; width: number; height: number };
 
@@ -232,6 +242,16 @@ function applyAction(
       if (!r.ok) return r;
       return { ok: true, value: { project: r.value.project } };
     }
+    case 'set_link_endpoint':
+      return wrap(
+        setLinkEndpoint({
+          project,
+          link_id: action.link_id,
+          end: action.end,
+          ref: action.ref,
+          lookup,
+        }),
+      );
     case 'resize_plot':
       return wrap(resizePlot(project, action.width, action.height, lookup));
   }
