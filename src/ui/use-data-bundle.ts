@@ -5,11 +5,11 @@
  *  time but only fetches them on demand because we use eager: false. The
  *  hook re-runs when `version` changes.
  */
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 // Import from the IO-agnostic loader, NOT the barrel — the barrel pulls in
 // the Node-only fs wrapper which would bloat the browser bundle.
 import { loadDataBundleFromReader, type JsonReader } from '@core/data-loader/load.ts';
-import type { DataBundle } from '@core/data-loader/types.ts';
+import type { DataBundle, Device } from '@core/data-loader/types.ts';
 
 // Maps "/data/versions/<v>/<file>.json" → loader function returning JSON.
 const dataModules = import.meta.glob<{ default: unknown }>('/data/versions/*/*.json');
@@ -33,6 +33,12 @@ interface FetchedState {
 
 export interface DataBundleState extends FetchedState {
   readonly loading: boolean;
+  /** Replace the bundle's devices array in place. Used by the device editor
+   *  after Save to keep the in-memory bundle aligned with what was just
+   *  written to disk — equivalent to a re-fetch since the merged array is
+   *  exactly the file content.
+   */
+  readonly setDevices: (devices: readonly Device[]) => void;
 }
 
 export function useDataBundle(version: string): DataBundleState {
@@ -54,8 +60,14 @@ export function useDataBundle(version: string): DataBundleState {
     };
   }, [version]);
 
+  const setDevices = useCallback((devices: readonly Device[]): void => {
+    setState((s) =>
+      s.bundle ? { bundle: { ...s.bundle, devices }, error: s.error } : s,
+    );
+  }, []);
+
   // Derive loading from version mismatch — avoids a synchronous setState
   // inside the effect (react-hooks/set-state-in-effect).
   const loading = state.bundle?.version !== version && state.error === null;
-  return { ...state, loading };
+  return { ...state, loading, setDevices };
 }

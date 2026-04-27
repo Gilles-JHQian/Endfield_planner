@@ -13,7 +13,7 @@ import { Button } from '@ui/components/index.ts';
 import { DeviceList } from './DeviceList.tsx';
 import { ScalarFields } from './ScalarFields.tsx';
 import { PortGrid } from './PortGrid.tsx';
-import { saveDevicesJson, type SaveResult } from './save-devices.ts';
+import { mergeEdited, saveDevicesJson, type SaveResult } from './save-devices.ts';
 import { useDeviceDraft } from './use-device-draft.ts';
 import { applyBaseline, useScrapedBaseline } from './use-scraped-baseline.ts';
 import { useState } from 'react';
@@ -21,7 +21,7 @@ import { useState } from 'react';
 const DATA_VERSION = '1.2';
 
 export function DeviceEditorPage() {
-  const { bundle, error, loading } = useDataBundle(DATA_VERSION);
+  const { bundle, error, loading, setDevices } = useDataBundle(DATA_VERSION);
   const draftApi = useDeviceDraft();
   const baseline = useScrapedBaseline(DATA_VERSION);
   const [saveStatus, setSaveStatus] = useState<SaveResult | null>(null);
@@ -49,10 +49,18 @@ export function DeviceEditorPage() {
     );
   }
 
-  async function handleSave(): Promise<void> {
-    if (!draftApi.draft || !bundle) return;
+  async function handleSave(): Promise<boolean> {
+    if (!draftApi.draft || !bundle) return false;
+    const merged = mergeEdited(bundle.devices, draftApi.draft);
     const result = await saveDevicesJson(bundle.devices, draftApi.draft);
     setSaveStatus(result);
+    if (!result.ok) return false;
+    // Reload: align the in-memory bundle with what is now on disk and
+    // re-anchor the draft so `dirty` flips back to false.
+    setDevices(merged);
+    const refreshed = merged.find((d) => d.id === draftApi.draft!.id);
+    if (refreshed) draftApi.load(refreshed);
+    return true;
   }
 
   function handleResetToBaseline(): void {
