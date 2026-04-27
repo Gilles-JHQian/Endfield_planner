@@ -11,6 +11,7 @@ import { useI18n } from '@i18n/index.tsx';
 import { Card } from '@ui/components/index.ts';
 import type { Device } from '@core/data-loader/types.ts';
 import type { ClipboardPayload } from '@core/persistence/index.ts';
+import { ClipboardThumb } from './ClipboardThumb.tsx';
 import { DeviceThumb } from './DeviceThumb.tsx';
 import type { LibraryTab } from './Rail.tsx';
 
@@ -56,6 +57,7 @@ export function Library({
     return (
       <ClipboardView
         history={clipboardHistory ?? []}
+        devices={devices}
         {...(onPickClipboardSlot ? { onPick: onPickClipboardSlot } : {})}
       />
     );
@@ -150,15 +152,25 @@ export function Library({
 
 /** P4 v7 clipboard tab: render the rolling history as 1-column cards.
  *  Each card shows the device count + a tiny bbox preview rectangle so
- *  owners can distinguish slots at a glance. Clicking promotes + arms paste. */
+ *  owners can distinguish slots at a glance. Clicking promotes + arms paste.
+ *
+ *  P4 v7.7: the bbox preview is now a real `ClipboardThumb` SVG showing
+ *  the cluster's relative footprints + link paths. */
 function ClipboardView({
   history,
+  devices,
   onPick,
 }: {
   history: readonly ClipboardPayload[];
+  devices: readonly Device[];
   onPick?: (payload: ClipboardPayload) => void;
 }) {
   const { t } = useI18n();
+  const lookup = useMemo(() => {
+    const map = new Map<string, Device>();
+    for (const d of devices) map.set(d.id, d);
+    return (id: string): Device | undefined => map.get(id);
+  }, [devices]);
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between border-b border-line-faint px-3.5 py-3">
@@ -192,6 +204,16 @@ function ClipboardView({
                   <span className="font-tech-mono text-[10px] text-fg-faint">
                     #{(i + 1).toString()}
                   </span>
+                  <div
+                    className="grid place-items-center rounded-[2px] border border-line-faint bg-surface-0"
+                    style={{
+                      backgroundImage:
+                        'linear-gradient(to right, var(--color-line-faint) 1px, transparent 1px), linear-gradient(to bottom, var(--color-line-faint) 1px, transparent 1px)',
+                      backgroundSize: '8px 8px',
+                    }}
+                  >
+                    <ClipboardThumb payload={payload} lookup={lookup} />
+                  </div>
                   <div className="flex flex-1 flex-col gap-0.5">
                     <span className="font-cn text-[12px] text-fg">
                       {t('library.clipboardSlot', {
