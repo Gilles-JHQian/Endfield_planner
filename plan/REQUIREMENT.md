@@ -850,7 +850,17 @@ A feature is "done" when:
 
 ## Changelog
 
-### v7 (this document)
+### v7.1 — bridge follow-ups (this document)
+
+Patch round on top of v7 closing three owner-reported bridge bugs:
+
+- **`splitLink` keeps `at_cell` in both halves.** v7's drop-cell semantics produced visible 1-cell gaps on each side of every auto-placed cross-bridge. Each split half now ends or starts AT the bridge cell so the rendered belt visually meets the bridge. `splitPathAtBridges` (used by the auto-bridge truncation flow for the new belt being committed) follows the same convention.
+- **`setLinkEndpoint` core edit + `set_link_endpoint` action.** Allows updating a link's `src` or `dst` PortRef without touching the path. Used by the place-on-belt flow when the new device sits at one of the existing belt's endpoints — no split is needed, just retarget the dangling end.
+- **`planPlaceOnBeltSplits` rewrite.** Now handles all three coverage cases: belt START → emit `set_link_endpoint` on src targeting the device's matching OUTPUT port; belt END → set_link_endpoint on dst targeting the matching INPUT port; interior → split (with at_cell kept). Port matching also accepts `paired_opposite` and `bidirectional` constraints (previously only `input`/`output`), unblocking cross-bridge endpoint placements.
+- **Device-interior grace area in `routeForBelt`.** When the belt's FROM or TO cell sits inside a device footprint, the same-layer overlap check is skipped at that cell. The device's port system is the connectivity authority; multiple belts can legitimately converge on a merger/splitter cell. (Fixes "second belt to merger fails" symptom.)
+- **Inspector `PORTS` section shows per-port link connections** (debug aid). Each row: `[index] [side] [dir glyph] [kind] [connected link id or —]`. Driven by `buildPortConnectivity`.
+
+### v7
 
 Phase 4 testing-feedback round #2 on top of v6, 14-item bundle from owner P4 v6 testing:
 
