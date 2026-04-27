@@ -163,6 +163,29 @@ export function Canvas({
     };
   }, []);
 
+  // P4 v7.9: ArrowUp / ArrowDown adjust zoom centered on the viewport. Same
+  // ZOOM_STEP (1.1×) as wheel zoom so the gesture feels consistent. Long-
+  // press auto-repeats via OS key-repeat, giving smooth continuous zoom.
+  useEffect(() => {
+    function isEditableTarget(t: EventTarget | null): boolean {
+      if (!(t instanceof HTMLElement)) return false;
+      const tag = t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+      if (t.isContentEditable) return true;
+      return false;
+    }
+    function onKeyDown(e: KeyboardEvent): void {
+      if (e.code !== 'ArrowUp' && e.code !== 'ArrowDown') return;
+      if (isEditableTarget(e.target)) return;
+      if (size.width === 0 || size.height === 0) return;
+      e.preventDefault();
+      const dir = e.code === 'ArrowUp' ? 1 : -1;
+      camera.zoomAt(size.width / 2, size.height / 2, dir);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [camera, size.width, size.height]);
+
   function pointerCell(e: Konva.KonvaEventObject<MouseEvent | WheelEvent>): Cell | null {
     const stage = e.target.getStage();
     const pointer = stage?.getPointerPosition();
