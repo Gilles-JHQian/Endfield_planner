@@ -42,6 +42,13 @@ interface Props {
   /** When this changes (and is non-null), pan camera so the cell lands at center.
    *  Use a fresh Date.now() bump in `nonce` to re-pan to the same cell. */
   panTarget?: { cell: Cell; nonce: number } | null;
+  /** P4 v7.7: when false (any non-select tool / move mode / paste mode),
+   *  right-mouse drag does NOT paint the dashed box and `onBoxSelect` is
+   *  never called — mouseup invokes `onCellRightClick` instead. The visual
+   *  artifact owners reported in v7.5–v7.6 came from `setBoxRect` running
+   *  during the drag even though EditorPage immediately exited the tool on
+   *  mouseup. Default `true` preserves the v7.5 select-tool behavior. */
+  boxSelectEnabled?: boolean;
 }
 
 export function Canvas({
@@ -54,6 +61,7 @@ export function Canvas({
   onCursorChange,
   onCameraChange,
   panTarget,
+  boxSelectEnabled = true,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -65,6 +73,20 @@ export function Canvas({
   const rightDragStart = useRef<Cell | null>(null);
   const rightDragMoved = useRef(false);
   const [boxRect, setBoxRect] = useState<BoxRect | null>(null);
+  // P4 v7.7: hold space + left-drag to pan (trackpad-friendly alternative to
+  // middle-click). `spaceDown` drives the cursor visual via state; the ref
+  // mirrors it for the mouse handlers (refs don't wait for re-render).
+  const [spaceDown, setSpaceDown] = useState(false);
+  const spaceDownRef = useRef(false);
+  // True while the left button is held during a Space-initiated pan; mouseUp
+  // uses it to suppress the onCellClick that would otherwise fire. State
+  // (not just ref) so the cursor visual flips to 'grabbing' during the drag.
+  const [spacePanActive, setSpacePanActive] = useState(false);
+  const spacePanActiveRef = useRef(false);
+  function setSpacePan(active: boolean): void {
+    spacePanActiveRef.current = active;
+    setSpacePanActive(active);
+  }
 
   useEffect(() => {
     const el = containerRef.current;
@@ -90,6 +112,47 @@ export function Canvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panTarget?.cell.x, panTarget?.cell.y, panTarget?.nonce]);
 
+  // P4 v7.7: window-level Space tracking for trackpad pan.
+  useEffect(() => {
+    function isEditableTarget(t: EventTarget | null): boolean {
+      if (!(t instanceof HTMLElement)) return false;
+      const tag = t.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return true;
+      if (t.isContentEditable) return true;
+      return false;
+    }
+    function onKeyDown(e: KeyboardEvent): void {
+      if (e.code !== 'Space' && e.key !== ' ') return;
+      if (isEditableTarget(e.target)) return;
+      // preventDefault so Space doesn't scroll the page when the canvas is
+      // focused implicitly (no scrollable container above us, but defense
+      // against future layout changes is cheap).
+      e.preventDefault();
+      spaceDownRef.current = true;
+      setSpaceDown(true);
+    }
+    function onKeyUp(e: KeyboardEvent): void {
+      if (e.code !== 'Space' && e.key !== ' ') return;
+      spaceDownRef.current = false;
+      setSpaceDown(false);
+    }
+    function onBlur(): void {
+      spaceDownRef.current = false;
+      setSpaceDown(false);
+      isPanning.current = false;
+      lastPan.current = null;
+      setSpacePan(false);
+    }
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
+
   function pointerCell(e: Konva.KonvaEventObject<MouseEvent | WheelEvent>): Cell | null {
     const stage = e.target.getStage();
     const pointer = stage?.getPointerPosition();
@@ -108,6 +171,14 @@ export function Canvas({
   }
 
   function handleMouseDown(e: Konva.KonvaEventObject<MouseEvent>): void {
+    // P4 v7.7: Space + left-drag is an alias for middle-button pan.
+    if (e.evt.button === 0 && spaceDownRef.current) {
+      isPanning.current = true;
+      lastPan.current = { x: e.evt.clientX, y: e.evt.clientY };
+      setSpacePan(true);
+      e.evt.preventDefault();
+      return;
+    }
     if (e.evt.button === 1) {
       isPanning.current = true;
       lastPan.current = { x: e.evt.clientX, y: e.evt.clientY };
@@ -117,7 +188,9 @@ export function Canvas({
       if (cell) {
         rightDragStart.current = cell;
         rightDragMoved.current = false;
-        setBoxRect({ from: cell, to: cell });
+        // P4 v7.7: skip the dashed-rect overlay outside select tool (the
+        // mouseup handler treats any drag as a tool-cancel right-click).
+        if (boxSelectEnabled) setBoxRect({ from: cell, to: cell });
       }
       e.evt.preventDefault();
     }
@@ -137,7 +210,7 @@ export function Canvas({
         if (cur.x !== start.x || cur.y !== start.y) {
           rightDragMoved.current = true;
         }
-        setBoxRect(normalizeBox(start, cur));
+        if (boxSelectEnabled) setBoxRect(normalizeBox(start, cur));
       }
     }
     onCursorChange?.(pointerCell(e));
@@ -148,6 +221,14 @@ export function Canvas({
       isPanning.current = false;
       lastPan.current = null;
     }
+    // P4 v7.7: end Space-pan on left-up; suppress the click that would
+    // otherwise fire on the underlying cell.
+    if (e.evt.button === 0 && spacePanActiveRef.current) {
+      isPanning.current = false;
+      lastPan.current = null;
+      setSpacePan(false);
+      return;
+    }
     if (e.evt.button === 0) {
       const cell = pointerCell(e);
       if (cell) onCellClick?.(cell, e.evt);
@@ -155,7 +236,10 @@ export function Canvas({
     if (rightDragStart.current && e.evt.button === 2) {
       const start = rightDragStart.current;
       const end = pointerCell(e) ?? start;
-      if (rightDragMoved.current) {
+      // P4 v7.7: outside select tool, treat any right-mouse release as a
+      // right-click cancel (no box-select callback). The dashed rect was
+      // already suppressed in mouseDown / mouseMove.
+      if (rightDragMoved.current && boxSelectEnabled) {
         onBoxSelect?.(normalizeBox(start, end), e.evt);
       } else {
         onCellRightClick?.(start, e.evt);
@@ -169,6 +253,7 @@ export function Canvas({
   function handleMouseLeave(): void {
     isPanning.current = false;
     lastPan.current = null;
+    setSpacePan(false);
     rightDragStart.current = null;
     rightDragMoved.current = false;
     setBoxRect(null);
@@ -181,8 +266,16 @@ export function Canvas({
 
   const visible = camera.visibleBounds(size.width, size.height);
 
+  // P4 v7.7: cursor reflects Space-pan affordance. `cursor-grabbing` while
+  // actively dragging takes precedence over the `cursor-grab` ready state.
+  const cursorClass = spaceDown
+    ? spacePanActive
+      ? 'cursor-grabbing'
+      : 'cursor-grab'
+    : 'cursor-default';
+
   return (
-    <div ref={containerRef} className="absolute inset-0 cursor-default">
+    <div ref={containerRef} className={`absolute inset-0 ${cursorClass}`}>
       {size.width > 0 && (
         <Stage
           width={size.width}

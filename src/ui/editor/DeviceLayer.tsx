@@ -39,6 +39,10 @@ interface Props {
   /** Instance ids of devices currently inside some 供电桩 AoE. Devices that
    *  require power but aren't in this set get a red "unplugged" badge. */
   coveredInstanceIds?: ReadonlySet<string>;
+  /** P4 v7.7: current camera zoom (1 = 100%). Drives screen-fixed label
+   *  sizing and width-aware truncation. Defaults to 1 if unspecified for
+   *  backward compatibility with tests that don't plumb the camera. */
+  zoom?: number;
 }
 
 export function DeviceLayer({
@@ -47,6 +51,7 @@ export function DeviceLayer({
   selectedInstanceId,
   boxSelectedIds,
   coveredInstanceIds,
+  zoom = 1,
 }: Props) {
   return (
     <>
@@ -66,6 +71,7 @@ export function DeviceLayer({
             selected={placed.instance_id === selectedInstanceId}
             boxSelected={boxSelectedIds?.has(placed.instance_id) ?? false}
             unpowered={unpowered}
+            zoom={zoom}
           />
         );
       })}
@@ -73,18 +79,35 @@ export function DeviceLayer({
   );
 }
 
+// P4 v7.7: device-name labels render at a fixed screen pixel height
+// regardless of zoom; the truncation rule expands the abbreviation to
+// fill whatever screen width the device occupies.
+const SCREEN_LABEL_PX = 12;
+// CJK glyphs are roughly square; reserve 1.05 × font for safety so a 3-char
+// label fits a square that's `3 * SCREEN_LABEL_PX * 1.05` wide.
+const SCREEN_LABEL_GLYPH_RATIO = 1.05;
+// Don't render a label inside footprints narrower than this (in screen px) —
+// even a single CJK glyph would be unreadable.
+const SCREEN_LABEL_MIN_WIDTH_PX = 12;
+// Categories whose devices have iconic enough geometry to skip the label
+// (bridges read as cross / Y / arrow shapes; storage I/O ports are tiny
+// "load" / "unload" badges where text adds noise).
+const LABEL_SKIP_CATEGORIES: ReadonlySet<string> = new Set(['logistics', 'storage']);
+
 function DeviceShape({
   placed,
   device,
   selected,
   boxSelected,
   unpowered,
+  zoom,
 }: {
   placed: PlacedDevice;
   device: Device;
   selected: boolean;
   boxSelected: boolean;
   unpowered: boolean;
+  zoom: number;
 }) {
   const bbox = rotatedBoundingBox(device, placed.rotation);
   const x = placed.position.x * CELL_PX;
@@ -93,30 +116,39 @@ function DeviceShape({
   const h = bbox.height * CELL_PX;
   const isFluid = device.has_fluid_interface;
   const accent = isFluid ? '#4ec9d3' : '#ff9a3d';
-  // P4 v7.6: 3-char abbreviation of the zh-Hans name; font size scales with
-  // the smaller footprint dimension so the label fits inside even 1×1 cells.
-  const label = abbreviateCnName(device.display_name_zh_hans);
-  const fontSize = Math.max(10, Math.min(w / 4, h / 2));
+  // P4 v7.7: label is a screen-fixed-size string truncated to fit the
+  // device's screen footprint. fontSize is divided by `zoom` so Konva's
+  // stage-level scale cancels out → constant on-screen height.
+  const screenWidth = w * zoom;
+  const showLabel =
+    !LABEL_SKIP_CATEGORIES.has(device.category) && screenWidth >= SCREEN_LABEL_MIN_WIDTH_PX;
+  const maxChars = Math.floor(screenWidth / (SCREEN_LABEL_PX * SCREEN_LABEL_GLYPH_RATIO));
+  const labelText =
+    showLabel && maxChars >= 1 ? abbreviateCnName(device.display_name_zh_hans, maxChars) : '';
+  const fontSize = SCREEN_LABEL_PX / zoom;
 
   return (
     <Group x={x} y={y}>
       {/* Body — semi-opaque surface-2 with hairline accent border. */}
       <Rect width={w} height={h} fill="#181d23" stroke={accent} strokeWidth={1} opacity={0.95} />
-      {/* Display-name label — truncated CN name centered inside the footprint. */}
-      <Text
-        x={0}
-        y={0}
-        width={w}
-        height={h}
-        align="center"
-        verticalAlign="middle"
-        text={label}
-        fontFamily="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif"
-        fontSize={fontSize}
-        fontStyle="bold"
-        fill={accent}
-        listening={false}
-      />
+      {/* Display-name label — truncated CN name centered inside the footprint.
+       *  P4 v7.7: fontSize / zoom keeps text at SCREEN_LABEL_PX on screen. */}
+      {labelText && (
+        <Text
+          x={0}
+          y={0}
+          width={w}
+          height={h}
+          align="center"
+          verticalAlign="middle"
+          text={labelText}
+          fontFamily="Noto Sans SC, PingFang SC, Microsoft YaHei, sans-serif"
+          fontSize={fontSize}
+          fontStyle="bold"
+          fill={accent}
+          listening={false}
+        />
+      )}
       {/* Recipe-bound badge — small amber dot in top-right corner. */}
       {placed.recipe_id !== null && (
         <Rect x={w - 6} y={2} width={4} height={4} fill="#ff9a3d" listening={false} />

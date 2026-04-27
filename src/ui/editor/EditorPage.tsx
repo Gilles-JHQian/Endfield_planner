@@ -490,6 +490,13 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // (O(snapshot.devices × footprint + project.devices × footprint)).
   const moveGhost =
     moveMode && cursor ? computeMoveGhost(moveMode, cursor, store.project, lookup) : null;
+  // P4 v7.7: paste mode renders the same multi-device cluster ghost so the
+  // owner can see the placement footprint before clicking. Reuses the move-
+  // ghost shape + MoveModeGhost renderer.
+  const pasteGhost =
+    pasteSource && cursor && !moveMode
+      ? computePasteGhost(pasteSource, cursor, store.project, lookup)
+      : null;
 
   /** P4 v6 right-click: device or belt under cell goes into the highlight set
    *  (`boxSelected` for devices, `selectedLinkIds` for belts). Does NOT touch
@@ -762,18 +769,24 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     setSelectedLinkIds(linkIds);
   }
 
-  function handleCellClick(cell: Cell, _evt: MouseEvent): void {
+  function handleCellClick(cell: Cell, evt: MouseEvent): void {
     // P4 v7.3 move mode: left-click commits the snapshot at the cursor's
     // current position + rotation (silent no-op on collision).
     if (moveMode) {
       commitMoveMode();
       return;
     }
+    // P4 v7.7: Ctrl/Cmd + left-click in a placement mode = "drop a copy and
+    // STAY in the mode" (clone gesture). Plain left-click drops one and
+    // exits back to select. Move mode is unchanged (always commit + exit).
+    const cloneModifier = evt.ctrlKey || evt.metaKey;
     // P4 v7 paste mode: a clipboard slot was picked from the Library tab.
-    // Next left click pastes at cursor; mode persists until right-click /
-    // Esc / tool change.
     if (pasteSource) {
+      // P4 v7.7: block paste when the cluster ghost is red.
+      const ghost = computePasteGhost(pasteSource, cell, store.project, lookup);
+      if (ghost.collides) return;
       pastePayloadAtCursor(pasteSource, cell);
+      if (!cloneModifier) setPasteSource(null);
       return;
     }
     if (toolApi.tool.kind === 'place') {
@@ -830,6 +843,12 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       }
       const result = store.applyMany(actions);
       if (!result.ok) return;
+      // P4 v7.7: plain click drops one and returns to select; Ctrl/Cmd
+      // keeps place mode armed for rapid cloning.
+      if (!cloneModifier) {
+        toolApi.setSelect();
+        setPickedDevice(null);
+      }
     } else if (toolApi.tool.kind === 'select') {
       // Inspector pin: drives the right-column panel content. Only left-click
       // in the select tool sets it (P4 v6 — was also right-click in v5).
@@ -1179,6 +1198,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                 selectedInstanceId={selectedInstanceId}
                 boxSelectedIds={boxSelected}
                 coveredInstanceIds={powerCoverage.coveredInstanceIds}
+                zoom={zoom}
               />
               {viewMode === 'power' && (
                 <PowerOverlay devices={store.project.devices} lookup={lookup} />
@@ -1206,6 +1226,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
                 />
               )}
               {moveGhost && <MoveModeGhost ghost={moveGhost} lookup={lookup} />}
+              {pasteGhost && <MoveModeGhost ghost={pasteGhost} lookup={lookup} />}
               {highlight && (
                 <IssueHighlight cells={highlight.cells} severity={highlight.severity} />
               )}
@@ -1217,6 +1238,12 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
           panTarget={panTarget}
+          // P4 v7.7: only the select tool (no move / paste mode active)
+          // gets the right-mouse box-select. Other contexts treat any
+          // right-mouse release as a tool-cancel right-click.
+          boxSelectEnabled={
+            toolApi.tool.kind === 'select' && moveMode === null && pasteSource === null
+          }
         />
         <Toolbar api={toolApi} />
         <LayerToggle active={viewMode} onChange={setViewMode} />
@@ -1523,19 +1550,37 @@ function computeMoveGhost(
     path: l.path.map(rotateAndTranslate),
   }));
 
-  // P4 v7.4 collision check. Snapshot has been removed from the project so
-  // we don't false-positive against ourselves. Three classes of collision:
-  //  1. Ghost device cells that fall out of the plot.
-  //  2. Ghost device cells that overlap an existing device on a layer the
-  //     new device blocks (the v7.3 check).
-  //  3. Ghost device cells that overlap an existing same-layer link (belt
-  //     under device — the v7-7 place-on-belt rule isn't applied during
-  //     move; owners can manually re-route after).
-  //  4. Ghost link path cells that overlap an existing same-layer link OR
-  //     enter an existing device's footprint on the link's layer.
+  const colliding = clusterCollisions(newDevices, newLinks, project, lookup);
+  return {
+    devices: newDevices,
+    links: newLinks,
+    collides: colliding.size > 0,
+    collidingCells: colliding,
+  };
+}
+
+/** P4 v7.4 collision check shared by move-mode and paste-mode cluster ghosts.
+ *  Treats the project as the "rest" — the move-mode caller has already
+ *  removed its snapshot from the project, the paste-mode caller never had
+ *  the cluster in the project to begin with, so neither false-positives
+ *  against itself. Four classes of collision:
+ *    1. Ghost device cells outside the plot.
+ *    2. Ghost device cells that overlap an existing device on a layer the
+ *       cluster device blocks.
+ *    3. Ghost device cells that overlap an existing same-layer link (belt
+ *       under device — no auto-split during cluster placement).
+ *    4. Ghost link path cells that overlap an existing same-layer link OR
+ *       enter an existing device's footprint on the link's layer.
+ */
+function clusterCollisions(
+  devices: readonly PlacedDevice[],
+  links: readonly { layer: Layer; path: readonly Cell[] }[],
+  project: { plot: { width: number; height: number } } & Parameters<typeof buildOccupancy>[0],
+  lookup: (id: string) => Device | undefined,
+): Set<string> {
   const occ = buildOccupancy(project, lookup);
   const colliding = new Set<string>();
-  for (const d of newDevices) {
+  for (const d of devices) {
     const dev = lookup(d.device_id);
     if (!dev) continue;
     if (!fitsInPlot(dev, d, project.plot)) {
@@ -1551,22 +1596,45 @@ function computeMoveGhost(
       const k = `${c.x.toString()},${c.y.toString()}`;
       if (checkSolid && occ.deviceSolid.has(k)) colliding.add(k);
       if (checkFluid && occ.deviceFluid.has(k)) colliding.add(k);
-      // v7.4: device-on-belt blocks the move (no auto-split during move).
       if (checkSolid && occ.solid.has(k)) colliding.add(k);
       if (checkFluid && occ.fluid.has(k)) colliding.add(k);
     }
   }
-  for (const l of newLinks) {
+  for (const l of links) {
     for (const c of l.path) {
       const k = `${c.x.toString()},${c.y.toString()}`;
-      // Belt-into-device on the link's layer.
       if (l.layer === 'solid' && occ.deviceSolid.has(k)) colliding.add(k);
       if (l.layer === 'fluid' && occ.deviceFluid.has(k)) colliding.add(k);
-      // Belt-on-belt same-layer overlap.
       if (l.layer === 'solid' && occ.solid.has(k)) colliding.add(k);
       if (l.layer === 'fluid' && occ.fluid.has(k)) colliding.add(k);
     }
   }
+  return colliding;
+}
+
+/** P4 v7.7: paste-mode cursor-following ghost. Translates the clipboard
+ *  payload's relative cells to absolute (anchor + rel) and reuses the
+ *  cluster-collision check. The caller wires the ghost into MoveModeGhost
+ *  for rendering and blocks the paste click when `collides`. */
+function computePasteGhost(
+  payload: ClipboardPayload,
+  anchor: Cell,
+  project: { plot: { width: number; height: number } } & Parameters<typeof buildOccupancy>[0],
+  lookup: (id: string) => Device | undefined,
+): MoveGhost {
+  const newDevices: PlacedDevice[] = payload.items.map((it, i) => ({
+    instance_id: `paste-ghost-${i.toString()}`,
+    device_id: it.device_id,
+    position: { x: anchor.x + it.rel_position.x, y: anchor.y + it.rel_position.y },
+    rotation: it.rotation,
+    recipe_id: it.recipe_id,
+  }));
+  const newLinks = payload.links.map((l) => ({
+    layer: l.layer,
+    tier_id: l.tier_id,
+    path: l.rel_path.map((c) => ({ x: anchor.x + c.x, y: anchor.y + c.y })),
+  }));
+  const colliding = clusterCollisions(newDevices, newLinks, project, lookup);
   return {
     devices: newDevices,
     links: newLinks,

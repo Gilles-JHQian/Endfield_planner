@@ -17,8 +17,13 @@ import { CELL_PX } from './use-camera.ts';
 const SOLID_COLOR = '#ff9a3d';
 const FLUID_COLOR = '#4ec9d3';
 const EDGE_OFFSET = CELL_PX * 0.3;
-const ARROW_SPACING = 3; // cells between chevrons
-const ARROW_LEN = CELL_PX * 0.28;
+// P4 v7.7: tighter spacing + shorter wings — owners reported the v6
+// chevrons looked sparse and bulky on long belts. Halving the length and
+// dropping the spacing one cell makes the flow read smoother without
+// blowing up the chevron count on dense belts (chevrons skip turn cells
+// already, so the tighter spacing doesn't double up at corners).
+const ARROW_SPACING = 2; // cells between chevrons
+const ARROW_LEN = CELL_PX * 0.18;
 /** P4 v6 rounded corners: at each corner cell we insert TWO offset points into
  *  the polylines (pre-bend and post-bend), each `CORNER_INSET` from the cell
  *  center along the incoming / outgoing axis. Combined with `lineJoin=round`,

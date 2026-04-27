@@ -850,7 +850,20 @@ A feature is "done" when:
 
 ## Changelog
 
-### v7.6 — device-name labels + thumb normalization + default I/O ports (this document)
+### v7.7 — operation polish + label truncation + clipboard ghost (this document)
+
+Operation-logic, visual, and clipboard polish on top of v7.6.
+
+- **Right-drag box-select visual suppressed outside the select tool.** v7.5 routed right-drag in non-select tool modes through the tool-cancel branch on mouseup, but the dashed selection rectangle still painted during the drag. Canvas now takes a `boxSelectEnabled` prop; EditorPage passes `tool === 'select' && !moveMode && !pasteSource` so the visual only appears when box-select is actually possible. Drag-and-release in any other context calls `onCellRightClick` (no `onBoxSelect`) so existing tool-cancel behavior is preserved.
+- **Space + left-drag pans the canvas.** Trackpad-friendly alias for the middle-mouse-button pan. Window-level keydown/keyup tracks Space (ignored when an INPUT/TEXTAREA/contentEditable is focused); cursor flips to `grab` while held and `grabbing` during a Space-pan; blur / mouseleave reset all flags so a window-switch mid-pan doesn't leave the canvas stuck. The use-camera.ts header comment had documented this gesture since P3 — v7.7 actually wires it up.
+- **Default click in place / paste modes drops one and exits to select; Ctrl/Cmd-click clones.** UX shift on top of v7's sticky placement modes. Single click drops a device (place tool) or pastes a cluster (paste mode) and returns to the select tool; Ctrl/Cmd-click keeps the mode armed for rapid cloning. Move mode is unchanged (always commits + exits).
+- **Paste mode renders a cursor-following cluster ghost.** Until v7.6, paste mode (clipboard slot armed) only fired on the next click without showing where the cluster would land. v7.7 mirrors move-mode UX: a translucent multi-device ghost follows the cursor and tints colliding cells red; clicks while red are rejected. Refactored `computeMoveGhost`'s collision check into a shared `clusterCollisions` helper so paste reuses it; new `computePasteGhost` translates the payload's rel-paths to absolute and feeds the same `MoveModeGhost` renderer.
+- **Canvas device labels render at a fixed 12 px screen height + truncate to fit.** v7.6 sized the label by the world-coord device dimensions, so it scaled with zoom. v7.7 divides fontSize by camera zoom (Konva's stage scale cancels out → constant on screen), and recomputes the truncation budget per-render from the device's screen-pixel width. Zooming out shrinks the budget and the label degrades 「混合池-2」 → 「混合池…」 → 「混合…」 → hidden, never overflowing. Categories `{logistics, storage}` skip the label entirely (bridges / storage I/O ports read better without text).
+- **Library card thumbs drop the v7.6 name overlay.** The card already shows the full zh-Hans name + id outside the SVG; the overlay inside the small footprint added clutter without adding information.
+- **Belt / pipe direction chevrons are tighter and smaller.** Spacing 3 → 2 cells, length 0.28 → 0.18 cell. The flow now reads as a smooth dotted line rather than punctuation marks; turn-cell skipping prevents corner doubling.
+- **Clipboard slots render a multi-device thumb.** New `ClipboardThumb` SVG lays out each history slot's relative device footprints + link paths on the same 6×6 baseline as `DeviceThumb`. Owners can distinguish similar-sized clusters at a glance instead of relying on the "2 devices, 5×3" text label.
+
+### v7.6 — device-name labels + thumb normalization + default I/O ports
 
 Three small visual / data improvements on top of v7.5, plus a cross-cutting Node 25 compat fix that the rest of the bundle depends on.
 
