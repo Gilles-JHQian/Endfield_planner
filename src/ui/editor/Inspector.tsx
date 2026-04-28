@@ -11,7 +11,7 @@
  */
 import { useMemo } from 'react';
 import { useI18n } from '@i18n/index.tsx';
-import { KvRow, SectionHead, WarningStripe } from '@ui/components/index.ts';
+import { Button, KvRow, SectionHead, WarningStripe } from '@ui/components/index.ts';
 import { rotatedBoundingBox } from '@core/domain/geometry.ts';
 import { buildPortConnectivity, portKey } from '@core/domain/topology.ts';
 import type { PlacedDevice, Project } from '@core/domain/types.ts';
@@ -30,6 +30,12 @@ interface Props {
   /** Right-click highlight set (links). Counted into the selection summary
    *  alongside devices. */
   selectedLinkIds: ReadonlySet<string>;
+  /** Copy the current selection to the clipboard slot + history (same as Ctrl+C). */
+  onCopySelection: () => void;
+  /** Cut = copy + delete the current selection. */
+  onCutSelection: () => void;
+  /** Prompt for a name and persist the selection as a session schematic. */
+  onSaveSchematic: () => void;
 }
 
 export function Inspector({
@@ -40,6 +46,9 @@ export function Inspector({
   onRecipeChange,
   selectedDeviceIds,
   selectedLinkIds,
+  onCopySelection,
+  onCutSelection,
+  onSaveSchematic,
 }: Props) {
   const placed = useMemo(
     () => project.devices.find((d) => d.instance_id === selectedInstanceId) ?? null,
@@ -56,6 +65,9 @@ export function Inspector({
         deviceIds={selectedDeviceIds}
         linkIds={selectedLinkIds}
         lookup={lookup}
+        onCopy={onCopySelection}
+        onCut={onCutSelection}
+        onSaveSchematic={onSaveSchematic}
       />
     );
   }
@@ -78,11 +90,17 @@ function SelectionInspector({
   deviceIds,
   linkIds,
   lookup,
+  onCopy,
+  onCut,
+  onSaveSchematic,
 }: {
   project: Project;
   deviceIds: ReadonlySet<string>;
   linkIds: ReadonlySet<string>;
   lookup: (id: string) => Device | undefined;
+  onCopy: () => void;
+  onCut: () => void;
+  onSaveSchematic: () => void;
 }) {
   const { t } = useI18n();
   const stats = useMemo(() => {
@@ -139,6 +157,24 @@ function SelectionInspector({
           <KvRow label={t('inspector.summary.solidLinks')}>{stats.solidLinks.toString()}</KvRow>
           <KvRow label={t('inspector.summary.fluidLinks')}>{stats.fluidLinks.toString()}</KvRow>
         </div>
+        <Section
+          titleEn="ACTIONS"
+          titleCn={t('inspector.section.selectionActions')}
+        >
+          <div className="flex flex-col gap-2 pt-1">
+            <Button intent="primary" onClick={onSaveSchematic} disabled={stats.resolvedDevices === 0}>
+              {t('inspector.selection.saveSchematic')}
+            </Button>
+            <div className="flex gap-2">
+              <Button intent="ghost" onClick={onCopy} className="flex-1">
+                {t('inspector.selection.copy')}
+              </Button>
+              <Button intent="ghost" onClick={onCut} className="flex-1">
+                {t('inspector.selection.cut')}
+              </Button>
+            </div>
+          </div>
+        </Section>
       </div>
     </div>
   );

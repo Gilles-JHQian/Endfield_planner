@@ -93,6 +93,11 @@
   "inspector.selection.cellsUnit": "格",
   "inspector.selection.poweredDevices": "需供电",
   "inspector.selection.fluidDevices": "含流体接口",
+  "inspector.section.selectionActions": "操作",
+  "inspector.selection.saveSchematic": "保存原理图",
+  "inspector.selection.copy": "复制",
+  "inspector.selection.cut": "剪切",
+  "inspector.selection.namePrompt": "命名原理图",
 
   "drc.title": "DRC 检查",
   "drc.expand": "展开",

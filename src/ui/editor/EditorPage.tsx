@@ -61,6 +61,7 @@ import {
   promoteToTopOfHistory,
   readClipboard,
   readClipboardHistory,
+  saveSchematic,
   scheduleSave,
   type ClipboardPayload,
 } from '@core/persistence/index.ts';
@@ -158,6 +159,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [clipboardTick],
   );
+  // Same pattern for the session schematic store (commit 4 reads it from the
+  // Library; here it's bumped on every save so any subscriber re-renders).
+  const [, setSchematicsTick] = useState(0);
   // Multi-segment belt/pipe draft. Each click adds a waypoint; the segment
   // between consecutive waypoints is BFS-routed around devices. Drafting
   // commits when the user clicks an input port of the matching layer or
@@ -283,6 +287,85 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedInstanceId, store, toolApi.tool]);
 
+  /** Build a clipboard payload from the current right-click highlight set.
+   *  Devices = all in `boxSelected`; links = anything in `selectedLinkIds`
+   *  PLUS links whose both endpoints reference a selected device (so attached
+   *  belts ride along even when only the devices are highlighted). Same rule
+   *  as enterMoveMode below. */
+  function buildSelectionPayload(): ClipboardPayload | null {
+    if (boxSelected.size === 0) return null;
+    const devices = store.project.devices.filter((d) => boxSelected.has(d.instance_id));
+    const allLinks = [...store.project.solid_links, ...store.project.fluid_links];
+    const includedLinks = allLinks.filter((l) => {
+      if (selectedLinkIds.has(l.id)) return true;
+      if (
+        l.src &&
+        l.dst &&
+        boxSelected.has(l.src.device_instance_id) &&
+        boxSelected.has(l.dst.device_instance_id)
+      ) {
+        return true;
+      }
+      return false;
+    });
+    return buildPayload(devices, includedLinks);
+  }
+
+  /** Copy the highlight set to the clipboard slot + history. Shared by Ctrl+C
+   *  and the inspector's Copy button. */
+  function handleCopySelection(): void {
+    const payload = buildSelectionPayload();
+    if (!payload) return;
+    copyToClipboard(payload);
+    setClipboardTick((n) => n + 1);
+  }
+
+  /** Delete every highlighted device + link in one history snapshot. Shared
+   *  by F/Delete and the inspector's Cut button. */
+  function handleDeleteSelection(): void {
+    if (boxSelected.size === 0 && selectedLinkIds.size === 0) return;
+    const actions: ProjectAction[] = [
+      ...Array.from(boxSelected).map(
+        (instance_id) =>
+          ({
+            type: 'delete_device',
+            instance_id,
+          }) as const,
+      ),
+      ...Array.from(selectedLinkIds).map(
+        (link_id) =>
+          ({
+            type: 'delete_link',
+            link_id,
+          }) as const,
+      ),
+    ];
+    store.applyMany(actions);
+    setBoxSelected(new Set());
+    setSelectedLinkIds(new Set());
+    if (selectedInstanceId && boxSelected.has(selectedInstanceId)) {
+      setSelectedInstanceId(null);
+    }
+  }
+
+  function handleCutSelection(): void {
+    const payload = buildSelectionPayload();
+    if (!payload) return;
+    copyToClipboard(payload);
+    setClipboardTick((n) => n + 1);
+    handleDeleteSelection();
+  }
+
+  function handleSaveSchematic(): void {
+    const payload = buildSelectionPayload();
+    if (!payload) return;
+    const raw = window.prompt('Save schematic as · 命名原理图:', '');
+    const name = raw?.trim();
+    if (!name) return;
+    saveSchematic(name, payload);
+    setSchematicsTick((n) => n + 1);
+  }
+
   // Selection-aware global keybindings (P4 v5 — no longer tool-bound):
   // - F / Delete: batch-delete the box selection, OR delete the selected
   //   single belt, OR delete the selected single device.
@@ -295,29 +378,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       if (meta && (e.key === 'c' || e.key === 'C')) {
         if (boxSelected.size === 0) return;
         e.preventDefault();
-        const devices = store.project.devices.filter((d) => boxSelected.has(d.instance_id));
-        // P4 v7: include all links (both layers) whose endpoints both reference
-        // P4 v7.3: include any link in selectedLinkIds PLUS any link whose
-        // both endpoints reference a boxSelected device. PortRefs to devices
-        // outside the selection are dropped on paste (v7.3 buildPayload).
-        const allLinks = [...store.project.solid_links, ...store.project.fluid_links];
-        const includedLinks = allLinks.filter((l) => {
-          if (selectedLinkIds.has(l.id)) return true;
-          if (
-            l.src &&
-            l.dst &&
-            boxSelected.has(l.src.device_instance_id) &&
-            boxSelected.has(l.dst.device_instance_id)
-          ) {
-            return true;
-          }
-          return false;
-        });
-        const payload = buildPayload(devices, includedLinks);
-        if (payload) {
-          copyToClipboard(payload);
-          setClipboardTick((n) => n + 1);
-        }
+        handleCopySelection();
         return;
       }
       if (meta && (e.key === 'v' || e.key === 'V')) {
@@ -331,28 +392,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       if (e.key === 'f' || e.key === 'F' || e.key === 'Delete') {
         if (boxSelected.size > 0 || selectedLinkIds.size > 0) {
           e.preventDefault();
-          const actions: ProjectAction[] = [
-            ...Array.from(boxSelected).map(
-              (instance_id) =>
-                ({
-                  type: 'delete_device',
-                  instance_id,
-                }) as const,
-            ),
-            ...Array.from(selectedLinkIds).map(
-              (link_id) =>
-                ({
-                  type: 'delete_link',
-                  link_id,
-                }) as const,
-            ),
-          ];
-          store.applyMany(actions);
-          setBoxSelected(new Set());
-          setSelectedLinkIds(new Set());
-          if (selectedInstanceId && boxSelected.has(selectedInstanceId)) {
-            setSelectedInstanceId(null);
-          }
+          handleDeleteSelection();
           return;
         }
         // Single-device deletion via Delete key (selected via V-tool left-
@@ -1343,6 +1383,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           }
           selectedDeviceIds={boxSelected}
           selectedLinkIds={selectedLinkIds}
+          onCopySelection={handleCopySelection}
+          onCutSelection={handleCutSelection}
+          onSaveSchematic={handleSaveSchematic}
         />
       </aside>
     </div>
