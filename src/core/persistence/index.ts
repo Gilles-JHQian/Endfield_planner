@@ -16,3 +16,11 @@ export {
   clearClipboardForTest,
 } from './clipboard.ts';
 export type { ClipboardItem, ClipboardLink, ClipboardPayload } from './clipboard.ts';
+export {
+  saveSchematic,
+  readSchematics,
+  removeSchematic,
+  importSchematicJson,
+  clearSchematicsForTest,
+} from './schematics.ts';
+export type { Schematic } from './schematics.ts';
