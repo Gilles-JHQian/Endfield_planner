@@ -1341,6 +1341,8 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onRecipeChange={(instance_id, recipe_id) =>
             store.apply({ type: 'set_recipe', instance_id, recipe_id })
           }
+          selectedDeviceIds={boxSelected}
+          selectedLinkIds={selectedLinkIds}
         />
       </aside>
     </div>

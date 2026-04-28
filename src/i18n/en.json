@@ -88,6 +88,11 @@
   "inspector.summary.devices": "devices",
   "inspector.summary.solidLinks": "belts",
   "inspector.summary.fluidLinks": "pipes",
+  "inspector.section.selection": "Selection",
+  "inspector.selection.subtitle": "{devices} devices · {links} links",
+  "inspector.selection.cellsUnit": "cells",
+  "inspector.selection.poweredDevices": "powered",
+  "inspector.selection.fluidDevices": "with fluid I/O",
 
   "drc.title": "DRC",
   "drc.expand": "Expand",

@@ -88,6 +88,11 @@
   "inspector.summary.devices": "设备",
   "inspector.summary.solidLinks": "传送带",
   "inspector.summary.fluidLinks": "管道",
+  "inspector.section.selection": "选区",
+  "inspector.selection.subtitle": "{devices} 台设备 · {links} 条线路",
+  "inspector.selection.cellsUnit": "格",
+  "inspector.selection.poweredDevices": "需供电",
+  "inspector.selection.fluidDevices": "含流体接口",
 
   "drc.title": "DRC 检查",
   "drc.expand": "展开",

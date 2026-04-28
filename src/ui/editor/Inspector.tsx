@@ -1,10 +1,13 @@
 /** Inspector — right-column 320px panel per design/handoff/components.css
- *  `.inspector`. Two modes:
+ *  `.inspector`. Three modes (priority order):
  *
- *  - When a device is selected: header (CN name + EN id badge + amber stripe)
- *    + collapsible Properties section + Ports section + Recipe section.
- *  - When nothing is selected: project summary (plot W×H, device count,
- *    link counts, total power).
+ *  - When a right-click highlight set is non-empty: selection summary
+ *    (footprint cells, total power, device + link counts). Wins over the
+ *    pinned-device panel because the selection is the more recent owner
+ *    intent — the pin survives invisibly and returns when selection clears.
+ *  - When a device is pinned (left-click in select tool): header + Properties +
+ *    Ports + Recipe sections.
+ *  - Otherwise: project summary (plot W×H, device count, link counts).
  */
 import { useMemo } from 'react';
 import { useI18n } from '@i18n/index.tsx';
@@ -21,9 +24,23 @@ interface Props {
   lookup: (id: string) => Device | undefined;
   recipes: readonly Recipe[];
   onRecipeChange: (instance_id: string, recipe_id: string | null) => void;
+  /** Right-click highlight set (devices). When non-empty the panel shows a
+   *  selection summary instead of the pinned device. */
+  selectedDeviceIds: ReadonlySet<string>;
+  /** Right-click highlight set (links). Counted into the selection summary
+   *  alongside devices. */
+  selectedLinkIds: ReadonlySet<string>;
 }
 
-export function Inspector({ project, selectedInstanceId, lookup, recipes, onRecipeChange }: Props) {
+export function Inspector({
+  project,
+  selectedInstanceId,
+  lookup,
+  recipes,
+  onRecipeChange,
+  selectedDeviceIds,
+  selectedLinkIds,
+}: Props) {
   const placed = useMemo(
     () => project.devices.find((d) => d.instance_id === selectedInstanceId) ?? null,
     [project.devices, selectedInstanceId],
@@ -32,6 +49,16 @@ export function Inspector({ project, selectedInstanceId, lookup, recipes, onReci
   // P4 v7.1: port → link reverse index for the per-port connection rows.
   const portConn = useMemo(() => buildPortConnectivity(project), [project]);
 
+  if (selectedDeviceIds.size > 0 || selectedLinkIds.size > 0) {
+    return (
+      <SelectionInspector
+        project={project}
+        deviceIds={selectedDeviceIds}
+        linkIds={selectedLinkIds}
+        lookup={lookup}
+      />
+    );
+  }
   if (!placed || !device) {
     return <ProjectSummary project={project} />;
   }
@@ -43,6 +70,77 @@ export function Inspector({ project, selectedInstanceId, lookup, recipes, onReci
       portToLink={portConn.portToLink}
       onRecipeChange={(rid) => onRecipeChange(placed.instance_id, rid)}
     />
+  );
+}
+
+function SelectionInspector({
+  project,
+  deviceIds,
+  linkIds,
+  lookup,
+}: {
+  project: Project;
+  deviceIds: ReadonlySet<string>;
+  linkIds: ReadonlySet<string>;
+  lookup: (id: string) => Device | undefined;
+}) {
+  const { t } = useI18n();
+  const stats = useMemo(() => {
+    let footprintCells = 0;
+    let totalPower = 0;
+    let powered = 0;
+    let withFluid = 0;
+    let resolvedDevices = 0;
+    for (const placed of project.devices) {
+      if (!deviceIds.has(placed.instance_id)) continue;
+      const d = lookup(placed.device_id);
+      if (!d) continue;
+      resolvedDevices += 1;
+      footprintCells += d.footprint.width * d.footprint.height;
+      if (d.requires_power) {
+        powered += 1;
+        totalPower += d.power_draw;
+      }
+      if (d.has_fluid_interface) withFluid += 1;
+    }
+    const solidLinks = project.solid_links.reduce((n, l) => (linkIds.has(l.id) ? n + 1 : n), 0);
+    const fluidLinks = project.fluid_links.reduce((n, l) => (linkIds.has(l.id) ? n + 1 : n), 0);
+    return { footprintCells, totalPower, powered, withFluid, resolvedDevices, solidLinks, fluidLinks };
+  }, [project, deviceIds, linkIds, lookup]);
+
+  return (
+    <div className="flex h-full flex-col">
+      <header className="relative border-b border-line bg-surface-2 px-4 pb-3 pt-3.5">
+        <span aria-hidden className="absolute left-0 top-0 bottom-0 w-[3px] bg-amber" />
+        <div className="font-display text-[11px] font-semibold uppercase tracking-[1.5px] text-fg">
+          {t('inspector.section.selection').toUpperCase()}
+        </div>
+        <div className="mt-1 font-cn text-[12px] text-fg-soft">
+          {t('inspector.selection.subtitle', {
+            devices: stats.resolvedDevices,
+            links: stats.solidLinks + stats.fluidLinks,
+          })}
+        </div>
+      </header>
+      <div className="scroll-y flex-1">
+        <div className="px-4 py-3">
+          <KvRow label={t('inspector.props.footprint')}>
+            {stats.footprintCells.toString()} {t('inspector.selection.cellsUnit')}
+          </KvRow>
+          <KvRow
+            label={t('inspector.props.powerDraw')}
+            {...(stats.totalPower > 0 ? { tone: 'amber' as const } : {})}
+          >
+            {stats.totalPower > 0 ? `${stats.totalPower.toString()} P` : '—'}
+          </KvRow>
+          <KvRow label={t('inspector.summary.devices')}>{stats.resolvedDevices.toString()}</KvRow>
+          <KvRow label={t('inspector.selection.poweredDevices')}>{stats.powered.toString()}</KvRow>
+          <KvRow label={t('inspector.selection.fluidDevices')}>{stats.withFluid.toString()}</KvRow>
+          <KvRow label={t('inspector.summary.solidLinks')}>{stats.solidLinks.toString()}</KvRow>
+          <KvRow label={t('inspector.summary.fluidLinks')}>{stats.fluidLinks.toString()}</KvRow>
+        </div>
+      </div>
+    </div>
   );
 }
 
