@@ -13,15 +13,16 @@ import { Button } from '@ui/components/index.ts';
 import { DeviceList } from './DeviceList.tsx';
 import { ScalarFields } from './ScalarFields.tsx';
 import { PortGrid } from './PortGrid.tsx';
-import { saveDevicesJson, type SaveResult } from './save-devices.ts';
+import { mergeEdited, saveDevicesJson, type SaveResult } from './save-devices.ts';
 import { useDeviceDraft } from './use-device-draft.ts';
 import { applyBaseline, useScrapedBaseline } from './use-scraped-baseline.ts';
 import { useState } from 'react';
+import type { Device } from '@core/data-loader/types.ts';
 
 const DATA_VERSION = '1.2';
 
 export function DeviceEditorPage() {
-  const { bundle, error, loading } = useDataBundle(DATA_VERSION);
+  const { bundle, error, loading, setDevices } = useDataBundle(DATA_VERSION);
   const draftApi = useDeviceDraft();
   const baseline = useScrapedBaseline(DATA_VERSION);
   const [saveStatus, setSaveStatus] = useState<SaveResult | null>(null);
@@ -49,10 +50,29 @@ export function DeviceEditorPage() {
     );
   }
 
-  async function handleSave(): Promise<void> {
-    if (!draftApi.draft || !bundle) return;
+  async function handleSave(): Promise<boolean> {
+    if (!draftApi.draft || !bundle) return false;
+    const merged = mergeEdited(bundle.devices, draftApi.draft);
     const result = await saveDevicesJson(bundle.devices, draftApi.draft);
     setSaveStatus(result);
+    if (!result.ok) return false;
+    // Reload: align the in-memory bundle with what is now on disk and
+    // re-anchor the draft so `dirty` flips back to false.
+    setDevices(merged);
+    const refreshed = merged.find((d) => d.id === draftApi.draft!.id);
+    if (refreshed) draftApi.load(refreshed);
+    return true;
+  }
+
+  async function handlePickDevice(next: Device): Promise<void> {
+    if (next.id === draftApi.draft?.id) return;
+    if (draftApi.dirty) {
+      // Auto-save the current draft before swapping so edits don't get lost.
+      // On save failure stay on the dirty draft so the user can retry.
+      const ok = await handleSave();
+      if (!ok) return;
+    }
+    draftApi.load(next);
   }
 
   function handleResetToBaseline(): void {
@@ -86,7 +106,9 @@ export function DeviceEditorPage() {
         <DeviceList
           devices={bundle.devices}
           selectedId={draftApi.draft?.id ?? null}
-          onPick={draftApi.load}
+          onPick={(d) => {
+            void handlePickDevice(d);
+          }}
         />
       </aside>
 

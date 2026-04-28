@@ -542,6 +542,12 @@
         "offset": 5,
         "kind": "solid",
         "direction_constraint": "output"
+      },
+      {
+        "side": "E",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "output"
       }
     ],
     "tech_prereq": [],
@@ -658,6 +664,12 @@
         "offset": 5,
         "kind": "solid",
         "direction_constraint": "output"
+      },
+      {
+        "side": "W",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "input"
       }
     ],
     "tech_prereq": [],
@@ -721,6 +733,18 @@
         "side": "S",
         "offset": 2,
         "kind": "solid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "W",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "E",
+        "offset": 1,
+        "kind": "fluid",
         "direction_constraint": "output"
       }
     ],
@@ -816,40 +840,10 @@
     "has_fluid_interface": true,
     "io_ports": [
       {
-        "side": "N",
-        "offset": 0,
-        "kind": "solid",
-        "direction_constraint": "input"
-      },
-      {
-        "side": "N",
+        "side": "W",
         "offset": 1,
-        "kind": "solid",
+        "kind": "fluid",
         "direction_constraint": "input"
-      },
-      {
-        "side": "N",
-        "offset": 2,
-        "kind": "solid",
-        "direction_constraint": "input"
-      },
-      {
-        "side": "S",
-        "offset": 0,
-        "kind": "solid",
-        "direction_constraint": "output"
-      },
-      {
-        "side": "S",
-        "offset": 1,
-        "kind": "solid",
-        "direction_constraint": "output"
-      },
-      {
-        "side": "S",
-        "offset": 2,
-        "kind": "solid",
-        "direction_constraint": "output"
       }
     ],
     "tech_prereq": [],
@@ -869,63 +863,27 @@
     "has_fluid_interface": true,
     "io_ports": [
       {
-        "side": "N",
-        "offset": 0,
-        "kind": "solid",
-        "direction_constraint": "input"
-      },
-      {
-        "side": "N",
+        "side": "W",
         "offset": 1,
-        "kind": "solid",
+        "kind": "fluid",
         "direction_constraint": "input"
       },
       {
-        "side": "N",
-        "offset": 2,
-        "kind": "solid",
-        "direction_constraint": "input"
-      },
-      {
-        "side": "N",
+        "side": "W",
         "offset": 3,
-        "kind": "solid",
+        "kind": "fluid",
         "direction_constraint": "input"
       },
       {
-        "side": "N",
-        "offset": 4,
-        "kind": "solid",
-        "direction_constraint": "input"
-      },
-      {
-        "side": "S",
-        "offset": 0,
-        "kind": "solid",
-        "direction_constraint": "output"
-      },
-      {
-        "side": "S",
+        "side": "E",
         "offset": 1,
-        "kind": "solid",
+        "kind": "fluid",
         "direction_constraint": "output"
       },
       {
-        "side": "S",
-        "offset": 2,
-        "kind": "solid",
-        "direction_constraint": "output"
-      },
-      {
-        "side": "S",
+        "side": "E",
         "offset": 3,
-        "kind": "solid",
-        "direction_constraint": "output"
-      },
-      {
-        "side": "S",
-        "offset": 4,
-        "kind": "solid",
+        "kind": "fluid",
         "direction_constraint": "output"
       }
     ],
@@ -947,7 +905,20 @@
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": true,
-    "io_ports": [],
+    "io_ports": [
+      {
+        "side": "W",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "E",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "output"
+      }
+    ],
     "tech_prereq": [],
     "category": "storage",
     "recipes": []
@@ -963,7 +934,14 @@
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": false,
-    "io_ports": [],
+    "io_ports": [
+      {
+        "side": "S",
+        "offset": 1,
+        "kind": "solid",
+        "direction_constraint": "input"
+      }
+    ],
     "tech_prereq": [],
     "category": "storage",
     "recipes": []
@@ -1094,19 +1072,7 @@
     "io_ports": [
       {
         "side": "N",
-        "offset": 0,
-        "kind": "solid",
-        "direction_constraint": "input"
-      },
-      {
-        "side": "N",
         "offset": 1,
-        "kind": "solid",
-        "direction_constraint": "input"
-      },
-      {
-        "side": "N",
-        "offset": 2,
         "kind": "solid",
         "direction_constraint": "input"
       },
@@ -1117,26 +1083,8 @@
         "direction_constraint": "input"
       },
       {
-        "side": "N",
-        "offset": 4,
-        "kind": "solid",
-        "direction_constraint": "input"
-      },
-      {
-        "side": "S",
-        "offset": 0,
-        "kind": "solid",
-        "direction_constraint": "output"
-      },
-      {
         "side": "S",
         "offset": 1,
-        "kind": "solid",
-        "direction_constraint": "output"
-      },
-      {
-        "side": "S",
-        "offset": 2,
         "kind": "solid",
         "direction_constraint": "output"
       },
@@ -1147,9 +1095,27 @@
         "direction_constraint": "output"
       },
       {
-        "side": "S",
-        "offset": 4,
-        "kind": "solid",
+        "side": "W",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "W",
+        "offset": 3,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "E",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "E",
+        "offset": 3,
+        "kind": "fluid",
         "direction_constraint": "output"
       }
     ],
@@ -1180,12 +1146,6 @@
     "io_ports": [
       {
         "side": "N",
-        "offset": 0,
-        "kind": "solid",
-        "direction_constraint": "input"
-      },
-      {
-        "side": "N",
         "offset": 1,
         "kind": "solid",
         "direction_constraint": "input"
@@ -1207,18 +1167,6 @@
         "offset": 4,
         "kind": "solid",
         "direction_constraint": "input"
-      },
-      {
-        "side": "N",
-        "offset": 5,
-        "kind": "solid",
-        "direction_constraint": "input"
-      },
-      {
-        "side": "S",
-        "offset": 0,
-        "kind": "solid",
-        "direction_constraint": "output"
       },
       {
         "side": "S",
@@ -1245,9 +1193,27 @@
         "direction_constraint": "output"
       },
       {
-        "side": "S",
-        "offset": 5,
-        "kind": "solid",
+        "side": "W",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "W",
+        "offset": 3,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "E",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "E",
+        "offset": 3,
+        "kind": "fluid",
         "direction_constraint": "output"
       }
     ],
@@ -1461,6 +1427,12 @@
         "offset": 4,
         "kind": "solid",
         "direction_constraint": "output"
+      },
+      {
+        "side": "W",
+        "offset": 2,
+        "kind": "fluid",
+        "direction_constraint": "input"
       }
     ],
     "tech_prereq": [],
@@ -1569,7 +1541,20 @@
     "power_draw": 0,
     "requires_power": true,
     "has_fluid_interface": false,
-    "io_ports": [],
+    "io_ports": [
+      {
+        "side": "N",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "N",
+        "offset": 1,
+        "kind": "solid",
+        "direction_constraint": "input"
+      }
+    ],
     "tech_prereq": [],
     "category": "power",
     "recipes": []
@@ -1943,7 +1928,44 @@
     "power_draw": 5,
     "requires_power": true,
     "has_fluid_interface": false,
-    "io_ports": [],
+    "io_ports": [
+      {
+        "side": "N",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "N",
+        "offset": 1,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "N",
+        "offset": 2,
+        "kind": "solid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "S",
+        "offset": 0,
+        "kind": "solid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "S",
+        "offset": 1,
+        "kind": "solid",
+        "direction_constraint": "output"
+      },
+      {
+        "side": "S",
+        "offset": 2,
+        "kind": "solid",
+        "direction_constraint": "output"
+      }
+    ],
     "tech_prereq": [],
     "category": "storage",
     "recipes": []
@@ -2188,7 +2210,14 @@
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": true,
-    "io_ports": [],
+    "io_ports": [
+      {
+        "side": "W",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      }
+    ],
     "tech_prereq": [],
     "category": "storage",
     "recipes": []
@@ -2204,7 +2233,20 @@
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": true,
-    "io_ports": [],
+    "io_ports": [
+      {
+        "side": "W",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "W",
+        "offset": 3,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      }
+    ],
     "tech_prereq": [],
     "category": "storage",
     "recipes": []
@@ -2220,7 +2262,14 @@
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": true,
-    "io_ports": [],
+    "io_ports": [
+      {
+        "side": "E",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "output"
+      }
+    ],
     "tech_prereq": [],
     "category": "storage",
     "recipes": []
@@ -2236,7 +2285,20 @@
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": true,
-    "io_ports": [],
+    "io_ports": [
+      {
+        "side": "E",
+        "offset": 1,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      },
+      {
+        "side": "E",
+        "offset": 3,
+        "kind": "fluid",
+        "direction_constraint": "input"
+      }
+    ],
     "tech_prereq": [],
     "category": "storage",
     "recipes": []
@@ -2252,7 +2314,14 @@
     "power_draw": 0,
     "requires_power": false,
     "has_fluid_interface": false,
-    "io_ports": [],
+    "io_ports": [
+      {
+        "side": "S",
+        "offset": 1,
+        "kind": "solid",
+        "direction_constraint": "output"
+      }
+    ],
     "tech_prereq": [],
     "category": "storage",
     "recipes": []
@@ -2424,6 +2493,12 @@
         "offset": 4,
         "kind": "solid",
         "direction_constraint": "output"
+      },
+      {
+        "side": "W",
+        "offset": 2,
+        "kind": "fluid",
+        "direction_constraint": "input"
       }
     ],
     "tech_prereq": [],
