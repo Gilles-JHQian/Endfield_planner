@@ -1432,6 +1432,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onCopySelection={handleCopySelection}
           onCutSelection={handleCutSelection}
           onSaveSchematic={handleSaveSchematic}
+          regions={bundle.regions}
+          onRenameProject={(name) => store.apply({ type: 'set_name', name })}
+          onChangeRegion={(region_id) => store.apply({ type: 'set_region', region_id })}
         />
       </aside>
     </div>

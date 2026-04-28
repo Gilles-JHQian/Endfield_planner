@@ -93,6 +93,8 @@
   "inspector.summary.devices": "devices",
   "inspector.summary.solidLinks": "belts",
   "inspector.summary.fluidLinks": "pipes",
+  "inspector.summary.region": "Region",
+  "inspector.summary.editName": "Rename project",
   "inspector.section.selection": "Selection",
   "inspector.selection.subtitle": "{devices} devices · {links} links",
   "inspector.selection.cellsUnit": "cells",
