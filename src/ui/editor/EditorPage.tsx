@@ -58,9 +58,12 @@ import {
   flushSave,
   importProject,
   loadCurrent,
+  importSchematicJson,
   promoteToTopOfHistory,
   readClipboard,
   readClipboardHistory,
+  readSchematics,
+  removeSchematic,
   saveSchematic,
   scheduleSave,
   type ClipboardPayload,
@@ -159,9 +162,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [clipboardTick],
   );
-  // Same pattern for the session schematic store (commit 4 reads it from the
-  // Library; here it's bumped on every save so any subscriber re-renders).
-  const [, setSchematicsTick] = useState(0);
+  // Same pattern for the session schematic store: a tick state nudges the
+  // Library to re-read the module-level array whenever a save / import /
+  // remove happens.
+  const [schematicsTick, setSchematicsTick] = useState(0);
+  const schematics = useMemo(
+    () => readSchematics(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [schematicsTick],
+  );
   // Multi-segment belt/pipe draft. Each click adds a waypoint; the segment
   // between consecutive waypoints is BFS-routed around devices. Drafting
   // commits when the user clicks an input port of the matching layer or
@@ -364,6 +373,39 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     if (!name) return;
     saveSchematic(name, payload);
     setSchematicsTick((n) => n + 1);
+    // Surface the new entry by switching the left rail to the Schematic tab.
+    setCategory('schematic');
+  }
+
+  function handleImportSchematicFile(file: File): void {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = typeof reader.result === 'string' ? reader.result : '';
+        const parsed = JSON.parse(text) as unknown;
+        const fallbackName = file.name.replace(/\.json$/i, '');
+        importSchematicJson(parsed, fallbackName);
+        setSchematicsTick((n) => n + 1);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        window.alert(`Import failed: ${msg}`);
+      }
+    };
+    reader.onerror = () => {
+      window.alert(`Import failed: ${reader.error?.message ?? 'read error'}`);
+    };
+    reader.readAsText(file);
+  }
+
+  function handleRemoveSchematic(id: string): void {
+    removeSchematic(id);
+    setSchematicsTick((n) => n + 1);
+  }
+
+  function handlePickSchematic(payload: ClipboardPayload): void {
+    setPasteSource(payload);
+    toolApi.setSelect();
+    setPickedDevice(null);
   }
 
   // Selection-aware global keybindings (P4 v5 — no longer tool-bound):
@@ -1277,6 +1319,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
             toolApi.setSelect();
             setPickedDevice(null);
           }}
+          schematics={schematics}
+          onPickSchematic={handlePickSchematic}
+          onImportSchematic={handleImportSchematicFile}
+          onRemoveSchematic={handleRemoveSchematic}
         />
       </aside>
       <main aria-label="workspace" className="relative bg-canvas">

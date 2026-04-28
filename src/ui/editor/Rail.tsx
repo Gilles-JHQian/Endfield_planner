@@ -10,7 +10,7 @@ import { useI18n } from '@i18n/index.tsx';
 import { RailItem } from '@ui/components/index.ts';
 import type { DeviceCategory } from '@core/data-loader/types.ts';
 
-export type LibraryTab = DeviceCategory | 'clipboard';
+export type LibraryTab = DeviceCategory | 'clipboard' | 'schematic';
 
 interface Props {
   active: LibraryTab;
@@ -28,6 +28,7 @@ const CATEGORIES: { cat: LibraryTab; glyph: string }[] = [
   { cat: 'planting', glyph: '✿' },
   { cat: 'combat', glyph: '⚔' },
   { cat: 'clipboard', glyph: '📋' },
+  { cat: 'schematic', glyph: '📐' },
 ];
 
 export function Rail({ active, onChange }: Props) {
@@ -35,7 +36,12 @@ export function Rail({ active, onChange }: Props) {
   return (
     <div className="scroll-y flex h-full min-h-0 flex-col gap-0.5 py-2">
       {CATEGORIES.map(({ cat, glyph }) => {
-        const label = cat === 'clipboard' ? t('library.clipboard') : t(`category.${cat}`);
+        const label =
+          cat === 'clipboard'
+            ? t('library.clipboard')
+            : cat === 'schematic'
+              ? t('library.schematic')
+              : t(`category.${cat}`);
         return (
           <RailItem
             key={cat}

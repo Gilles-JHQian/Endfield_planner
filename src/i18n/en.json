@@ -61,6 +61,11 @@
   "library.clipboard": "Clipboard",
   "library.clipboardEmpty": "No clipboard entries yet",
   "library.clipboardSlot": "{{devices}} devices / {{links}} belts",
+  "library.schematic": "Schematic",
+  "library.schematicEmpty": "No schematics saved this session",
+  "library.schematicImport": "Import…",
+  "library.schematicImportError": "Import failed: {{message}}",
+  "library.schematicSlot": "{{devices}} devices / {{links}} links",
 
   "inspector.title": "Inspector",
   "inspector.empty": "Nothing selected",

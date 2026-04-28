@@ -80,7 +80,7 @@ function coerceSchematicPayload(json: unknown): ClipboardPayload {
   if (!Array.isArray(links)) {
     throw new Error('Schematic JSON `links` must be an array if present.');
   }
-  return { origin, items, links } as ClipboardPayload;
+  return { origin, items, links };
 }
 
 function isObject(v: unknown): v is Record<string, unknown> {
