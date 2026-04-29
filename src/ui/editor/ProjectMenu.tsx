@@ -11,7 +11,7 @@
  *  scheduling happens in EditorPage.
  */
 import { useEffect, useState } from 'react';
-import { getLastSavedAt } from '@core/persistence/index.ts';
+import { getLastTabsSavedAt } from '@core/persistence/index.ts';
 
 interface Props {
   onNew: () => void;
@@ -90,7 +90,7 @@ function SavedIndicator() {
     lastSavedAt: null,
   }));
   useEffect(() => {
-    const tick = (): void => setSnapshot({ now: Date.now(), lastSavedAt: getLastSavedAt() });
+    const tick = (): void => setSnapshot({ now: Date.now(), lastSavedAt: getLastTabsSavedAt() });
     tick();
     const id = setInterval(tick, 5000);
     return () => clearInterval(id);

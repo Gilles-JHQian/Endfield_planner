@@ -5,8 +5,9 @@
  *  fill the rail / library / inspector with real content and connect them
  *  to the project store via apply().
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDataBundle } from '@ui/use-data-bundle.ts';
+import { useI18n } from '@i18n/index.tsx';
 import { createProject } from '@core/domain/project.ts';
 import type { Cell } from '@core/domain/types.ts';
 import {
@@ -30,6 +31,7 @@ import { BeltCursor, DraftPath } from './DraftPath.tsx';
 import { DrcPanel } from './DrcPanel.tsx';
 import { GhostPreview } from './GhostPreview.tsx';
 import { HistoryControls } from './HistoryControls.tsx';
+import { CanvasTabs } from './CanvasTabs.tsx';
 import { Inspector } from './Inspector.tsx';
 import { IssueHighlight } from './IssueHighlight.tsx';
 import { LinkLayer } from './LinkLayer.tsx';
@@ -48,29 +50,30 @@ import {
 } from './belt-router.ts';
 import { computePowerCoverage } from '@core/domain/power-coverage.ts';
 import { generateInstanceId } from '@core/domain/project.ts';
-import type { Layer, Link, PlacedDevice } from '@core/domain/types.ts';
+import type { Layer, Link, PlacedDevice, Project } from '@core/domain/types.ts';
 import type { Issue } from '@core/drc/index.ts';
 import {
   buildPayload,
-  clearCurrent,
   copyToClipboard,
   exportProject,
-  flushSave,
+  flushSaveTabs,
   importProject,
-  loadCurrent,
   importSchematicJson,
+  loadTabs,
   promoteToTopOfHistory,
   readClipboard,
   readClipboardHistory,
   readSchematics,
   removeSchematic,
   saveSchematic,
-  scheduleSave,
+  scheduleSaveTabs,
   type ClipboardPayload,
+  type TabsManifest,
 } from '@core/persistence/index.ts';
 import { useDrc } from './use-drc.ts';
 import { useViewMode } from './use-view-mode.ts';
-import { useProject, type ProjectAction } from './use-project.ts';
+import { useCanvases } from './use-canvases.ts';
+import { type ProjectAction } from './use-project.ts';
 import { useTool } from './use-tool.ts';
 import { CELL_PX } from './use-camera.ts';
 
@@ -102,20 +105,38 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     return (id: string) => byId.get(id);
   }, [bundle]);
 
-  const initialProject = useMemo(() => {
+  const { t } = useI18n();
+
+  const initialManifest = useMemo((): TabsManifest => {
     const region = bundle.regions[0];
     if (!region) {
       throw new Error(`Bundle v${bundle.version} has no regions.`);
     }
-    // Restore from localStorage if compatible with the current bundle version;
-    // otherwise drop the saved project (mismatched data_version risks dangling
-    // device_id / recipe_id refs).
-    const restored = loadCurrent();
-    if (restored?.data_version === bundle.version) return restored;
+    // Restore tabs from localStorage when every saved tab matches the current
+    // bundle version. If any tab was saved against a different data_version
+    // we drop the whole manifest — partial migration risks dangling device /
+    // recipe references that the editor isn't equipped to surface yet.
+    const restored = loadTabs();
+    if (
+      restored &&
+      restored.tabs.length > 0 &&
+      restored.tabs.every((tab) => tab.project.data_version === bundle.version)
+    ) {
+      return restored;
+    }
+    const project = createProject({ region, data_version: bundle.version });
+    return { active_id: project.id, tabs: [{ id: project.id, name: project.name, project }] };
+  }, [bundle]);
+
+  const makeBlank = useCallback((): Project => {
+    const region = bundle.regions[0];
+    if (!region) {
+      throw new Error(`Bundle v${bundle.version} has no regions.`);
+    }
     return createProject({ region, data_version: bundle.version });
   }, [bundle]);
 
-  const store = useProject(initialProject, lookup);
+  const store = useCanvases({ initialManifest, lookup, makeBlank });
 
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -192,23 +213,66 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     [store.project, lookup],
   );
 
-  // Auto-save: throttle 1s on every project change. flushSave on unmount /
-  // beforeunload so an abrupt navigation doesn't lose the latest edit.
-  // ProjectMenu polls getLastSavedAt() on its own ticker for the indicator.
+  // Auto-save: throttle 1s on every manifest change (covers active project
+  // edits AND tab management like new / close / setActive). flushSaveTabs
+  // on unmount / beforeunload so an abrupt navigation doesn't lose the
+  // latest edit. ProjectMenu polls getLastTabsSavedAt() for the indicator.
   useEffect(() => {
-    scheduleSave(store.project);
-  }, [store.project]);
+    scheduleSaveTabs(store.manifest);
+  }, [store.manifest]);
   useEffect(() => {
-    const onBeforeUnload = (): void => flushSave();
+    const onBeforeUnload = (): void => flushSaveTabs();
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload);
-      flushSave();
+      flushSaveTabs();
     };
   }, []);
 
+  /** Pick the lowest unused N for a default "新设计 N" tab name so closing
+   *  and reopening tabs doesn't keep incrementing past visible numbers. */
+  function nextDefaultName(): string {
+    const used = new Set(store.tabs.map((tab) => tab.name));
+    let n = 1;
+    while (used.has(t('canvasTabs.defaultName', { n }))) n += 1;
+    return t('canvasTabs.defaultName', { n });
+  }
+
+  function handleAddCanvas(): void {
+    const name = nextDefaultName();
+    store.newCanvas();
+    store.apply({ type: 'set_name', name });
+    setSelectedInstanceId(null);
+    setBoxSelected(new Set());
+    setSelectedLinkIds(new Set());
+  }
+
+  function handleCloseCanvas(id: string): void {
+    const entry = store.manifest.tabs.find((tab) => tab.id === id);
+    if (!entry) return;
+    const isEmpty =
+      entry.project.devices.length === 0 &&
+      entry.project.solid_links.length === 0 &&
+      entry.project.fluid_links.length === 0;
+    if (!isEmpty) {
+      const proceed = window.confirm(t('canvasTabs.confirmClose', { name: entry.name }));
+      if (!proceed) return;
+    }
+    store.closeCanvas(id);
+    setSelectedInstanceId(null);
+    setBoxSelected(new Set());
+    setSelectedLinkIds(new Set());
+  }
+
+  function handleActivateCanvas(id: string): void {
+    if (id === store.activeId) return;
+    store.setActive(id);
+    setSelectedInstanceId(null);
+    setBoxSelected(new Set());
+    setSelectedLinkIds(new Set());
+  }
+
   function handleNew(): void {
-    clearCurrent();
     const region = bundle.regions[0];
     if (!region) return;
     store.reset(createProject({ region, data_version: bundle.version }));
@@ -1283,12 +1347,19 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   }
 
   return (
-    <div
-      className="grid h-[calc(100vh-44px)] overflow-hidden"
-      style={{
-        gridTemplateColumns: 'var(--rail-w) var(--library-w) 1fr var(--inspector-w)',
-      }}
-    >
+    <div className="flex h-[calc(100vh-44px)] flex-col overflow-hidden">
+      <CanvasTabs
+        tabs={store.tabs}
+        onActivate={handleActivateCanvas}
+        onClose={handleCloseCanvas}
+        onAdd={handleAddCanvas}
+      />
+      <div
+        className="grid min-h-0 flex-1 overflow-hidden"
+        style={{
+          gridTemplateColumns: 'var(--rail-w) var(--library-w) 1fr var(--inspector-w)',
+        }}
+      >
       <aside
         aria-label="category rail"
         className="flex h-full min-h-0 flex-col overflow-hidden border-r border-line bg-surface-1"
@@ -1437,6 +1508,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onChangeRegion={(region_id) => store.apply({ type: 'set_region', region_id })}
         />
       </aside>
+      </div>
     </div>
   );
 }
@@ -1453,7 +1525,7 @@ interface GhostState {
 function computeGhost(
   tool: ReturnType<typeof useTool>['tool'],
   cursor: Cell | null,
-  project: ReturnType<typeof useProject>['project'],
+  project: Project,
   occupancy: OccupancyMap,
 ): GhostState | null {
   if (tool.kind !== 'place' || !cursor) return null;
@@ -1518,7 +1590,7 @@ interface DraftPathState {
 function computeDraftPath(
   draft: { waypoints: Cell[]; layer: Layer } | null,
   cursor: Cell | null,
-  project: ReturnType<typeof useProject>['project'],
+  project: Project,
   lookup: (id: string) => Device | undefined,
 ): DraftPathState | null {
   if (!draft || draft.waypoints.length === 0) return null;
@@ -1586,7 +1658,7 @@ function computeDraftPath(
  *  right-click → single-belt selection. Devices already shadow the cell at
  *  their footprint cells, so the caller checks for a device hit first. */
 function findLinkAtCell(
-  project: ReturnType<typeof useProject>['project'],
+  project: Project,
   cell: Cell,
 ): { id: string; layer: Layer } | null {
   for (const link of project.solid_links) {
@@ -1605,7 +1677,7 @@ function findLinkAtCell(
 /** Same as findLinkAtCell but restricted to one layer. Returns the full Link
  *  so the caller can read its path (for the auto-bridge truncation flow). */
 function findLayerLinkAtCell(
-  project: ReturnType<typeof useProject>['project'],
+  project: Project,
   layer: Layer,
   cell: Cell,
 ): { id: string; path: readonly Cell[] } | null {
@@ -1949,7 +2021,7 @@ type PlaceOnBeltAction =
  *
  *  Returns [] when the footprint touches no belts (normal placement). */
 function planPlaceOnBeltSplits(
-  project: ReturnType<typeof useProject>['project'],
+  project: Project,
   device: Device,
   topLeft: Cell,
   rotation: 0 | 90 | 180 | 270,
