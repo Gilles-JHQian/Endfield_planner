@@ -120,6 +120,160 @@ export function routeAroundDevices(from: Cell, to: Cell, opts: RouteOptions): Ce
 }
 
 // ----------------------------------------------------------------------------
+// bfsRouteWithBend — auto-detour planner (P4 v8)
+//
+// 4-neighbour BFS with two extra constraints that keep the result aligned
+// with the L-shape planner's UX:
+//
+//   1. Bend cap. The number of direction changes along the path must not
+//      exceed `maxBends` (default 3). Paths that need more turns to avoid
+//      obstacles are rejected — caller falls back to the red L-shape.
+//   2. Port direction. When `firstStepDirection` is given, the very first
+//      step out of `from` must match it (port lock at the source). When
+//      `lastStepDirection` is given, only goal states reached via a step in
+//      that direction count as solutions (port lock at the destination).
+//      These two constraints enforce REQUIREMENT.md §F3 P4 v6 "port-
+//      direction enforcement (both ends)" inside the search rather than as
+//      a post-validation.
+// ----------------------------------------------------------------------------
+
+interface Dir {
+  readonly dx: number;
+  readonly dy: number;
+}
+
+const BFS_DIRS: readonly Dir[] = [
+  { dx: 1, dy: 0 },
+  { dx: -1, dy: 0 },
+  { dx: 0, dy: 1 },
+  { dx: 0, dy: -1 },
+];
+
+function dirSame(a: Dir, b: Dir): boolean {
+  return a.dx === b.dx && a.dy === b.dy;
+}
+
+function dirKey(d: Dir | null): string {
+  return d === null ? '_' : `${d.dx.toString()},${d.dy.toString()}`;
+}
+
+export interface BfsRouteOpts {
+  readonly walls: ReadonlySet<string>;
+  readonly bounds: RouteBounds;
+  /** Max permitted direction changes along the returned path. Paths that
+   *  would need more bends are rejected; null is returned. */
+  readonly maxBends: number;
+  /** Force the first step out of `from` to match this unit cardinal vector
+   *  (port lock at source). */
+  readonly firstStepDirection?: Dir;
+  /** Force the last step into `to` to match this unit cardinal vector
+   *  (port lock at destination). */
+  readonly lastStepDirection?: Dir;
+}
+
+export interface BfsRouteResult {
+  readonly path: readonly Cell[];
+  readonly bends: number;
+}
+
+/** BFS from `from` to `to` over a 4-neighbour grid where `walls` cells are
+ *  blocked. State is `(cell, lastDir, bends)`; revisits to the same state are
+ *  pruned. Returns the shortest path satisfying the bend cap and port-
+ *  direction constraints, or `null` when no such path exists. */
+export function bfsRouteWithBend(
+  from: Cell,
+  to: Cell,
+  opts: BfsRouteOpts,
+): BfsRouteResult | null {
+  if (from.x === to.x && from.y === to.y) return null;
+  const { walls, bounds, maxBends, firstStepDirection, lastStepDirection } = opts;
+
+  const startKey = cellKey(from.x, from.y);
+  const goalKey = cellKey(to.x, to.y);
+
+  const inBounds = (x: number, y: number): boolean =>
+    x >= 0 && y >= 0 && x < bounds.width && y < bounds.height;
+  const isWall = (x: number, y: number): boolean => {
+    const k = cellKey(x, y);
+    if (k === startKey || k === goalKey) return false;
+    return walls.has(k);
+  };
+
+  if (!inBounds(from.x, from.y) || !inBounds(to.x, to.y)) return null;
+
+  interface State {
+    x: number;
+    y: number;
+    lastDir: Dir | null;
+    bends: number;
+  }
+
+  const initial: State = { x: from.x, y: from.y, lastDir: null, bends: 0 };
+  const initialStateKey = `${startKey}|${dirKey(null)}|0`;
+  const visited = new Set<string>([initialStateKey]);
+  const parent = new Map<string, string>();
+  const queue: State[] = [initial];
+
+  const stateKey = (s: State): string =>
+    `${cellKey(s.x, s.y)}|${dirKey(s.lastDir)}|${s.bends.toString()}`;
+
+  let goalState: State | null = null;
+
+  while (queue.length > 0) {
+    const s = queue.shift()!;
+    if (s.x === to.x && s.y === to.y) {
+      // Goal reached — check the destination port-direction constraint.
+      if (lastStepDirection) {
+        if (s.lastDir && dirSame(s.lastDir, lastStepDirection)) {
+          goalState = s;
+          break;
+        }
+        // Don't break; keep BFS in case a different state of the same cell
+        // satisfies the constraint with a higher bend count (still ≤ cap).
+      } else {
+        goalState = s;
+        break;
+      }
+    }
+    for (const dir of BFS_DIRS) {
+      // First-step lock at the source.
+      if (s.lastDir === null && firstStepDirection) {
+        if (!dirSame(dir, firstStepDirection)) continue;
+      }
+      const nx = s.x + dir.dx;
+      const ny = s.y + dir.dy;
+      if (!inBounds(nx, ny)) continue;
+      if (isWall(nx, ny)) continue;
+      const isBend = s.lastDir !== null && !dirSame(s.lastDir, dir);
+      const newBends = s.bends + (isBend ? 1 : 0);
+      if (newBends > maxBends) continue;
+      const ns: State = { x: nx, y: ny, lastDir: dir, bends: newBends };
+      const nk = stateKey(ns);
+      if (visited.has(nk)) continue;
+      visited.add(nk);
+      parent.set(nk, stateKey(s));
+      queue.push(ns);
+    }
+  }
+
+  if (!goalState) return null;
+
+  // Reconstruct path back through state-key parents.
+  const reverse: Cell[] = [];
+  let curKey = stateKey(goalState);
+  while (curKey !== initialStateKey) {
+    const cellPart = curKey.split('|')[0]!;
+    const [sx, sy] = cellPart.split(',');
+    reverse.push({ x: Number.parseInt(sx!, 10), y: Number.parseInt(sy!, 10) });
+    const p = parent.get(curKey);
+    if (!p) break;
+    curKey = p;
+  }
+  reverse.push({ x: from.x, y: from.y });
+  return { path: reverse.reverse(), bends: goalState.bends };
+}
+
+// ----------------------------------------------------------------------------
 // routeForBelt — P4 v5 production planner
 // ----------------------------------------------------------------------------
 
@@ -268,7 +422,19 @@ export function routeForBelt(from: Cell, to: Cell, opts: BeltRouteOpts): BeltRou
     }
   }
 
-  // Classify each cell: collision / auto-bridge / clean.
+  const { collisions, bridgesToAutoPlace } = classifyPathCells(path, from, to, opts);
+  return { path, bridgesToAutoPlace, collisions };
+}
+
+/** Walk the candidate path and label each cell as legal / auto-bridge target /
+ *  collision against device walls + same-layer links + the auto-bridge rules.
+ *  Shared by routeForBelt (L-shape) and routeForBeltWithDetour (BFS path). */
+function classifyPathCells(
+  path: readonly Cell[],
+  from: Cell,
+  to: Cell,
+  opts: BeltRouteOpts,
+): { collisions: Cell[]; bridgesToAutoPlace: Cell[] } {
   const collisions: Cell[] = [];
   const bridgesToAutoPlace: Cell[] = [];
   const fromKey = cellKey(from.x, from.y);
@@ -322,8 +488,42 @@ export function routeForBelt(from: Cell, to: Cell, opts: BeltRouteOpts): BeltRou
       }
     }
   }
+  return { collisions, bridgesToAutoPlace };
+}
 
-  return { path, bridgesToAutoPlace, collisions };
+/** Auto-detour wrapper around routeForBelt (P4 v8). When the L-shape ghost
+ *  collides — devices in the way, or port-direction mismatch at either end —
+ *  retry with a 4-neighbour BFS capped at 3 bends. The BFS detours around
+ *  device walls only; same-layer link crossings still fall to the auto-bridge
+ *  flow via classifyPathCells. When BFS finds nothing within the bend cap
+ *  the original L-shape (with its red collisions) is returned unchanged so
+ *  the ghost still surfaces the violation. */
+export function routeForBeltWithDetour(
+  from: Cell,
+  to: Cell,
+  opts: BeltRouteOpts,
+): BeltRouteResult {
+  const direct = routeForBelt(from, to, opts);
+  if (direct.collisions.length === 0) return direct;
+
+  // Single-cell or U-turn cases: BFS won't help, the L-shape's collision is
+  // the right red signal.
+  if (from.x === to.x && from.y === to.y) return direct;
+
+  const bfs = bfsRouteWithBend(from, to, {
+    walls: opts.deviceWalls,
+    bounds: opts.bounds,
+    maxBends: 3,
+    ...(opts.firstStepDirection ? { firstStepDirection: opts.firstStepDirection } : {}),
+    ...(opts.lastStepDirection ? { lastStepDirection: opts.lastStepDirection } : {}),
+  });
+  if (!bfs) return direct;
+
+  // BFS already satisfied the wall + port-direction constraints. Re-run the
+  // same same-layer / bridge classifier so corner overlaps still come out red
+  // and perpendicular crossings still surface as auto-bridge candidates.
+  const cls = classifyPathCells(bfs.path, from, to, opts);
+  return { path: bfs.path, collisions: cls.collisions, bridgesToAutoPlace: cls.bridgesToAutoPlace };
 }
 
 function walkHV(from: Cell, to: Cell): Cell[] {

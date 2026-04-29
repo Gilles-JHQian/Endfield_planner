@@ -1,11 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import {
+  bfsRouteWithBend,
   buildLinkOrientations,
   manhattanPath,
   routeAroundDevices,
   routeForBelt,
+  routeForBeltWithDetour,
   type LinkOrient,
 } from './path.ts';
+
+function countBends(path: readonly { x: number; y: number }[]): number {
+  let bends = 0;
+  for (let i = 2; i < path.length; i++) {
+    const dxA = path[i - 1]!.x - path[i - 2]!.x;
+    const dyA = path[i - 1]!.y - path[i - 2]!.y;
+    const dxB = path[i]!.x - path[i - 1]!.x;
+    const dyB = path[i]!.y - path[i - 1]!.y;
+    if (dxA !== dxB || dyA !== dyB) bends += 1;
+  }
+  return bends;
+}
 
 describe('manhattanPath', () => {
   it('emits a single cell when from === to', () => {
@@ -363,5 +377,186 @@ describe('buildLinkOrientations', () => {
     ];
     const map = buildLinkOrientations(links);
     expect(map.get('1,5')?.has('corner')).toBe(true);
+  });
+});
+
+describe('bfsRouteWithBend', () => {
+  it('walks straight when there are no walls', () => {
+    const r = bfsRouteWithBend(
+      { x: 0, y: 0 },
+      { x: 5, y: 0 },
+      { walls: NO_WALLS, bounds: BOUNDS, maxBends: 3 },
+    );
+    expect(r).not.toBeNull();
+    expect(r!.bends).toBe(0);
+    expect(r!.path).toHaveLength(6);
+    expect(r!.path[0]).toEqual({ x: 0, y: 0 });
+    expect(r!.path[r!.path.length - 1]).toEqual({ x: 5, y: 0 });
+  });
+
+  it('takes a single L when the destination is off-axis', () => {
+    const r = bfsRouteWithBend(
+      { x: 0, y: 0 },
+      { x: 3, y: 4 },
+      { walls: NO_WALLS, bounds: BOUNDS, maxBends: 3 },
+    );
+    expect(r).not.toBeNull();
+    expect(r!.bends).toBe(1);
+  });
+
+  it('detours around a single-cell wall within bend budget', () => {
+    // Wall on (1,0) blocks the straight horizontal path. Detour requires 2 bends.
+    const walls = new Set(['1,0']);
+    const r = bfsRouteWithBend(
+      { x: 0, y: 0 },
+      { x: 2, y: 0 },
+      { walls, bounds: BOUNDS, maxBends: 3 },
+    );
+    expect(r).not.toBeNull();
+    expect(r!.bends).toBe(2);
+    expect(r!.path.find((c) => c.x === 1 && c.y === 0)).toBeUndefined();
+    expect(countBends(r!.path)).toBe(r!.bends);
+  });
+
+  it('returns null when the only detour exceeds the bend cap', () => {
+    // Build a winding wall that forces the detour past 3 bends.
+    // Plot 6×6. Walls force a path that needs 4 bends.
+    //  (0,0) start      (5,0) goal
+    //   . W . . . .
+    //   . . . . W .
+    //   . . W . . .
+    //   . . . . . .
+    //   . . . . . .
+    const walls = new Set(['1,0', '4,1', '2,2']);
+    const bounds = { width: 6, height: 6 };
+    // With maxBends=3 a path exists; with maxBends=1 it should not
+    // (any detour is at least 2 bends).
+    const r3 = bfsRouteWithBend({ x: 0, y: 0 }, { x: 5, y: 0 }, { walls, bounds, maxBends: 3 });
+    expect(r3).not.toBeNull();
+    const r1 = bfsRouteWithBend({ x: 0, y: 0 }, { x: 5, y: 0 }, { walls, bounds, maxBends: 1 });
+    expect(r1).toBeNull();
+  });
+
+  it('respects firstStepDirection at the source', () => {
+    // Want the path to leave (0,0) going SOUTH even though EAST is more direct.
+    const r = bfsRouteWithBend(
+      { x: 0, y: 0 },
+      { x: 3, y: 0 },
+      {
+        walls: NO_WALLS,
+        bounds: BOUNDS,
+        maxBends: 3,
+        firstStepDirection: { dx: 0, dy: 1 },
+      },
+    );
+    expect(r).not.toBeNull();
+    expect(r!.path[1]).toEqual({ x: 0, y: 1 });
+  });
+
+  it('respects lastStepDirection at the destination', () => {
+    // Want the path to arrive at (3,0) heading EAST. Cursor sits at (3,0).
+    // From (0,0) → (3,0) without constraint is straight east (last step east).
+    // Force last step NORTH instead — path must approach from south.
+    const r = bfsRouteWithBend(
+      { x: 0, y: 0 },
+      { x: 3, y: 0 },
+      {
+        walls: NO_WALLS,
+        bounds: BOUNDS,
+        maxBends: 3,
+        lastStepDirection: { dx: 0, dy: -1 },
+      },
+    );
+    expect(r).not.toBeNull();
+    const last = r!.path[r!.path.length - 1]!;
+    const prev = r!.path[r!.path.length - 2]!;
+    expect(last.x - prev.x).toBe(0);
+    expect(last.y - prev.y).toBe(-1);
+  });
+
+  it('returns null when the destination port direction is unreachable in the bend budget', () => {
+    // A 1×1 plot with the goal adjacent — cannot loop around to approach
+    // from the wrong side.
+    const r = bfsRouteWithBend(
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      {
+        walls: NO_WALLS,
+        bounds: { width: 2, height: 2 },
+        maxBends: 0,
+        lastStepDirection: { dx: 0, dy: -1 },
+      },
+    );
+    expect(r).toBeNull();
+  });
+
+  it('returns null when from === to', () => {
+    expect(
+      bfsRouteWithBend(
+        { x: 5, y: 5 },
+        { x: 5, y: 5 },
+        { walls: NO_WALLS, bounds: BOUNDS, maxBends: 3 },
+      ),
+    ).toBeNull();
+  });
+});
+
+describe('routeForBeltWithDetour', () => {
+  const baseOpts = {
+    deviceWalls: NO_WALLS,
+    sameLayerLinks: new Map() as ReadonlyMap<string, ReadonlySet<LinkOrient>>,
+    existingBridges: NO_WALLS,
+    bounds: BOUNDS,
+    prevHeading: null,
+  };
+
+  it('returns the L-shape unchanged when nothing is in the way', () => {
+    const r = routeForBeltWithDetour({ x: 0, y: 0 }, { x: 4, y: 0 }, baseOpts);
+    expect(r.collisions).toEqual([]);
+    expect(r.path).toHaveLength(5);
+  });
+
+  it('falls back to BFS when a device sits on the L-shape', () => {
+    // Wall on (2,0) blocks the straight path; BFS detours around it.
+    const r = routeForBeltWithDetour(
+      { x: 0, y: 0 },
+      { x: 4, y: 0 },
+      { ...baseOpts, deviceWalls: new Set(['2,0']) },
+    );
+    expect(r.collisions).toEqual([]);
+    expect(r.path[0]).toEqual({ x: 0, y: 0 });
+    expect(r.path[r.path.length - 1]).toEqual({ x: 4, y: 0 });
+    expect(r.path.find((c) => c.x === 2 && c.y === 0)).toBeUndefined();
+  });
+
+  it('twists the final segment to match a destination port direction', () => {
+    // Cursor at (3,3) is an input port whose face points NORTH — the belt
+    // must arrive heading SOUTH (last step dy = +1). The L-shape from (0,0)
+    // arrives heading EAST, which the planner would flag red. The detour
+    // wrapper finds a path that approaches from above instead.
+    const r = routeForBeltWithDetour(
+      { x: 0, y: 0 },
+      { x: 3, y: 3 },
+      { ...baseOpts, lastStepDirection: { dx: 0, dy: 1 } },
+    );
+    expect(r.collisions).toEqual([]);
+    const last = r.path[r.path.length - 1]!;
+    const prev = r.path[r.path.length - 2]!;
+    expect(last.x - prev.x).toBe(0);
+    expect(last.y - prev.y).toBe(1);
+  });
+
+  it('keeps the red L-shape when the only detour exceeds the bend cap', () => {
+    // Devices form a corridor that needs more than 3 bends. The wrapper
+    // returns the original L-shape with collisions intact so the ghost still
+    // surfaces the violation rather than silently producing a long detour.
+    const walls = new Set(['1,0', '1,1', '1,2', '1,3', '1,4', '1,5', '1,6', '1,7']);
+    const bounds = { width: 4, height: 4 };
+    const r = routeForBeltWithDetour(
+      { x: 0, y: 0 },
+      { x: 2, y: 0 },
+      { ...baseOpts, deviceWalls: walls, bounds },
+    );
+    expect(r.collisions.length).toBeGreaterThan(0);
   });
 });
