@@ -66,6 +66,10 @@
   "library.schematicImport": "导入…",
   "library.schematicImportError": "导入失败：{{message}}",
   "library.schematicSlot": "{{devices}} 个设备 / {{links}} 条线路",
+  "canvasTabs.add": "新建画布",
+  "canvasTabs.close": "关闭画布",
+  "canvasTabs.confirmClose": "确定关闭“{{name}}”吗？画布上未保存的设备和线路将被丢弃。",
+  "canvasTabs.defaultName": "新设计 {{n}}",
 
   "inspector.title": "检视器",
   "inspector.empty": "未选中设备",
