@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Layer, Rect, Stage } from 'react-konva';
 import type Konva from 'konva';
 import type { Cell } from '@core/domain/types.ts';
-import { CELL_PX, useCamera } from './use-camera.ts';
+import { CELL_PX, useCamera, type CameraState } from './use-camera.ts';
 import { Grid } from './Grid.tsx';
 import { PlotRect } from './PlotRect.tsx';
 
@@ -38,13 +38,18 @@ interface Props {
   /** Right-mouse drag completed (P4 v5: box-select). Normalized rectangle. */
   onBoxSelect?: (rect: BoxRect, evt: MouseEvent) => void;
   onCursorChange?: (cell: Cell | null) => void;
-  onCameraChange?: (state: { zoom: number }) => void;
+  onCameraChange?: (state: CameraState) => void;
   /** When this changes (and is non-null), pan camera so the cell lands at center.
    *  Use a fresh Date.now() bump in `nonce` to re-pan to the same cell. */
   panTarget?: { cell: Cell; nonce: number } | null;
   /** Bump to reset camera (zoom = 1, pan = origin). Skipped on first render so
    *  the initial value of 0 doesn't trigger a redundant reset. */
   viewResetNonce?: number;
+  /** Restore the camera to a saved snapshot. Used by the per-tab view-state
+   *  flow when switching canvases — when `nonce` ticks, the planner applies
+   *  `state` via `camera.applyState`. First-render value is recorded so the
+   *  initial nonce doesn't trigger a redundant restore. */
+  viewRestore?: { state: CameraState; nonce: number } | null;
   /** P4 v7.7: when false (any non-select tool / move mode / paste mode),
    *  right-mouse drag does NOT paint the dashed box and `onBoxSelect` is
    *  never called — mouseup invokes `onCellRightClick` instead. The visual
@@ -65,6 +70,7 @@ export function Canvas({
   onCameraChange,
   panTarget,
   viewResetNonce,
+  viewRestore,
   boxSelectEnabled = true,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -116,8 +122,10 @@ export function Canvas({
   }, []);
 
   useEffect(() => {
-    onCameraChange?.({ zoom: camera.zoom });
-  }, [camera.zoom, onCameraChange]);
+    onCameraChange?.({ zoom: camera.zoom, pos: camera.pos });
+    // pos.x / pos.y as separate deps so the effect picks up panning too.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [camera.zoom, camera.pos.x, camera.pos.y, onCameraChange]);
 
   useEffect(() => {
     if (!panTarget || size.width === 0) return;
@@ -137,6 +145,16 @@ export function Canvas({
     camera.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewResetNonce]);
+
+  // Restore a saved view (per-tab) when EditorPage bumps viewRestore.nonce.
+  const viewRestoreSeen = useRef<number | undefined>(viewRestore?.nonce);
+  useEffect(() => {
+    if (!viewRestore) return;
+    if (viewRestoreSeen.current === viewRestore.nonce) return;
+    viewRestoreSeen.current = viewRestore.nonce;
+    camera.applyState(viewRestore.state);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewRestore?.nonce]);
 
   // P4 v7.7: window-level Space tracking for trackpad pan.
   useEffect(() => {

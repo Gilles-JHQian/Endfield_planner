@@ -27,6 +27,10 @@ export interface CameraApi extends CameraState {
   pan: (dx: number, dy: number) => void;
   zoomAt: (stageX: number, stageY: number, dir: 1 | -1) => void;
   reset: () => void;
+  /** Replace the camera state in one shot. Used by the per-tab view-state
+   *  flow when switching canvases — Canvas observes a snapshot prop and
+   *  forwards it here. */
+  applyState: (next: CameraState) => void;
   /** Pan so that `cell` (world coords) lands at the visual center of the viewport. */
   centerOn: (
     cell: { x: number; y: number },
@@ -79,6 +83,10 @@ export function useCamera(initial: CameraState = DEFAULT): CameraApi {
 
   const reset = useCallback((): void => setState(DEFAULT), []);
 
+  const applyState = useCallback((next: CameraState): void => {
+    setState(next);
+  }, []);
+
   const centerOn = useCallback((cell: { x: number; y: number }, w: number, h: number): void => {
     setState((s) => {
       // Keep current zoom; recompute pos so (cell.x+0.5, cell.y+0.5) lands at (w/2, h/2).
@@ -109,5 +117,5 @@ export function useCamera(initial: CameraState = DEFAULT): CameraApi {
     [state.pos.x, state.pos.y, state.zoom],
   );
 
-  return { ...state, pan, zoomAt, reset, centerOn, toWorld, visibleBounds };
+  return { ...state, pan, zoomAt, reset, applyState, centerOn, toWorld, visibleBounds };
 }
