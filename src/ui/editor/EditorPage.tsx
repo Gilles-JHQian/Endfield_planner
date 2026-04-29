@@ -206,6 +206,9 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     severity: 'error' | 'warning' | 'info';
   } | null>(null);
   const [panTarget, setPanTarget] = useState<{ cell: Cell; nonce: number } | null>(null);
+  // Bumped to ask Canvas to zero the camera (zoom = 1, pan = origin). Used
+  // when a fresh canvas is created so the new tab starts on a clean view.
+  const [viewResetNonce, setViewResetNonce] = useState(0);
   const toolApi = useTool();
   const drcReport = useDrc(store.project, bundle, lookup);
   const powerCoverage = useMemo(
@@ -242,9 +245,21 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     const name = nextDefaultName();
     store.newCanvas();
     store.apply({ type: 'set_name', name });
+    // Reset the transient editor state so the fresh canvas starts clean —
+    // no inherited inspector pin, highlight, in-progress draft, paste arm,
+    // move-mode, picked library card, or active belt/pipe tool.
     setSelectedInstanceId(null);
     setBoxSelected(new Set());
     setSelectedLinkIds(new Set());
+    setLinkDraft(null);
+    setPasteSource(null);
+    setMoveMode(null);
+    setHighlight(null);
+    setPickedDevice(null);
+    toolApi.setSelect();
+    // Reset the camera (zoom = 1, pan = origin) so the new tab opens at the
+    // default view. Canvas observes the nonce and runs camera.reset().
+    setViewResetNonce((n) => n + 1);
   }
 
   function handleCloseCanvas(id: string): void {
@@ -1464,6 +1479,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onCursorChange={setCursor}
           onCameraChange={(s) => setZoom(s.zoom)}
           panTarget={panTarget}
+          viewResetNonce={viewResetNonce}
           // P4 v7.7: only the select tool (no move / paste mode active)
           // gets the right-mouse box-select. Other contexts treat any
           // right-mouse release as a tool-cancel right-click.

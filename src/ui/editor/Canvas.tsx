@@ -42,6 +42,9 @@ interface Props {
   /** When this changes (and is non-null), pan camera so the cell lands at center.
    *  Use a fresh Date.now() bump in `nonce` to re-pan to the same cell. */
   panTarget?: { cell: Cell; nonce: number } | null;
+  /** Bump to reset camera (zoom = 1, pan = origin). Skipped on first render so
+   *  the initial value of 0 doesn't trigger a redundant reset. */
+  viewResetNonce?: number;
   /** P4 v7.7: when false (any non-select tool / move mode / paste mode),
    *  right-mouse drag does NOT paint the dashed box and `onBoxSelect` is
    *  never called — mouseup invokes `onCellRightClick` instead. The visual
@@ -61,6 +64,7 @@ export function Canvas({
   onCursorChange,
   onCameraChange,
   panTarget,
+  viewResetNonce,
   boxSelectEnabled = true,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -121,6 +125,18 @@ export function Canvas({
     // We intentionally don't list `camera` / `size` — re-pan only when target nonce changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panTarget?.cell.x, panTarget?.cell.y, panTarget?.nonce]);
+
+  // Reset zoom + pan when EditorPage bumps viewResetNonce (e.g. on
+  // newCanvas). The first render's `viewResetNonce === 0` skips via the
+  // initial-render ref so we don't fight the camera defaults.
+  const viewResetSeen = useRef<number | undefined>(viewResetNonce);
+  useEffect(() => {
+    if (viewResetNonce === undefined) return;
+    if (viewResetSeen.current === viewResetNonce) return;
+    viewResetSeen.current = viewResetNonce;
+    camera.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewResetNonce]);
 
   // P4 v7.7: window-level Space tracking for trackpad pan.
   useEffect(() => {
