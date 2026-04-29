@@ -59,7 +59,12 @@ export interface CanvasesStore {
   // Tab management.
   tabs: readonly CanvasTabSummary[];
   activeId: string;
-  newCanvas: () => string; // returns the new canvas id
+  /** Add a fresh canvas and switch to it. Returns the new canvas id.
+   *  Optional `initialName` overrides the default name from `makeBlank`. The
+   *  override is applied atomically before the entry lands so callers don't
+   *  need a follow-up `apply({ type: 'set_name' })` (that path captures the
+   *  previously-active canvas's history and corrupts the new tab). */
+  newCanvas: (initialName?: string) => string;
   closeCanvas: (id: string) => void;
   setActive: (id: string) => void;
 
@@ -137,15 +142,19 @@ export function useCanvases(opts: UseCanvasesOpts): CanvasesStore {
     setState((s) => updateActive(s, () => ({ past: [], present: project, future: [] })));
   }, []);
 
-  const newCanvas = useCallback((): string => {
-    const blank = makeBlank();
-    const entry: CanvasEntry = {
-      id: blank.id,
-      history: { past: [], present: blank, future: [] },
-    };
-    setState((s) => ({ entries: [...s.entries, entry], activeId: blank.id }));
-    return blank.id;
-  }, [makeBlank]);
+  const newCanvas = useCallback(
+    (initialName?: string): string => {
+      const blank = makeBlank();
+      const project = initialName ? { ...blank, name: initialName } : blank;
+      const entry: CanvasEntry = {
+        id: project.id,
+        history: { past: [], present: project, future: [] },
+      };
+      setState((s) => ({ entries: [...s.entries, entry], activeId: project.id }));
+      return project.id;
+    },
+    [makeBlank],
+  );
 
   const closeCanvas = useCallback(
     (id: string): void => {

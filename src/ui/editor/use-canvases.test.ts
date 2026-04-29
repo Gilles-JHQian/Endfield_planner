@@ -51,6 +51,25 @@ describe('useCanvases', () => {
     expect(result.current.tabs.find((t) => t.id === newId)?.active).toBe(true);
   });
 
+  it('newCanvas with initialName lands the name atomically (regression: previously inherited prior tab content)', () => {
+    const { result } = setup();
+    // Edit the first tab so it has a non-default project.
+    act(() => {
+      result.current.apply({ type: 'set_name', name: 'first edited' });
+    });
+    // Create a new tab with a different name. Must NOT inherit the first
+    // tab's project — it must be a fresh blank project named 'second'.
+    let newId = '';
+    act(() => {
+      newId = result.current.newCanvas('second');
+    });
+    expect(result.current.tabs.find((t) => t.id === newId)?.name).toBe('second');
+    expect(result.current.project.name).toBe('second');
+    expect(result.current.project.devices).toHaveLength(0);
+    expect(result.current.project.solid_links).toHaveLength(0);
+    expect(result.current.project.fluid_links).toHaveLength(0);
+  });
+
   it('setActive switches the active tab without losing history of either', () => {
     const { result } = setup();
     const firstId = result.current.activeId;

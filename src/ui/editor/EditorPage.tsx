@@ -5,7 +5,7 @@
  *  fill the rail / library / inspector with real content and connect them
  *  to the project store via apply().
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDataBundle } from '@ui/use-data-bundle.ts';
 import { useI18n } from '@i18n/index.tsx';
 import { createProject } from '@core/domain/project.ts';
@@ -75,7 +75,7 @@ import { useViewMode } from './use-view-mode.ts';
 import { useCanvases } from './use-canvases.ts';
 import { type ProjectAction } from './use-project.ts';
 import { useTool } from './use-tool.ts';
-import { CELL_PX } from './use-camera.ts';
+import { CELL_PX, type CameraState } from './use-camera.ts';
 
 const DATA_VERSION = '1.2';
 
@@ -209,6 +209,16 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
   // Bumped to ask Canvas to zero the camera (zoom = 1, pan = origin). Used
   // when a fresh canvas is created so the new tab starts on a clean view.
   const [viewResetNonce, setViewResetNonce] = useState(0);
+  // Per-tab camera state captured continuously via Canvas.onCameraChange and
+  // restored on tab switch. Ref-based so 60+ FPS pan/zoom changes don't
+  // re-render EditorPage.
+  const viewByTabRef = useRef<Map<string, CameraState>>(new Map());
+  // Restore snapshot pushed to Canvas when activating a tab that has a saved
+  // view. Nonce-bumped so back-and-forth between two tabs always re-fires.
+  const [viewRestore, setViewRestore] = useState<{
+    state: CameraState;
+    nonce: number;
+  } | null>(null);
   const toolApi = useTool();
   const drcReport = useDrc(store.project, bundle, lookup);
   const powerCoverage = useMemo(
@@ -243,8 +253,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
 
   function handleAddCanvas(): void {
     const name = nextDefaultName();
-    store.newCanvas();
-    store.apply({ type: 'set_name', name });
+    // Pass the name through newCanvas so it lands atomically with the blank
+    // project — calling store.apply afterward would write the OLD active
+    // canvas's project (with set_name applied) into the new tab's history.
+    store.newCanvas(name);
     // Reset the transient editor state so the fresh canvas starts clean —
     // no inherited inspector pin, highlight, in-progress draft, paste arm,
     // move-mode, picked library card, or active belt/pipe tool.
@@ -285,6 +297,14 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     setSelectedInstanceId(null);
     setBoxSelected(new Set());
     setSelectedLinkIds(new Set());
+    // Restore the saved camera for this tab, or fall back to the default
+    // view if we've never visited it (e.g. tabs loaded from the manifest).
+    const saved = viewByTabRef.current.get(id);
+    if (saved) {
+      setViewRestore({ state: saved, nonce: Date.now() });
+    } else {
+      setViewResetNonce((n) => n + 1);
+    }
   }
 
   function handleNew(): void {
@@ -1477,9 +1497,16 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onCellRightClick={handleCellRightClick}
           onBoxSelect={handleBoxSelect}
           onCursorChange={setCursor}
-          onCameraChange={(s) => setZoom(s.zoom)}
+          onCameraChange={(s) => {
+            setZoom(s.zoom);
+            // Mirror the full camera state into the per-tab map so a later
+            // tab switch can restore it. Refs don't trigger re-renders, so
+            // capturing on every pan/zoom event is free.
+            viewByTabRef.current.set(store.activeId, s);
+          }}
           panTarget={panTarget}
           viewResetNonce={viewResetNonce}
+          viewRestore={viewRestore}
           // P4 v7.7: only the select tool (no move / paste mode active)
           // gets the right-mouse box-select. Other contexts treat any
           // right-mouse release as a tool-cancel right-click.
