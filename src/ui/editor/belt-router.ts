@@ -14,7 +14,7 @@ import type { DataBundle, Device } from '@core/data-loader/types.ts';
 import { SOLID_BRIDGE_IDS, FLUID_BRIDGE_IDS, layerOccupancyOf } from '@core/drc/bridges.ts';
 import {
   buildLinkOrientations,
-  routeForBelt,
+  routeForBeltWithDetour,
   type BeltRouteOpts,
   type BeltRouteResult,
   type LinkOrient,
@@ -155,7 +155,7 @@ export function planSegments(
       crossBridgeBlocksOtherLayer: ctx.crossBridgeBlocksOtherLayer,
       otherLayerOccupants: ctx.otherLayerOccupants,
     };
-    const seg = routeForBelt(waypoints[i]!, waypoints[i + 1]!, opts);
+    const seg = routeForBeltWithDetour(waypoints[i]!, waypoints[i + 1]!, opts);
     segments.push(seg);
     if (i === 0) path.push(...seg.path);
     else path.push(...seg.path.slice(1)); // skip joint duplicate

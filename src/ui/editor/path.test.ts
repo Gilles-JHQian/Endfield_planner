@@ -5,6 +5,7 @@ import {
   manhattanPath,
   routeAroundDevices,
   routeForBelt,
+  routeForBeltWithDetour,
   type LinkOrient,
 } from './path.ts';
 
@@ -497,5 +498,65 @@ describe('bfsRouteWithBend', () => {
         { walls: NO_WALLS, bounds: BOUNDS, maxBends: 3 },
       ),
     ).toBeNull();
+  });
+});
+
+describe('routeForBeltWithDetour', () => {
+  const baseOpts = {
+    deviceWalls: NO_WALLS,
+    sameLayerLinks: new Map() as ReadonlyMap<string, ReadonlySet<LinkOrient>>,
+    existingBridges: NO_WALLS,
+    bounds: BOUNDS,
+    prevHeading: null,
+  };
+
+  it('returns the L-shape unchanged when nothing is in the way', () => {
+    const r = routeForBeltWithDetour({ x: 0, y: 0 }, { x: 4, y: 0 }, baseOpts);
+    expect(r.collisions).toEqual([]);
+    expect(r.path).toHaveLength(5);
+  });
+
+  it('falls back to BFS when a device sits on the L-shape', () => {
+    // Wall on (2,0) blocks the straight path; BFS detours around it.
+    const r = routeForBeltWithDetour(
+      { x: 0, y: 0 },
+      { x: 4, y: 0 },
+      { ...baseOpts, deviceWalls: new Set(['2,0']) },
+    );
+    expect(r.collisions).toEqual([]);
+    expect(r.path[0]).toEqual({ x: 0, y: 0 });
+    expect(r.path[r.path.length - 1]).toEqual({ x: 4, y: 0 });
+    expect(r.path.find((c) => c.x === 2 && c.y === 0)).toBeUndefined();
+  });
+
+  it('twists the final segment to match a destination port direction', () => {
+    // Cursor at (3,3) is an input port whose face points NORTH — the belt
+    // must arrive heading SOUTH (last step dy = +1). The L-shape from (0,0)
+    // arrives heading EAST, which the planner would flag red. The detour
+    // wrapper finds a path that approaches from above instead.
+    const r = routeForBeltWithDetour(
+      { x: 0, y: 0 },
+      { x: 3, y: 3 },
+      { ...baseOpts, lastStepDirection: { dx: 0, dy: 1 } },
+    );
+    expect(r.collisions).toEqual([]);
+    const last = r.path[r.path.length - 1]!;
+    const prev = r.path[r.path.length - 2]!;
+    expect(last.x - prev.x).toBe(0);
+    expect(last.y - prev.y).toBe(1);
+  });
+
+  it('keeps the red L-shape when the only detour exceeds the bend cap', () => {
+    // Devices form a corridor that needs more than 3 bends. The wrapper
+    // returns the original L-shape with collisions intact so the ghost still
+    // surfaces the violation rather than silently producing a long detour.
+    const walls = new Set(['1,0', '1,1', '1,2', '1,3', '1,4', '1,5', '1,6', '1,7']);
+    const bounds = { width: 4, height: 4 };
+    const r = routeForBeltWithDetour(
+      { x: 0, y: 0 },
+      { x: 2, y: 0 },
+      { ...baseOpts, deviceWalls: walls, bounds },
+    );
+    expect(r.collisions.length).toBeGreaterThan(0);
   });
 });

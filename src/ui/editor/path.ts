@@ -422,7 +422,19 @@ export function routeForBelt(from: Cell, to: Cell, opts: BeltRouteOpts): BeltRou
     }
   }
 
-  // Classify each cell: collision / auto-bridge / clean.
+  const { collisions, bridgesToAutoPlace } = classifyPathCells(path, from, to, opts);
+  return { path, bridgesToAutoPlace, collisions };
+}
+
+/** Walk the candidate path and label each cell as legal / auto-bridge target /
+ *  collision against device walls + same-layer links + the auto-bridge rules.
+ *  Shared by routeForBelt (L-shape) and routeForBeltWithDetour (BFS path). */
+function classifyPathCells(
+  path: readonly Cell[],
+  from: Cell,
+  to: Cell,
+  opts: BeltRouteOpts,
+): { collisions: Cell[]; bridgesToAutoPlace: Cell[] } {
   const collisions: Cell[] = [];
   const bridgesToAutoPlace: Cell[] = [];
   const fromKey = cellKey(from.x, from.y);
@@ -476,8 +488,42 @@ export function routeForBelt(from: Cell, to: Cell, opts: BeltRouteOpts): BeltRou
       }
     }
   }
+  return { collisions, bridgesToAutoPlace };
+}
 
-  return { path, bridgesToAutoPlace, collisions };
+/** Auto-detour wrapper around routeForBelt (P4 v8). When the L-shape ghost
+ *  collides — devices in the way, or port-direction mismatch at either end —
+ *  retry with a 4-neighbour BFS capped at 3 bends. The BFS detours around
+ *  device walls only; same-layer link crossings still fall to the auto-bridge
+ *  flow via classifyPathCells. When BFS finds nothing within the bend cap
+ *  the original L-shape (with its red collisions) is returned unchanged so
+ *  the ghost still surfaces the violation. */
+export function routeForBeltWithDetour(
+  from: Cell,
+  to: Cell,
+  opts: BeltRouteOpts,
+): BeltRouteResult {
+  const direct = routeForBelt(from, to, opts);
+  if (direct.collisions.length === 0) return direct;
+
+  // Single-cell or U-turn cases: BFS won't help, the L-shape's collision is
+  // the right red signal.
+  if (from.x === to.x && from.y === to.y) return direct;
+
+  const bfs = bfsRouteWithBend(from, to, {
+    walls: opts.deviceWalls,
+    bounds: opts.bounds,
+    maxBends: 3,
+    ...(opts.firstStepDirection ? { firstStepDirection: opts.firstStepDirection } : {}),
+    ...(opts.lastStepDirection ? { lastStepDirection: opts.lastStepDirection } : {}),
+  });
+  if (!bfs) return direct;
+
+  // BFS already satisfied the wall + port-direction constraints. Re-run the
+  // same same-layer / bridge classifier so corner overlaps still come out red
+  // and perpendicular crossings still surface as auto-bridge candidates.
+  const cls = classifyPathCells(bfs.path, from, to, opts);
+  return { path: bfs.path, collisions: cls.collisions, bridgesToAutoPlace: cls.bridgesToAutoPlace };
 }
 
 function walkHV(from: Cell, to: Cell): Cell[] {
