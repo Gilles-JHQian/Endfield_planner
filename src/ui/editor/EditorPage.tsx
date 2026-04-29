@@ -58,9 +58,13 @@ import {
   flushSave,
   importProject,
   loadCurrent,
+  importSchematicJson,
   promoteToTopOfHistory,
   readClipboard,
   readClipboardHistory,
+  readSchematics,
+  removeSchematic,
+  saveSchematic,
   scheduleSave,
   type ClipboardPayload,
 } from '@core/persistence/index.ts';
@@ -157,6 +161,15 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     () => readClipboardHistory(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [clipboardTick],
+  );
+  // Same pattern for the session schematic store: a tick state nudges the
+  // Library to re-read the module-level array whenever a save / import /
+  // remove happens.
+  const [schematicsTick, setSchematicsTick] = useState(0);
+  const schematics = useMemo(
+    () => readSchematics(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [schematicsTick],
   );
   // Multi-segment belt/pipe draft. Each click adds a waypoint; the segment
   // between consecutive waypoints is BFS-routed around devices. Drafting
@@ -283,6 +296,118 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedInstanceId, store, toolApi.tool]);
 
+  /** Build a clipboard payload from the current right-click highlight set.
+   *  Devices = all in `boxSelected`; links = anything in `selectedLinkIds`
+   *  PLUS links whose both endpoints reference a selected device (so attached
+   *  belts ride along even when only the devices are highlighted). Same rule
+   *  as enterMoveMode below. */
+  function buildSelectionPayload(): ClipboardPayload | null {
+    if (boxSelected.size === 0) return null;
+    const devices = store.project.devices.filter((d) => boxSelected.has(d.instance_id));
+    const allLinks = [...store.project.solid_links, ...store.project.fluid_links];
+    const includedLinks = allLinks.filter((l) => {
+      if (selectedLinkIds.has(l.id)) return true;
+      if (
+        l.src &&
+        l.dst &&
+        boxSelected.has(l.src.device_instance_id) &&
+        boxSelected.has(l.dst.device_instance_id)
+      ) {
+        return true;
+      }
+      return false;
+    });
+    return buildPayload(devices, includedLinks);
+  }
+
+  /** Copy the highlight set to the clipboard slot + history. Shared by Ctrl+C
+   *  and the inspector's Copy button. */
+  function handleCopySelection(): void {
+    const payload = buildSelectionPayload();
+    if (!payload) return;
+    copyToClipboard(payload);
+    setClipboardTick((n) => n + 1);
+  }
+
+  /** Delete every highlighted device + link in one history snapshot. Shared
+   *  by F/Delete and the inspector's Cut button. */
+  function handleDeleteSelection(): void {
+    if (boxSelected.size === 0 && selectedLinkIds.size === 0) return;
+    const actions: ProjectAction[] = [
+      ...Array.from(boxSelected).map(
+        (instance_id) =>
+          ({
+            type: 'delete_device',
+            instance_id,
+          }) as const,
+      ),
+      ...Array.from(selectedLinkIds).map(
+        (link_id) =>
+          ({
+            type: 'delete_link',
+            link_id,
+          }) as const,
+      ),
+    ];
+    store.applyMany(actions);
+    setBoxSelected(new Set());
+    setSelectedLinkIds(new Set());
+    if (selectedInstanceId && boxSelected.has(selectedInstanceId)) {
+      setSelectedInstanceId(null);
+    }
+  }
+
+  function handleCutSelection(): void {
+    const payload = buildSelectionPayload();
+    if (!payload) return;
+    copyToClipboard(payload);
+    setClipboardTick((n) => n + 1);
+    handleDeleteSelection();
+  }
+
+  function handleSaveSchematic(): void {
+    const payload = buildSelectionPayload();
+    if (!payload) return;
+    const raw = window.prompt('Save schematic as · 命名原理图:', '');
+    const name = raw?.trim();
+    if (!name) return;
+    saveSchematic(name, payload);
+    setSchematicsTick((n) => n + 1);
+    // Surface the new entry by switching the left rail to the Schematic tab.
+    setCategory('schematic');
+  }
+
+  function handleImportSchematicFile(file: File): void {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = typeof reader.result === 'string' ? reader.result : '';
+        const parsed = JSON.parse(text) as unknown;
+        const fallbackName = file.name.replace(/\.json$/i, '');
+        importSchematicJson(parsed, fallbackName);
+        setSchematicsTick((n) => n + 1);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        window.alert(`Import failed: ${msg}`);
+      }
+    };
+    reader.onerror = () => {
+      window.alert(`Import failed: ${reader.error?.message ?? 'read error'}`);
+    };
+    reader.readAsText(file);
+  }
+
+  function handleRemoveSchematic(id: string): void {
+    removeSchematic(id);
+    setSchematicsTick((n) => n + 1);
+  }
+
+  function handlePickSchematic(payload: ClipboardPayload): void {
+    setPasteSource(payload);
+    toolApi.setSelect();
+    setPickedDevice(null);
+  }
+
   // Selection-aware global keybindings (P4 v5 — no longer tool-bound):
   // - F / Delete: batch-delete the box selection, OR delete the selected
   //   single belt, OR delete the selected single device.
@@ -295,29 +420,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       if (meta && (e.key === 'c' || e.key === 'C')) {
         if (boxSelected.size === 0) return;
         e.preventDefault();
-        const devices = store.project.devices.filter((d) => boxSelected.has(d.instance_id));
-        // P4 v7: include all links (both layers) whose endpoints both reference
-        // P4 v7.3: include any link in selectedLinkIds PLUS any link whose
-        // both endpoints reference a boxSelected device. PortRefs to devices
-        // outside the selection are dropped on paste (v7.3 buildPayload).
-        const allLinks = [...store.project.solid_links, ...store.project.fluid_links];
-        const includedLinks = allLinks.filter((l) => {
-          if (selectedLinkIds.has(l.id)) return true;
-          if (
-            l.src &&
-            l.dst &&
-            boxSelected.has(l.src.device_instance_id) &&
-            boxSelected.has(l.dst.device_instance_id)
-          ) {
-            return true;
-          }
-          return false;
-        });
-        const payload = buildPayload(devices, includedLinks);
-        if (payload) {
-          copyToClipboard(payload);
-          setClipboardTick((n) => n + 1);
-        }
+        handleCopySelection();
         return;
       }
       if (meta && (e.key === 'v' || e.key === 'V')) {
@@ -331,28 +434,7 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
       if (e.key === 'f' || e.key === 'F' || e.key === 'Delete') {
         if (boxSelected.size > 0 || selectedLinkIds.size > 0) {
           e.preventDefault();
-          const actions: ProjectAction[] = [
-            ...Array.from(boxSelected).map(
-              (instance_id) =>
-                ({
-                  type: 'delete_device',
-                  instance_id,
-                }) as const,
-            ),
-            ...Array.from(selectedLinkIds).map(
-              (link_id) =>
-                ({
-                  type: 'delete_link',
-                  link_id,
-                }) as const,
-            ),
-          ];
-          store.applyMany(actions);
-          setBoxSelected(new Set());
-          setSelectedLinkIds(new Set());
-          if (selectedInstanceId && boxSelected.has(selectedInstanceId)) {
-            setSelectedInstanceId(null);
-          }
+          handleDeleteSelection();
           return;
         }
         // Single-device deletion via Delete key (selected via V-tool left-
@@ -1237,6 +1319,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
             toolApi.setSelect();
             setPickedDevice(null);
           }}
+          schematics={schematics}
+          onPickSchematic={handlePickSchematic}
+          onImportSchematic={handleImportSchematicFile}
+          onRemoveSchematic={handleRemoveSchematic}
         />
       </aside>
       <main aria-label="workspace" className="relative bg-canvas">
@@ -1341,6 +1427,14 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
           onRecipeChange={(instance_id, recipe_id) =>
             store.apply({ type: 'set_recipe', instance_id, recipe_id })
           }
+          selectedDeviceIds={boxSelected}
+          selectedLinkIds={selectedLinkIds}
+          onCopySelection={handleCopySelection}
+          onCutSelection={handleCutSelection}
+          onSaveSchematic={handleSaveSchematic}
+          regions={bundle.regions}
+          onRenameProject={(name) => store.apply({ type: 'set_name', name })}
+          onChangeRegion={(region_id) => store.apply({ type: 'set_region', region_id })}
         />
       </aside>
     </div>

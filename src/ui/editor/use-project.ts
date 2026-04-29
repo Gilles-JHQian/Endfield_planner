@@ -87,7 +87,9 @@ export type ProjectAction =
       end: 'src' | 'dst';
       ref: PortRef | undefined;
     }
-  | { type: 'resize_plot'; width: number; height: number };
+  | { type: 'resize_plot'; width: number; height: number }
+  | { type: 'set_name'; name: string }
+  | { type: 'set_region'; region_id: string };
 
 interface History {
   past: Project[];
@@ -260,6 +262,10 @@ function applyAction(
       );
     case 'resize_plot':
       return wrap(resizePlot(project, action.width, action.height, lookup));
+    case 'set_name':
+      return { ok: true, value: { project: { ...project, name: action.name } } };
+    case 'set_region':
+      return { ok: true, value: { project: { ...project, region_id: action.region_id } } };
   }
 }
 
