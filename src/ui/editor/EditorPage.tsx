@@ -243,8 +243,10 @@ function EditorWithBundle({ bundle }: { bundle: DataBundle }) {
 
   function handleAddCanvas(): void {
     const name = nextDefaultName();
-    store.newCanvas();
-    store.apply({ type: 'set_name', name });
+    // Pass the name through newCanvas so it lands atomically with the blank
+    // project — calling store.apply afterward would write the OLD active
+    // canvas's project (with set_name applied) into the new tab's history.
+    store.newCanvas(name);
     // Reset the transient editor state so the fresh canvas starts clean —
     // no inherited inspector pin, highlight, in-progress draft, paste arm,
     // move-mode, picked library card, or active belt/pipe tool.
