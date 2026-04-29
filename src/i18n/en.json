@@ -66,6 +66,10 @@
   "library.schematicImport": "Import…",
   "library.schematicImportError": "Import failed: {{message}}",
   "library.schematicSlot": "{{devices}} devices / {{links}} links",
+  "canvasTabs.add": "New canvas",
+  "canvasTabs.close": "Close canvas",
+  "canvasTabs.confirmClose": "Close \"{{name}}\"? Unsaved devices and links on this canvas will be discarded.",
+  "canvasTabs.defaultName": "Untitled {{n}}",
 
   "inspector.title": "Inspector",
   "inspector.empty": "Nothing selected",

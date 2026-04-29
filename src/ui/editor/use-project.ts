@@ -193,7 +193,7 @@ export function useProject(initial: Project, lookup: DeviceLookup): ProjectStore
   );
 }
 
-function applyAction(
+export function applyAction(
   project: Project,
   action: ProjectAction,
   lookup: DeviceLookup,
