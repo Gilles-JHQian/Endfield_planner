@@ -24,3 +24,12 @@ export {
   clearSchematicsForTest,
 } from './schematics.ts';
 export type { Schematic } from './schematics.ts';
+export {
+  scheduleSaveTabs,
+  flushSaveTabs,
+  loadTabs,
+  clearTabs,
+  getLastTabsSavedAt,
+  clearTabsForTest,
+} from './tabs-storage.ts';
+export type { TabEntry, TabsManifest } from './tabs-storage.ts';
