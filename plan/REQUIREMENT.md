@@ -250,6 +250,17 @@ A 2D grid-based canvas where the user can:
 
 **Keyboard shortcuts:** V = select; B / E = belt; P / Q = pipe (B/P preserved for muscle memory; Q/E added in P3 for one-hand reach); R = rotate ghost or selection; M / X = move selection; F / Delete = delete selection; Esc = cancel; Backspace = pop waypoint while drawing. **Trackpad-friendly aliases (P4 v7.7 / v7.9):** hold Space + left-drag to pan (alternative to middle-mouse); ArrowUp / ArrowDown adjust zoom (centered on viewport); Shift + left-click / drag mirrors right-button (single = highlight / tool-cancel, drag = box-select / tool-cancel). **Modifier semantics (P4 v7.7 / v7.8):** Ctrl/Cmd + left-click in place / paste / move modes drops a copy and stays in the mode (clone gesture); plain left-click drops one and exits to select.
 
+**Multi-canvas tabs (P4 v7.13 / v7.15):** owners can manage multiple canvases as horizontal tabs at the top of the editor (above the 4-column grid, below the global Header). `+` adds a new blank canvas with the lowest unused `新设计 N` name; × on each tab closes it (with a `window.confirm` gate when the canvas has placed devices/links). Each canvas has its own undo/redo stack — `useCanvases` wraps N independent `History` instances and routes `apply` / `applyMany` / `undo` / `redo` to the active one. Per-tab camera state (zoom + pan) is captured continuously into a ref-keyed map and restored on tab switch (v7.15); inspector pin / highlight set / in-progress draft / paste arm reset on switch so the new canvas starts clean. Tabs persist via `endfield_planner.tabs.v1`; the legacy single-project key migrates into a one-tab manifest on first load. Closing the last tab auto-creates a blank one so the editor never has zero canvases.
+
+**Selection-priority Inspector + session schematic library (P4 v7.12):** when the right-click highlight set is non-empty, the right-rail Inspector switches to a SELECTION summary (footprint cells, total power, device + powered + fluid-interface counts, solid + fluid link counts) instead of the pinned-device panel. The pin survives invisibly and returns when the selection clears (owner-confirmed "selection wins" semantics). Three buttons in the SELECTION panel:
+- **Save schematic** prompts for a name (`window.prompt`) and persists the selection's clipboard payload into a session-only schematic store, then flips the left rail to a new "schematic" tab so the entry is visible immediately.
+- **Copy** reuses the existing Ctrl+C pipeline.
+- **Cut** = copy + delete in one history snapshot.
+
+The new "schematic" rail tab (sibling of "clipboard", glyph 📐) lists session-saved schematics most-recent-first; clicking a card arms paste mode just like clipboard slots. A top-row **Import…** button opens a file picker, parses + validates the JSON via `importSchematicJson`, and pushes it onto the session list. `importSchematicJson` tolerates either a bare `ClipboardPayload` or a wrapped `{ name, payload }` envelope so a future Export hook can round-trip. Schematics intentionally do NOT mirror to localStorage — durable storage is deferred to a future DB phase.
+
+The Project Summary panel (no selection, no pin) gains an inline rename pencil `✎` (Enter commits, Esc cancels, blur commits non-empty trimmed) and a region `<select>` of `bundle.regions` driven by new `set_name` / `set_region` project actions (both undoable).
+
 **Live ghost preview (mandatory):** while the user is drawing a belt or pipe, or has a device selected from the palette, the tool renders a **real-time ghost** of the placement at the current mouse position. The ghost updates every mouse-move event, shows the candidate path/footprint, and color-codes validity (green = valid, red = DRC violation, yellow = valid but sub-optimal). Performance budget: ghost render must complete within one frame (~16ms) at the performance targets in §6.5.
 
 **Device placement ghost (P4 v7):**
@@ -267,6 +278,8 @@ A 2D grid-based canvas where the user can:
 - **Parallel / corner overlap, or cell already hosts a non-bridge device** → ghost goes red and the next click is rejected (no waypoint added). Owners must back out (Backspace / Esc) and re-route.
 
 The planner still detours around placed device cells (excluding the path's own port-cell endpoints).
+
+**Auto-router fallback (P4 v7.14):** when the simple L-shape ghost would collide with a device, the planner falls back to a 4-neighbour BFS capped at **3 bends**. Walls are devices only — same-layer link crossings still go through the v6 auto-bridge truncation flow above (perpendicular crossing → auto-bridge cell; parallel/corner overlap → red). Port-direction constraints (`firstStepDirection` at the source, `lastStepDirection` at the destination) are baked into the BFS goal: the search rejects the start step / goal cell when it doesn't match, so an end-port whose face the L-shape can't satisfy is rerouted via a detour that arrives heading the right way ("twists" the final segment into the port). When BFS finds nothing within the 3-bend cap, the original red L-shape is preserved so the violation still surfaces. State is `(cell, lastDir, bends)`; revisits to the same state are pruned. Both ghost preview and commit walk through the new wrapper (`routeForBeltWithDetour`).
 
 **Forward-vs-side preference:** when computing the live segment from the last waypoint to the cursor, the planner classifies the cursor's position relative to the previous segment's heading via the interior angle at the waypoint vertex:
 - 135°–180° (cursor is roughly forward of the heading): extend straight in the same axis first, then turn perpendicular toward the cursor;
@@ -448,6 +461,8 @@ A separate single-page tool, bundled in the same repo but served from a distinct
   1. **Dev-mode middleware** (preferred during `pnpm dev`): POST to `/api/dev/devices` registered by a Vite plugin → atomic write to disk → no browser dialog.
   2. **File System Access API** fallback (production builds, non-Chromium browsers): `showSaveFilePicker` with handle persistence; if denied, blob download.
 - **Per-device "Reset to scraped baseline"** (P3): if the loaded device exists in `devices.scraped.json`, show a diff and let the owner restore the scraped values for selected fields, while preserving owner-only fields (`io_ports`, `power_aoe`, additional locale display names).
+- **Reload bundle in-memory after Save (P4 v7.11).** A successful save merges the edited device into the bundle's devices array via a new `setDevices` setter on `useDataBundle` and re-anchors the draft so the dirty flag flips back to clean. Functionally equivalent to re-reading the file (since the merged array IS what's now on disk) without fighting Vite's `import.meta.glob` module cache. Removes the previous "edit, save, click reload" footgun.
+- **Auto-save dirty draft when switching devices (P4 v7.11).** Picking a different device used to silently overwrite an unsaved draft (`useDeviceDraft.load` replaced `original` and `draft` with no dirty check). The picker now auto-saves the current draft first; on save failure the editor stays on the dirty draft so the owner can recover.
 
 **Non-features (v1 scope):**
 
@@ -850,7 +865,50 @@ A feature is "done" when:
 
 ## Changelog
 
-### v7.10 — ghost transform hoist for move/paste mode (this document)
+### v7.15 — multi-canvas polish: empty new tab + per-tab view (this document)
+
+Two follow-ups on v7.13 multi-canvas plus a small UX fix that landed between rounds.
+
+- **New canvases now actually start empty.** `handleAddCanvas` previously called `store.newCanvas()` then `store.apply({ type: 'set_name', name })`. The `apply` callback's closure captured the OLD active canvas, so set_name ran on the previous tab's project and the result was written into the new tab's history — the new tab inherited every device and link from the previous one. `useCanvases.newCanvas(initialName?)` now applies the name override atomically before the entry is added to state. Owners get a clean blank project on every `+` click. Regression test added in `use-canvases.test.ts`.
+- **Camera state is remembered per tab.** `Canvas.onCameraChange` payload upgrades from `{ zoom }` to the full `{ zoom, pos }` `CameraState` and now fires on pan changes too. EditorPage mirrors every camera change into a `viewByTabRef` (a ref so the 60+ FPS pan/zoom stream doesn't trigger re-renders). `handleActivateCanvas` looks up the incoming tab's saved snapshot and pushes it through a new `viewRestore` Canvas prop; Canvas's nonce-guarded effect calls `camera.applyState`. Tabs without a saved view fall through to the existing `viewResetNonce` (default view).
+- **Creating a new canvas resets transient editor state.** `handleAddCanvas` clears `linkDraft` / `pasteSource` / `moveMode` / `highlight` / `pickedDevice` and snaps the active tool back to select alongside the camera reset, so a fresh tab doesn't inherit the previous canvas's in-progress drafts or armed paste.
+
+### v7.14 — auto-router with BFS detour
+
+The ghost path planner used to walk a straight L-shape and refuse to detour around devices — owners had to back out and add a waypoint manually. v7.14 falls back to a 4-neighbour BFS when the L-shape collides:
+
+- **`bfsRouteWithBend`** searches over `(cell, lastDir, bends)` states with a 3-bend cap. When `firstStepDirection` / `lastStepDirection` are set the search refuses to leave the source / accept a goal that doesn't match — port-direction enforcement is baked into the search rather than a post-validation. Returns null when nothing satisfies the constraints; caller falls back to the red L-shape.
+- **`routeForBeltWithDetour`** wraps `routeForBelt`: tries the L-shape first, and on collision retries with `bfsRouteWithBend`. The cell classifier (collision / auto-bridge / out-of-bounds) is extracted and runs over both planners' paths, so corner overlaps with existing belts still come out red and perpendicular crossings still surface as auto-bridge candidates. `planSegments` swaps to the wrapper so both ghost preview and commit go through it.
+- **Walls are devices only.** Same-layer link crossings still go through the existing auto-bridge truncation. Choice locked in via owner question — keeps the smallest blast radius vs treating link cells as walls.
+
+### v7.13 — multi-canvas tabs
+
+Owners asked for design-software-style canvas tabs. v7.13 lifts the editor's single project into a tabs manifest and adds a tab strip between the global Header and the 4-column grid.
+
+- **Tabs manifest persistence.** New `src/core/persistence/tabs-storage.ts`. `scheduleSaveTabs` / `flushSaveTabs` / `loadTabs` / `clearTabs` mirror the legacy single-project storage API, throttled at 1s. `loadTabs` falls back to migrating the legacy `endfield_planner.current_project.v1` key into a one-tab manifest (then wipes it) so owners upgrading don't lose their canvas. Schema: `{ schema: 'endfield-tabs', schema_version: 1, active_id, tabs: [{ id, name, project }] }`. Corrupted manifests fall through to the same legacy migration path.
+- **`useCanvases` hook.** Wraps N independent histories. Active canvas mirrors the existing `ProjectStore` surface (`project / apply / applyMany / undo / redo / canUndo / canRedo / reset`) so call sites don't change; tab management adds `tabs / activeId / newCanvas / closeCanvas / setActive` plus a `manifest` snapshot for persistence. `applyAction` is now exported from `use-project.ts` so the new hook reuses the same edit reducer. Closing the last tab auto-creates a fresh blank one so the editor never has zero canvases.
+- **`CanvasTabs` component.** Horizontal strip with hover-revealed × close buttons + a trailing `+`. Active tab gets an amber underline; the strip scrolls horizontally when many tabs are open. Closing a non-empty tab prompts via `window.confirm` — empty tabs close silently. New default name picks the lowest unused `新设计 N` so closing and re-adding doesn't drift past visible numbers.
+- **EditorPage.** Replaces `useProject` with `useCanvases`. Auto-save now writes the whole manifest. Inspector pin / highlight set reset on tab activate so the new tab starts clean. `ProjectMenu`'s saved-indicator polls `getLastTabsSavedAt`; the legacy `getLastSavedAt` is no longer called.
+
+### v7.12 — selection inspector + session schematic library
+
+Right-click selections now have first-class actions in the right rail, and a new schematic-library tab brings the design-software "named saved selections" workflow.
+
+- **Selection summary in Inspector.** When `boxSelected` or `selectedLinkIds` is non-empty, the right-rail Inspector shows a SELECTION panel (footprint cells, total power draw, device count, powered count, fluid-interface count, solid + fluid link counts) instead of the pinned device. The pin survives invisibly and returns when the selection clears — owner-confirmed semantics ("selection wins").
+- **Save schematic / Copy / Cut buttons.** Buttons live inside the new SelectionInspector. Copy reuses the existing Ctrl+C clipboard pipeline; Cut = copy + delete in one history snapshot; Save schematic prompts via `window.prompt` and persists to a new session-only schematic store, then auto-flips the left rail to the Schematic tab. Existing keyboard handlers (Ctrl+C, F/Delete) refactored to call shared `handleCopySelection` / `handleDeleteSelection` callbacks so behavior is single-source.
+- **Schematic Rail tab + Library view.** New `'schematic'` tab on the Rail (sibling of `clipboard`, glyph 📐). The Library renders a `SchematicView` listing session-saved schematics most-recent-first; clicking a card arms paste mode (same pipeline clipboard slots use). A top-row Import button opens a file picker, parses + validates the JSON via `importSchematicJson`, and pushes it onto the session list. `importSchematicJson` accepts either a bare `ClipboardPayload` or a wrapped `{ name, payload }` envelope so a future Export hook can round-trip.
+- **Inline rename + region picker in Project Summary.** New `set_name` / `set_region` project actions reduce inline (both undoable). Pencil `✎` button next to the project name flips the text into an autofocused input (Enter commits, Esc cancels, blur commits non-empty trimmed). New Region row above Footprint renders a `<select>` of `bundle.regions` with an unmatched-id fallback option for projects loaded from older saves.
+- **Session-only by design.** No localStorage mirroring for schematics — explicitly defers durable storage to a future DB phase.
+
+### v7.11 — device-editor session save-reload + hand-curated ports
+
+Two UX fixes in the §5.4 device editor and a data update.
+
+- **Reload devices bundle in-memory after Save.** After a successful save the merged devices array IS what's on disk; updating the bundle's `devices` array to that merged result is functionally equivalent to re-reading the file. New `setDevices` setter on `useDataBundle`. `handleSave` now merges → saves → calls `setDevices(merged)` → re-anchors the draft so the dirty flag flips back to clean and the device list reflects the saved state without a page reload.
+- **Auto-save dirty draft when switching devices.** Picking a different device used to silently overwrite an unsaved draft (`useDeviceDraft.load` replaced both `original` and `draft` with no dirty check). New `handlePickDevice` auto-saves the current draft before switching; on save failure the editor stays on the dirty draft so the owner can recover.
+- **Hand-curated fluid ports on production devices.** Owner-entered I/O port data via the device editor session, landed as a `data(devices)` commit on `data/versions/1.2/devices.json` (210 +, 135 − across several devices). Future re-scrapes preserve `io_ports` per the existing scraper-merge convention.
+
+### v7.10 — ghost transform hoist for move/paste mode
 
 A second, deeper move-mode perf pass on top of v7.9. Owners reported that 100+ device selections still lagged hard, and a 39-device + 42-belt paste cluster dropped frames noticeably.
 
